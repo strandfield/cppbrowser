@@ -1,0 +1,23 @@
+extends layout
+
+block stylesheets 
+  link(rel='stylesheet', href='/stylesheets/syntax.qtcreator.css')
+  link(rel='stylesheet', href='/stylesheets/tooltip.css')
+
+block content
+  div(id='content')
+    h1= title
+    
+    include includes/breadcrumb.jade
+    pre(id="srccode") #{file.content}
+    script(type='text/javascript') 
+      | var project = { name: "#{project.name}" };
+      | var file = { id: #{file.id}}
+      | var diagnosticLevels = !{JSON.stringify(file.diagnosticLevels)};
+      | var diagnostics = !{JSON.stringify(file.diagnostics)};
+      | var includes = !{JSON.stringify(file.includes)};
+      | var sema = !{JSON.stringify(file.sema)};
+      | var symdefs = !{JSON.stringify(file.symdefs)};
+    script(type='text/javascript' src='/bundle.js')
+    script(type='text/javascript' src='/javascripts/codebrowser.js')
+    p Filepath: #{file.path}
