@@ -129,7 +129,7 @@ function createRouter(app) {
       return;
     }
 
-    res.render('sourcefile', {
+    res.render('blob', {
       title: req.params.projectName,
       project: p,
       file: {
@@ -205,7 +205,7 @@ function createRouter(app) {
     let diagnostics = p.getFileDiagnostics(f.id);
     let includes = p.getFileIncludes(f.id);
 
-    res.render('sourcefile', {
+    res.render('blob', {
       title: req.params.projectName,
       project: p,
       breadcrumb: createBreadCrumbForFile(path),
