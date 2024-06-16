@@ -68,21 +68,14 @@ function createRouter(app) {
       return;
     }
 
-    let files = p.getAllFilesInRootFolder();
-    if (!files) {
-      files = p.getAllFilesWithContent();
-      files.forEach(f => {
-        f.url = 'file/' + f.id;
-      });
-    } else {
-      files.forEach(f => {
-        f.fullPath = f.path;
-        f.path = f.fullPath.substring(p.rootDir.length + 1)
-        f.url = 'blob/' + (f.path);
-      });
-    }
+    let files = p.getAllFilesInHomeFolder();
+    files.forEach(f => {
+      f.fullPath = f.path;
+      f.path = f.fullPath.substring(p.homeDir.length + 1)
+      f.url = 'blob/' + (f.path);
+    });
 
-    let entries = p.getDirectoryEntries(p.rootDir);
+    let entries = p.getDirectoryEntries(p.homeDir);
 
     res.render('project', {
       title: req.params.projectName,
@@ -104,41 +97,6 @@ function createRouter(app) {
       });
     });
   }
-
-  router.get('/:projectName/file/:fileId', function (req, res, next) {
-    let pman = ProjectManager.globalInstance;
-    let p = pman.getProjectByName(req.params.projectName);
-
-    if (!p) {
-      next();
-      return;
-    }
-
-    let fileid = Number.parseInt(req.params.fileId);
-    let fpath = p.files[fileid];
-
-    if (!fpath) {
-      next();
-      return;
-    }
-
-    let content = p.getFileContent(fileid);
-
-    if (!content) {
-      next();
-      return;
-    }
-
-    res.render('blob', {
-      title: req.params.projectName,
-      project: p,
-      file: {
-        id: fileid,
-        path: fpath
-      },
-      fileContent: content
-    });
-  });
 
   router.get('/:projectName/tree/*', function (req, res, next) {
     let path = req.params[0];
@@ -177,7 +135,7 @@ function createRouter(app) {
       return;
     }
 
-    let f = p.getFileByPath(p.rootDir + "/" + path);
+    let f = p.getFileByPath(p.homeDir + "/" + path);
 
     if (!f) {
       next();

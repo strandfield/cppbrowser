@@ -21,11 +21,9 @@ class Project
         this.properties = this.readProperties();
         this.name = this.properties.project?.name ?? Path.parse(dbPath).name;
 
-        this.rootDir = this.properties.project?.root;
-        if (this.rootDir) {
-            this.rootDir = this.rootDir.replaceAll('\\', '/');
-        } else {
-            this.rootDir = this.#getRootDirFromFiles();
+        this.homeDir = this.properties.project?.home;
+        if (!this.homeDir) {
+            this.homeDir = this.#getHomeDirFromFiles();
         }
 
         // si le projet n'a pas de version: default
@@ -82,29 +80,33 @@ class Project
         return result;
     }
 
-    #getRootDirFromFiles() {
+    #getHomeDirFromFiles() {
         let rows = this.db.prepare('SELECT path FROM file WHERE content IS NOT NULL').all();
         if (rows.length == 0) {
             return null;
         }
-        let path = rows[0].path.replaceAll('\\', '/');
+        let home_path = rows[0].path;
         let isinfolder = function(filepath, dirpath) {
             return filepath.length > dirpath.length
                 && filepath.startsWith(dirpath)
                 && filepath[dirpath.length] == '/';
         }
         for (const row of rows) {
-            let entrypath = row.path.replaceAll('\\', '/');
-            while (path.length > 0 && !isinfolder(entrypath, path)) {
-                let i = path.lastIndexOf('/');
+            while (home_path.length > 0 && !isinfolder(row.path, home_path)) {
+                let i = home_path.lastIndexOf('/');
                 if (i == -1) {
-                    path = "";
+                    home_path = "";
                 } else {
-                    path = path.substring(0, i);
+                    home_path = home_path.substring(0, i);
                 }
             }
         }
-        return path;
+
+        if (home_path == "/") {
+            home_path = "";
+        }
+
+        return home_path;
     }
 
     getFileByPath(searchPath) {
@@ -121,31 +123,25 @@ class Project
     }
 
     getDirectoryInfo(dirpath) {
-
-        let allfiles = this.rootDir ? 
-            this.getAllFilesInRootFolder() : this.getAllFilesWithContent();
-        
-        if (!allfiles) {
-            return null;
-        }
-
-        let files = [];
-        let dirnames = new Set();
-
         if (!dirpath.endsWith('/')) {
             dirpath += '/'
         }
+
+        let allfiles = this.getAllFilesInHomeFolder();
+
+        let files = [];
+        let dirnames = new Set();
 
         let dirname = dirpath.substring(dirpath, dirpath.indexOf('/'));
         if (dirname == "") {
             dirname = "/";
         }
 
-        if (this.rootDir && !dirpath.startsWith(this.rootDir)) {
-            dirpath = this.rootDir + '/' + dirpath;
+        if (!dirpath.startsWith(this.homeDir)) {
+            dirpath = this.homeDir + '/' + dirpath;
         }
 
-        let dirrelpath = dirpath.substring(this.rootDir.length + 1);
+        let dirrelpath = dirpath.substring(this.homeDir.length + 1);
         while (dirrelpath.endsWith('/')) {
             dirrelpath = dirrelpath.substring(0, dirrelpath.length - 1);
         }
@@ -163,7 +159,7 @@ class Project
                 files.push({
                     type: 'file',
                     name: path.substring(dirpath.length),
-                    path: path.substring(this.rootDir.length + 1),
+                    path: path.substring(this.homeDir.length + 1),
                     id: file.id
                 });
             }
@@ -175,7 +171,7 @@ class Project
             entries.push({
                 type: 'dir',
                 name: item,
-                path: dirpath.substring(this.rootDir.length + 1) + item
+                path: dirpath.substring(this.homeDir.length + 1) + item
             });
         }
 
@@ -202,16 +198,12 @@ class Project
     }
 
     
-    getAllFilesInRootFolder() {
-        if (!this.rootDir) {
-            return null;
-        }
-
+    getAllFilesInHomeFolder() {
         let result = [];
 
         for (const [fileid, filepath] of Object.entries(this.files)) {
             // todo: fixme, use a dedicated function for testing if file is in dir
-            if (filepath.startsWith(this.rootDir)) {
+            if (filepath.startsWith(this.homeDir)) {
                 result.push({
                     id: fileid,
                     path: filepath
@@ -238,7 +230,7 @@ class Project
     }
 
     getFilePath(id) {
-        return this.files[id].substring(this.rootDir.length + 1);
+        return this.files[id].substring(this.homeDir.length + 1);
     }
 
     getFileContent(fileid) {
@@ -256,12 +248,12 @@ class Project
             let incfilepath = this.files[incfileid];
 
             // todo: fixme, use a dedicated function for testing if file is in dir
-            if (incfilepath.startsWith(this.rootDir)) {
+            if (incfilepath.startsWith(this.homeDir)) {
                 result.push({
                     line: Number(row.line),
                     included: {
                         id: incfileid,
-                        path: incfilepath.substring(this.rootDir.length + 1)
+                        path: incfilepath.substring(this.homeDir.length + 1)
                     }
                 });
             }
