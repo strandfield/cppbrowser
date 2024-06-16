@@ -90,6 +90,24 @@ function createRouter(app) {
     });
   });
 
+  router.get('/download/:projectName/:projectRevision', function (req, res, next) {
+    let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
+
+    if (!project) {
+      next();
+      return;
+    }
+
+    let revision = project.getRevision(req.params.projectRevision);
+
+    if (!revision) {
+      next();
+      return;
+    }
+    
+    res.download(revision.path);
+  });
+
   if (can_delete_project) {
     router.delete('/:projectName', function (req, res, next) {
       let projectmanager = ProjectManager.globalInstance;

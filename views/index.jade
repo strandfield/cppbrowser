@@ -9,5 +9,9 @@ block content
       each project in projects
         li 
           a(href="#{project.name}") #{project.name}
+          ul 
+            each revision in project.revisions
+              li 
+                span #{revision.name}
   if can_upload
     a(href="/upload", title="Create a new project") Create a new project

@@ -12,6 +12,8 @@ block content
             a(href="/#{project.name}/tree/#{projectRevision.name}/#{entry.path}") #{entry.name}
           else 
             a(href="/#{project.name}/blob/#{projectRevision.name}/#{entry.path}") #{entry.name}
+  div 
+    a(href="/download/#{project.name}/#{projectRevision.name}") Download
   if can_delete_project
     div(class='danger-zone')
       input(id='delete-button', type='button', onclick='deleteProject()', value="Delete project")
