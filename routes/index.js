@@ -1,4 +1,5 @@
 
+const { ProjectRevision } = require("../src/project.js");
 let ProjectManager = require("../src/projectmanager.js");
 
 var express = require('express');
@@ -52,36 +53,39 @@ function createRouter(app) {
 
   /* GET home page. */
   router.get('/', function (req, res, next) {
+    let projects = [];
+    let project_manager = ProjectManager.globalInstance;
+    for (const name in project_manager.projects) {
+      let p = project_manager.getProjectByName(name);
+      if (p) {
+        projects.push(p);
+      }
+    }
     res.render('index', {
       title: 'cppbrowser',
-      projects: ProjectManager.globalInstance.projects,
+      projects: projects,
       can_upload: can_upload
     });
   });
 
 
   router.get('/:projectName', function (req, res, next) {
-    let p = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
+    let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
 
-    if (!p) {
+    if (!project) {
       next();
       return;
     }
 
-    let files = p.getAllFilesInHomeFolder();
-    files.forEach(f => {
-      f.fullPath = f.path;
-      f.path = f.fullPath.substring(p.homeDir.length + 1)
-      f.url = 'blob/' + (f.path);
-    });
+    let revision = project.revisions[0];
 
-    let entries = p.getDirectoryEntries(p.homeDir);
+    let home_dir_entries = revision.getDirectoryEntries(revision.homeDir);
 
     res.render('project', {
       title: req.params.projectName,
-      project: p,
-      files: files,
-      entries: entries,
+      project: project,
+      projectRevision: revision,
+      homeDirEntries: home_dir_entries,
       can_delete_project: can_delete_project
     });
   });
@@ -98,18 +102,25 @@ function createRouter(app) {
     });
   }
 
-  router.get('/:projectName/tree/*', function (req, res, next) {
+  router.get('/:projectName/tree/:revision/*', function (req, res, next) {
     let path = req.params[0];
 
     let pman = ProjectManager.globalInstance;
-    let p = pman.getProjectByName(req.params.projectName);
+    let project = pman.getProjectByName(req.params.projectName);
 
-    if (!p) {
+    if (!project) {
       next();
       return;
     }
 
-    let dirinfo = p.getDirectoryInfo(path);
+    let revision = project.getRevision(req.params.revision);
+
+    if (!revision) {
+      next();
+      return;
+    }
+
+    let dirinfo = revision.getDirectoryInfo(path);
 
     if (!dirinfo || dirinfo.entries.length == 0) {
       next();
@@ -118,54 +129,63 @@ function createRouter(app) {
 
     res.render('tree', {
       title: req.params.projectName,
-      project: p,
+      project: project,
+      projectRevision: revision,
       dir: dirinfo,
       breadcrumb: createBreadCrumb(dirinfo)
     });
   });
 
-  router.get('/:projectName/blob/*', function (req, res, next) {
+  router.get('/:projectName/blob/:revision/*', function (req, res, next) {
     let path = req.params[0];
 
     let pman = ProjectManager.globalInstance;
-    let p = pman.getProjectByName(req.params.projectName);
+    let project = pman.getProjectByName(req.params.projectName);
 
-    if (!p) {
+    if (!project) {
       next();
       return;
     }
 
-    let f = p.getFileByPath(p.homeDir + "/" + path);
+    let revision = project.getRevision(req.params.revision);
+
+    if (!revision) {
+      next();
+      return;
+    }
+
+    let f = revision.getFileByPath(revision.homeDir + "/" + path);
 
     if (!f) {
       next();
       return;
     }
 
-    let content = p.getFileContent(f.id);
+    let content = revision.getFileContent(f.id);
 
     if (!content) {
       next();
       return;
     }
 
-    let symrefs = p.listSymbolReferencesInFile(f.id);
+    let symrefs = revision.listSymbolReferencesInFile(f.id);
     if (symrefs) {
-      symrefs.symbolKinds = p.symbolKinds;
-      symrefs.symbolFlags = p.symbolFlags;
-      symrefs.refFlags = p.symbolReferenceFlags;
+      symrefs.symbolKinds = revision.symbolKinds;
+      symrefs.symbolFlags = revision.symbolFlags;
+      symrefs.refFlags = revision.symbolReferenceFlags;
     }
-    let symdefs = p.listDefinitionsOfSymbolsReferencedInFile(f.id);
+    let symdefs = revision.listDefinitionsOfSymbolsReferencedInFile(f.id);
     let symdeffiles = {};
     for (const [key, value] of Object.entries(symdefs)) {
-      symdeffiles[value.fileid] = p.getFilePath(value.fileid);
+      symdeffiles[value.fileid] = revision.getFilePath(value.fileid);
     }
-    let diagnostics = p.getFileDiagnostics(f.id);
-    let includes = p.getFileIncludes(f.id);
+    let diagnostics = revision.getFileDiagnostics(f.id);
+    let includes = revision.getFileIncludes(f.id);
 
     res.render('blob', {
       title: req.params.projectName,
-      project: p,
+      project: project,
+      projectRevision: revision,
       breadcrumb: createBreadCrumbForFile(path),
       file: {
         id: f.id,

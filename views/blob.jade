@@ -11,7 +11,7 @@ block content
     include includes/breadcrumb.jade
     pre(id="srccode") #{file.content}
     script(type='text/javascript') 
-      | var project = { name: "#{project.name}" };
+      | var project = { name: "#{project.name}", revision: "#{projectRevision.name}" };
       | var file = { id: #{file.id}}
       | var diagnosticLevels = !{JSON.stringify(file.diagnosticLevels)};
       | var diagnostics = !{JSON.stringify(file.diagnostics)};

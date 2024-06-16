@@ -9,7 +9,7 @@ block content
       each entry in dir.entries
         li 
           if entry.type == 'dir'
-            a(href="/#{project.name}/tree/#{entry.path}") #{entry.name}
+            a(href="/#{project.name}/tree/#{projectRevision.name}/#{entry.path}") #{entry.name}
           else 
-            a(href="/#{project.name}/blob/#{entry.path}") #{entry.name}
+            a(href="/#{project.name}/blob/#{projectRevision.name}/#{entry.path}") #{entry.name}
   p In folder: #{dir.name} (#{dir.path})

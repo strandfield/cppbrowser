@@ -1,6 +1,6 @@
 
 
-const ProjectRevision = require('./project.js');
+const { ProjectRevision, Project } = require('./project.js');
 
 const fs = require('fs');
 
@@ -9,24 +9,17 @@ class ProjectManager
     constructor(directory) {
         this.directory = directory;
 
-        this.projects = [];
+        this.projects = {};
 
         fs.readdirSync(directory).forEach(file => {
             if (file.endsWith('.db')) {
                 try {
-                    let p = new ProjectRevision(directory + "/" + file);
-                    this.projects.push(p);
+                    let project_revision = new ProjectRevision(directory + "/" + file);
+                    let project = this.#getOrCreateProject(project_revision.projectName);
+                    project.addRevision(project_revision);
                 } catch(ex) {
                     console.log(ex);
                 }
-            }
-          });
-
-          this.projectsAsDict = {};
-
-          this.projects.forEach(p => {
-            if (typeof(p.name) == 'string' && p.name.length > 0) {
-                this.projectsAsDict[p.name] = p;
             }
           });
     }
@@ -38,31 +31,39 @@ class ProjectManager
     }
 
     getProjectByName(name) {
-        return this.projectsAsDict[name];
+        return this.projects[name];
     }
 
-    addProject(dbName) {
+    #getOrCreateProject(name) {
+        let p = this.projects[name];
+        if (!p) {
+            p = new Project(name);
+            this.projects[name] = p;
+        }
+        return p;
+    }
+
+    addProjectRevision(dbName) {
         try {
-            let p = new ProjectRevision(this.directory + "/" + dbName);
-            this.projects.push(p);
-            this.projectsAsDict[p.name] = p;
-            return p;
+            let project_revision = new ProjectRevision(this.directory + "/" + dbName);
+            let project = this.#getOrCreateProject(project_revision.projectName);
+            project.addRevision(project_revision);
+            return true;
         } catch(ex) {
             console.log(ex);
         }
 
-        return null;
+        return false;
     }
 
     removeProject(name) {
-        let p = this.projectsAsDict[name];
+        let p = this.projects[name];
         if (!p) {
             return false;
         }
 
-        this.projects = this.projects.filter(item => item != p);
-        ProjectRevision.destroy(p);
-        delete this.projectsAsDict[name];
+        Project.destroy(p);
+        delete this.projects[name];
         return true;
     }
 };

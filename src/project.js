@@ -6,6 +6,85 @@ const Path = require('node:path');
 var fs = require('fs');
 
 
+class ProjectVersion
+{
+    major;
+    minor;
+    patch;
+    suffix;
+
+    constructor(name) {
+        let suffixindex = name.indexOf("-");
+        if (suffixindex != -1) {
+            this.suffix = name.slice(suffixindex+1);
+            name = name.slice(0, suffixindex);
+        }
+        let segments = name.split(".");
+        
+        this.major = Number.parseInt(segments[0]);
+
+        if (segments.length >= 2) {
+            this.minor = Number.parseInt(segments[1]);
+            if (segments.length >= 3) {
+                this.patch = Number.parseInt(segments[2]);
+                if (segments.length > 3) {
+                    throw `too many segments in version number ${name}`;
+                }
+            }
+        }
+    }
+
+    toString() {
+        let v = `${this.major}`;
+
+        if (this.minor != null) {
+            v += `.${this.minor}`;
+        }
+
+        if (this.patch != null) {
+            v += `.${this.patch}`;
+        }
+
+        if (this.suffix) {
+            v += `-${this.suffix}`;
+        }
+
+        return v;
+    }
+
+    static eq(a, b) {
+        return a.major == b.major && a.minor == b.minor && a.patch == b.patch && a.suffix == b.suffix;
+    }
+
+    static comp(a, b) {
+        if (a.major != b.major) {
+            return a.major - b.major;
+        }
+
+        if (a.minor != null && b.minor == null) {
+            return 1;
+        } else if (a.minor == null && b.minor != null) {
+            return -1;
+        } else if (a.minor != null && b.minor != null) {
+            if (a.minor != b.minor) {
+                return a.minor - b.minor;
+            }
+        }
+
+        if (a.patch != null && b.patch == null) {
+            return 1;
+        } else if (a.patch == null && b.patch != null) {
+            return -1;
+        } else if (a.patch != null && b.patch != null) {
+            if (a.patch != b.patch) {
+                return a.patch - b.patch;
+            }
+        }
+
+        return 0;
+    }
+};
+
 class ProjectRevision
 {
     constructor(dbPath) {
@@ -19,7 +98,19 @@ class ProjectRevision
         this.db = new Database(dbPath, options);
 
         this.properties = this.readProperties();
-        this.name = this.properties.project?.name ?? Path.parse(dbPath).name;
+
+        if (!this.properties.project?.name) {
+            throw `missing project name in ${Path.parse(dbPath).name}.db`;
+        }
+
+        this.projectName = this.properties.project.name;
+
+        if (!this.properties.project.version) {
+            throw `missing project version in ${Path.parse(dbPath).name}.db`;
+        }
+
+        this.name = this.properties.project.version;
+        this.projectVersion = new ProjectVersion(this.name);
 
         this.homeDir = this.properties.project?.home;
         if (!this.homeDir) {
@@ -47,9 +138,9 @@ class ProjectRevision
         return new ProjectRevision(dbPath);
     }
 
-    static destroy(project) {
-        project.db.close();
-        fs.rm(project.path, function(err) {
+    static destroy(instance) {
+        instance.db.close();
+        fs.rm(instance.path, function(err) {
             if (err) {
                 console.log(err);
             }
@@ -476,4 +567,59 @@ class ProjectRevision
     }
 };
 
-module.exports = ProjectRevision;
+class Project
+{
+    name;
+    revisions;
+
+    constructor(n) {
+        this.name = n;
+        this.revisions = [];
+    }
+
+    static destroy(instance) {
+        for (let rev of instance.revisions) {
+            ProjectRevision.destroy(rev);
+        }
+
+        instance.revisions = [];
+    }
+
+    getRevision(name) {
+        let i = this.revisions.findIndex(e => e.name == name);
+        if (i != -1) {
+            return this.revisions[i];
+        } else {
+            return null;
+        }
+    }
+
+    addRevision(rev) {
+        this.revisions.push(rev);
+        this.revisions.sort((a, b) => ProjectVersion.comp(a.projectVersion, b.projectVersion)).reverse();
+    }
+
+    removeRevision(rev) {
+        if (rev instanceof ProjectRevision) {
+            let i = this.revisions.indexOf(rev);
+            this.revisions = this.revisions.splice(i, 1);
+            ProjectRevision.destroy(rev);
+        } else if (rev instanceof ProjectVersion) {
+            let i = this.revisions.findIndex(e => ProjectVersion.eq(rev, e.projectVersion));
+            if (i != -1) {
+                rev = this.revisions[i];
+                this.revisions = this.revisions.splice(i, 1);
+                ProjectRevision.destroy(rev);
+            }
+        } else if (typeof rev == 'string') {
+            let i = this.revisions.findIndex(e => e.projectVersion.toString() == rev);
+            if (i != -1) {
+                rev = this.revisions[i];
+                this.revisions = this.revisions.splice(i, 1);
+                ProjectRevision.destroy(rev);
+            }
+        }
+    }
+};
+
+module.exports = { ProjectVersion, ProjectRevision, Project };

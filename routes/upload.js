@@ -33,6 +33,15 @@ router.post('/', upload.single('database'), function(req, res, next) {
     projectname = db.prepare("SELECT value FROM info WHERE key = ?").get("project.name")?.value;
   }
 
+  let projectrevision = req.body?.projectrevision;
+
+  if (typeof(projectrevision) == 'string' && projectrevision != "") {
+    let stmt = db.prepare("INSERT OR REPLACE INTO info(key,value) VALUES(?,?)");
+    stmt.run("project.version", projectrevision);
+  } else {
+    projectrevision = db.prepare("SELECT value FROM info WHERE key = ?").get("project.version")?.value;
+  }
+
   db.close();
 
   let success = true;
@@ -40,11 +49,11 @@ router.post('/', upload.single('database'), function(req, res, next) {
   if (!projectname) {
     success = false;
   } else {
-    let destname = projectname + ".db";
-    let destpath = ProjectManager.globalInstance.directory + "/" + destname;
+    let project_manager = ProjectManager.globalInstance;
+    let destname = `${projectname}-${projectrevision}.db`;
+    let destpath = project_manager.directory + "/" + destname;
     fs.renameSync(req.file.destination + req.file.filename, destpath);
-    let pro = ProjectManager.globalInstance.addProject(destname);
-    success = (pro != null);
+    success = project_manager.addProjectRevision(destname);
     if (!success) {
       fs.rm(destpath, function(err){});
     }

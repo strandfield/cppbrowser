@@ -300,8 +300,7 @@ function doHighlightCode() {
 
                 if (symdef) {
                     let path = symdefsfiles[symdef.fileid];
-                    //span.setAttribute('href', `/${project.name}/blob/${path}#L${symdef.line}`);
-                    span.setAttribute('href', `/${project.name}/blob/${path}#${symref.symbolId}`);
+                    span.setAttribute('href', `/${project.name}/blob/${project.revision}/${path}#${symref.symbolId}`);
                 }
             }
             if (classes && span.classList.length == 0) {
@@ -387,7 +386,7 @@ function insertIncludes() {
         }
         span.setAttribute('class', "include");
         let a = document.createElement('A');
-        a.setAttribute('href', `/${project.name}/blob/${include.included.path}`)
+        a.setAttribute('href', `/${project.name}/blob/${project.revision}/${include.included.path}`)
         a.innerText = span.innerText;
         span.innerText = "";
         span.appendChild(a);

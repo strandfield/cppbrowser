@@ -9,4 +9,4 @@ ol(class='breadcrumb')
     else if part.type == 'dir'
       li 
         span(class='separator') /
-        a(href="/#{project.name}/tree/#{part.path}") #{part.name}
+        a(href="/#{project.name}/tree/#{projectRevision.name}/#{part.path}") #{part.name}

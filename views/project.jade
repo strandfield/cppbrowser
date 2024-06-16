@@ -3,20 +3,15 @@ extends layout
 block content
   h1= title
   a(href="/") Home
-  if files.length > 0 || entries.length > 0
+  if homeDirEntries.length > 0
     p Tree:
     ul(class='project-files')
-      each entry in entries
+      each entry in homeDirEntries
         li 
           if entry.type == 'dir'
-            a(href="/#{project.name}/tree/#{entry.path}") #{entry.name}
+            a(href="/#{project.name}/tree/#{projectRevision.name}/#{entry.path}") #{entry.name}
           else 
-            a(href="/#{project.name}/blob/#{entry.path}") #{entry.name}
-    p All files:
-    ul(class='project-files')
-      each file in files
-        li 
-          a(href="/#{project.name}/#{file.url}") #{file.path}
+            a(href="/#{project.name}/blob/#{projectRevision.name}/#{entry.path}") #{entry.name}
   if can_delete_project
     div(class='danger-zone')
       input(id='delete-button', type='button', onclick='deleteProject()', value="Delete project")
@@ -37,4 +32,4 @@ block content
               }
             });
         }
-  p Project is located in #{project.path}
+  p You are viewing information about revision #{projectRevision.name} (#{projectRevision.path})
