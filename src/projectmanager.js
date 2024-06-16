@@ -1,6 +1,6 @@
 
 
-const Project = require('./project.js');
+const ProjectRevision = require('./project.js');
 
 const fs = require('fs');
 
@@ -14,7 +14,7 @@ class ProjectManager
         fs.readdirSync(directory).forEach(file => {
             if (file.endsWith('.db')) {
                 try {
-                    let p = new Project(directory + "/" + file);
+                    let p = new ProjectRevision(directory + "/" + file);
                     this.projects.push(p);
                 } catch(ex) {
                     console.log(ex);
@@ -43,7 +43,7 @@ class ProjectManager
 
     addProject(dbName) {
         try {
-            let p = new Project(this.directory + "/" + dbName);
+            let p = new ProjectRevision(this.directory + "/" + dbName);
             this.projects.push(p);
             this.projectsAsDict[p.name] = p;
             return p;
@@ -61,7 +61,7 @@ class ProjectManager
         }
 
         this.projects = this.projects.filter(item => item != p);
-        Project.destroy(p);
+        ProjectRevision.destroy(p);
         delete this.projectsAsDict[name];
         return true;
     }

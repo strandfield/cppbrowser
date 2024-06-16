@@ -6,7 +6,7 @@ const Path = require('node:path');
 var fs = require('fs');
 
 
-class Project
+class ProjectRevision
 {
     constructor(dbPath) {
 
@@ -44,7 +44,7 @@ class Project
     }
 
     static open(dbPath) {
-        return new Project(dbPath);
+        return new ProjectRevision(dbPath);
     }
 
     static destroy(project) {
@@ -296,13 +296,13 @@ class Project
         }
 
         let symbol = {
-            id: Project.#convertBigIntToHex(row.id),
+            id: ProjectRevision.#convertBigIntToHex(row.id),
             kind: Number(row.kind),
             name: row.name
         };
 
         if (row.parent) {
-            symbol.parentId = Project.#convertBigIntToHex(row.parent);
+            symbol.parentId = ProjectRevision.#convertBigIntToHex(row.parent);
         }
 
         if (row.displayname) {
@@ -356,7 +356,7 @@ class Project
     }
 
     getSymbolById(idhex) {
-        let idint = Project.#convertSymbolIdFromHex(idhex);
+        let idint = ProjectRevision.#convertSymbolIdFromHex(idhex);
         let stmt = this.db.prepare("SELECT id, kind, parent, name, displayname, flags, parameterIndex, type, value FROM symbol WHERE id = ?");
         stmt.safeIntegers();
         let row = stmt.get(idint);
@@ -371,7 +371,7 @@ class Project
     }
 
     getChildSymbols(parentid) {
-        parentid = Project.#convertSymbolIdFromHex(parentid);
+        parentid = ProjectRevision.#convertSymbolIdFromHex(parentid);
         let stmt = this.db.prepare("SELECT id, kind, parent, name, displayname, flags, parameterIndex, type, value FROM symbol WHERE parent = ?");
         stmt.safeIntegers();
         let rows = stmt.all(parentid);
@@ -395,11 +395,11 @@ class Project
             let r = {
                 line: Number(row.line),
                 col: Number(row.col),
-                symbolId: Project.#convertBigIntToHex(row.symbol_id),
+                symbolId: ProjectRevision.#convertBigIntToHex(row.symbol_id),
                 flags: Number(row.flags),
             };
             if (row.parent_symbol_id) {
-                r.parentSymbolId = Project.#convertBigIntToHex(row.parent_symbol_id);
+                r.parentSymbolId = ProjectRevision.#convertBigIntToHex(row.parent_symbol_id);
             }
             references.push(r);
         }
@@ -420,7 +420,7 @@ class Project
   
         let definitions = {};
         for (let row of rows) {
-            let symbolid = Project.#convertBigIntToHex(row.symbol_id);
+            let symbolid = ProjectRevision.#convertBigIntToHex(row.symbol_id);
             let def =  {
                 fileid: Number(row.file_id),
                 line: Number(row.line),
@@ -476,4 +476,4 @@ class Project
     }
 };
 
-module.exports = Project;
+module.exports = ProjectRevision;
