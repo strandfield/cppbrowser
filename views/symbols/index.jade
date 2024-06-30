@@ -1,0 +1,18 @@
+extends ../layout
+
+block content
+  if symbols != null
+    h1 Index of Symbols
+
+  // include ../includes/breadcrumb.jade
+
+  if symbols != null
+    table 
+      tbody 
+        each symbol in symbols
+          tr
+            td 
+              a(href="#{site.baseUrl}/symbols/#{symbol.id}") #{symbol.displayName ? symbol.displayName : symbol.name}
+
+  p 
+    a(href="index.html") Index

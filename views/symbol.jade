@@ -1,0 +1,129 @@
+extends layout
+
+block content
+  if symbols != null
+    h1 Index of #{project.name}/#{projectRevision.name}/Symbols
+
+  include includes/breadcrumb.jade
+
+  if symbols != null
+    table 
+      tbody 
+        each symbol in symbols
+          tr
+            td 
+              a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{symbol.id}") #{symbol.displayName ? symbol.displayName : symbol.name}
+        tr 
+          td
+            a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}") ..
+  else if symbol != null 
+    if symbol.kind == 'class' || symbol.kind == 'struct'
+      h2 #{symbol.displayName ? symbol.displayName : symbol.name} Class 
+    else if symbol.kind == 'namespace'
+      h2 #{symbol.displayName ? symbol.displayName : symbol.name} Namespace 
+    else 
+      h2 #{symbol.displayName ? symbol.displayName : symbol.name}
+    p
+      if symbol.parent 
+        if symbol.parent.kind == 'namespace'
+          | Defined in namespace 
+          a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{symbol.parent.id}") #{symbol.parent.name}
+          | .
+        else if symbol.parent.kind == 'class'
+          | Defined in class 
+          a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{symbol.parent.id}") #{symbol.parent.name}
+          | .
+      if symbol.definitions && symbol.definitions.length > 0
+        if symbol.definitions.length = 1
+          - let uniquedef = symbol.definitions[0];
+          - let relpath = uniquedef.filePath.substring(projectRevision.homeDir.length + 1);
+          - let filename = relpath.substring(relpath.lastIndexOf("/")+1);
+          - let tag = "#L";
+          | 
+          a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/#{relpath}#{tag}#{uniquedef.line}") Go to definition
+
+    if symbol.kind == 'class' || symbol.kind == 'struct'
+      if symbol.baseClasses && symbol.baseClasses.length > 0
+        p Base classes: 
+          each base, index in symbol.baseClasses 
+            a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{base.baseClassID}") #{base.name}
+            if index == symbol.baseClasses.length - 1
+              | .
+            else 
+              | ,
+      if symbol.derivedClasses && symbol.derivedClasses.length > 0
+        p Derived classes: 
+          each derived, index in symbol.derivedClasses 
+            a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{derived.derivedClassID}") #{derived.name}
+            if index == symbol.derivedClasses.length - 1
+              | .
+            else 
+              | ,
+    if symbol.namespaces && symbol.namespaces.length > 0
+      h3 Namespaces
+      table 
+        tbody 
+          each child in symbol.namespaces
+            tr
+              td 
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+    if symbol.records && symbol.records.length > 0
+      h3 Records
+      table 
+        tbody 
+          each child in symbol.records
+            tr
+              td 
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+    if symbol.functions && symbol.functions.length > 0
+      h3 Functions
+      table 
+        tbody 
+          each child in symbol.functions
+            tr
+              td 
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+    if symbol.fields && symbol.fields.length > 0
+      h3 Fields
+      table 
+        tbody 
+          each child in symbol.fields
+            tr
+              td 
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+    if (symbol.constructors && symbol.constructors.length > 0) || (symbol.methods && symbol.methods.length > 0) 
+      h3 Functions
+      table 
+        tbody 
+          each child in symbol.constructors
+            tr
+              td 
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+          each child in symbol.destructors
+            tr
+              td 
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+          each child in symbol.methods
+            tr
+              td 
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+    if symbol.references && symbol.references.length > 0
+      h3 References 
+      each refsInFile in symbol.references
+        if projectRevision.homeDir.length > 0 && refsInFile.file.startsWith(projectRevision.homeDir)
+          - let relpath = refsInFile.file.substring(projectRevision.homeDir.length + 1);
+          - let filename = relpath.substring(relpath.lastIndexOf("/")+1);
+          - let tag = "#L";
+          p 
+            b #{filename} (#{refsInFile.references.length} References): 
+            each refinfo, index in refsInFile.references
+              a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/#{relpath}#{tag}#{refinfo.line}") #{refinfo.line}
+              = index == refsInFile.references.length - 1 ? "." : ", "
+    if symbol.children && symbol.children.length > 0
+      h3 All children
+      table 
+        tbody 
+          each child in symbol.children
+            tr
+              td 
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}

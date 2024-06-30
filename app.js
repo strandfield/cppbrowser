@@ -86,6 +86,12 @@ ProjectManager.initGlobalInstance(snaphostsPath);
 
 app.conf = conf;
 
+const SymbolIndex = require("./src/symbolindex");
+app.locals.symbolIndex = new SymbolIndex();
+console.log("Building symbol index...");
+app.locals.symbolIndex.build(ProjectManager.globalInstance);
+console.log("Done!");
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
@@ -94,12 +100,16 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname, 'dist')));
+
+app.locals.site = {
+  baseUrl: "/ui/static"
+};
+
+app.use(app.locals.site.baseUrl, express.static(path.join(__dirname, 'public')));
+app.use(app.locals.site.baseUrl, express.static(path.join(__dirname, 'dist')));
 
 var indexRouter = require('./routes/index')(app);
-
-app.use('/', indexRouter);
+app.use(app.locals.site.baseUrl, indexRouter);
 
 if (conf?.features?.upload ?? true) {
   console.log("Snapshot upload is enabled");

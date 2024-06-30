@@ -4,6 +4,7 @@ const Database = require('better-sqlite3');
 
 const Path = require('node:path');
 var fs = require('fs');
+const { assert } = require('node:console');
 
 
 class ProjectVersion
@@ -117,8 +118,6 @@ class ProjectRevision
             this.homeDir = this.#getHomeDirFromFiles();
         }
 
-        // si le projet n'a pas de version: default
-
         this.files = {};
         this.maxfileid = 0;
 
@@ -129,6 +128,7 @@ class ProjectRevision
         }
 
         this.diagnosticLevels = this.#readDiagnosticLevels();
+        this.accessSpecifiers = this.#readAccessSpecifiers();
         this.symbolKinds = this.#readSymbolKinds();
         this.symbolFlags = this.#readSymbolFlags();
         this.symbolReferenceFlags = this.#readSymbolReferenceFlags();
@@ -223,9 +223,11 @@ class ProjectRevision
         let files = [];
         let dirnames = new Set();
 
-        let dirname = dirpath.substring(dirpath, dirpath.indexOf('/'));
+        let dirname = dirpath.substring(dirpath.lastIndexOf('/', dirpath.length-2), dirpath.length-1);
         if (dirname == "") {
             dirname = "/";
+        } else if (dirname.length > 1 && dirname.startsWith("/")) {
+            dirname = dirname.substring(1);
         }
 
         if (!dirpath.startsWith(this.homeDir)) {
@@ -268,6 +270,11 @@ class ProjectRevision
 
         for (const item of files) {
             entries.push(item);
+        }
+
+        // ugly
+        if (entries.length == 0) {
+            return null;
         }
 
         let result = {
@@ -469,6 +476,126 @@ class ProjectRevision
         return this.#readSymbols(rows);
     }
 
+    getTopLevelSymbols() {
+        let stmt = this.db.prepare("SELECT id, kind, name, displayname, flags, parameterIndex, type, value FROM symbol WHERE parent IS NULL");
+        stmt.safeIntegers();
+        let rows = stmt.all();
+        return this.#readSymbols(rows);
+    }
+    
+    selectNonLocalDefinedSymbols() {
+        let query = `SELECT id, kind, parent, name, displayname, flags, parameterIndex, type, value 
+        FROM symbol WHERE (symbol.id IN (SELECT symbol_id FROM symbolDefinition) OR symbol.kind = 2) AND (flags & 1 = 0)`;
+
+        let stmt = this.db.prepare(query);
+        stmt.safeIntegers();
+        let rows = stmt.all();
+        return this.#readSymbols(rows);
+    }
+
+    getBaseClasses(symbolId) {
+        symbolId = ProjectRevision.#convertSymbolIdFromHex(symbolId);
+        let stmt = this.db.prepare("SELECT baseOf.access AS access, baseOf.baseClassID AS baseClassID, symbol.name AS name FROM baseOf LEFT JOIN symbol ON baseOf.baseClassID = symbol.id WHERE baseOf.derivedClassID = ?");
+        stmt.safeIntegers();
+        let rows = stmt.all(symbolId);
+        let result = [];
+
+        for (const row of rows) {
+            let element = {
+                access: Number(row.access),
+                baseClassID: ProjectRevision.#convertBigIntToHex(row.baseClassID),
+                name: row.name
+            };
+            result.push(element);
+        }
+
+        return result;
+    }
+
+    getDerivedClasses(symbolId) {
+        symbolId = ProjectRevision.#convertSymbolIdFromHex(symbolId);
+        let stmt = this.db.prepare("SELECT baseOf.derivedClassID AS derivedClassID, symbol.name AS name FROM baseOf LEFT JOIN symbol ON baseOf.derivedClassID = symbol.id WHERE baseOf.baseClassID = ?");
+        stmt.safeIntegers();
+        let rows = stmt.all(symbolId);
+        let result = [];
+
+        for (const row of rows) {
+            let element = {
+                derivedClassID: ProjectRevision.#convertBigIntToHex(row.derivedClassID),
+                name: row.name
+            };
+            result.push(element);
+        }
+
+        return result;
+    }
+
+    getSymbolKindValue(text) {
+        return this.symbolKinds.indexOf(text);
+    }
+
+    listSymbolReferences(symbolId) {
+        symbolId = ProjectRevision.#convertSymbolIdFromHex(symbolId);
+        let query = `SELECT file_id, line, col, parent_symbol_id, flags FROM symbolReference WHERE symbol_id = ?
+          ORDER BY file_id, line, col ASC`;
+        let stmt = this.db.prepare(query);
+        stmt.safeIntegers();
+        let rows = stmt.all(symbolId);
+
+        let result = [];
+        for (const row of rows) {
+            result.push({
+                fileId: Number(row.file_id),
+                line: Number(row.line),
+                col: Number(row.col),
+                parent_symbol_id: row.parent_symbol_id ? ProjectRevision.#convertBigIntToHex(row.parent_symbol_id) : null,
+                flags: Number(row.flags)
+            });
+        }
+        return result;
+    }
+
+    listSymbolReferencesByFile(symbolId) {
+        symbolId = ProjectRevision.#convertSymbolIdFromHex(symbolId);
+        let query = `SELECT file_id, line, col, parent_symbol_id, flags FROM symbolReference WHERE symbol_id = ?
+          ORDER BY file_id, line, col ASC`;
+        let stmt = this.db.prepare(query);
+        stmt.safeIntegers();
+        let rows = stmt.all(symbolId);
+
+        let result = [];
+        let curfile = null;
+        let curfilerefs = [];
+        for (const row of rows) {
+            if (Number(row.file_id) != curfile) {
+                if (curfilerefs.length > 0) {
+                    result.push({
+                        file: this.files[curfile],
+                        references: curfilerefs
+                    });
+                    curfilerefs = [];
+                }
+
+                curfile = Number(row.file_id);
+            }
+
+            curfilerefs.push({
+                line: Number(row.line),
+                col: Number(row.col),
+                flags: Number(row.flags)
+            });
+        }
+
+        if (curfilerefs.length > 0) {
+            result.push({
+                file: this.files[curfile],
+                references: curfilerefs
+            });
+        }
+
+        return result;
+    }
+
     listSymbolReferencesInFile(fileid) {
         let query = `WITH referencedSymbols AS (SELECT DISTINCT symbol_id from symbolReference where file_id = ${fileid}) 
             SELECT id, kind, parent, name, displayname, flags, parameterIndex, type, value FROM symbol 
@@ -539,11 +666,22 @@ class ProjectRevision
         return dlvls;
     }
 
-    #readSymbolKinds() {
-        let rows = this.db.prepare('SELECT id, name FROM symbolKind').all();
-        let kinds = {};
+    #readAccessSpecifiers() {
+        let rows = this.db.prepare('SELECT value, name FROM accessSpecifier ORDER BY value ASC').all();
+        let kinds = [];
         for (let r of rows) {
-            kinds[Number(r.id)] = r.name;
+            assert(Number(r.value) == kinds.length);
+            kinds.push(r.name);
+        }
+        return kinds;
+    }
+
+    #readSymbolKinds() {
+        let rows = this.db.prepare('SELECT id, name FROM symbolKind ORDER BY id ASC').all();
+        let kinds = [];
+        for (let r of rows) {
+            assert(Number(r.id) == kinds.length);
+            kinds.push(r.name);
         }
         return kinds;
     }
@@ -602,20 +740,20 @@ class Project
     removeRevision(rev) {
         if (rev instanceof ProjectRevision) {
             let i = this.revisions.indexOf(rev);
-            this.revisions = this.revisions.splice(i, 1);
+            this.revisions.splice(i, 1);
             ProjectRevision.destroy(rev);
         } else if (rev instanceof ProjectVersion) {
             let i = this.revisions.findIndex(e => ProjectVersion.eq(rev, e.projectVersion));
             if (i != -1) {
                 rev = this.revisions[i];
-                this.revisions = this.revisions.splice(i, 1);
+                this.revisions.splice(i, 1);
                 ProjectRevision.destroy(rev);
             }
         } else if (typeof rev == 'string') {
             let i = this.revisions.findIndex(e => e.projectVersion.toString() == rev);
             if (i != -1) {
                 rev = this.revisions[i];
-                this.revisions = this.revisions.splice(i, 1);
+                this.revisions.splice(i, 1);
                 ProjectRevision.destroy(rev);
             }
         }

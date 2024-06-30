@@ -1,16 +1,24 @@
 extends layout
 
 block stylesheets 
-  link(rel='stylesheet', href='/stylesheets/syntax.qtcreator.css')
-  link(rel='stylesheet', href='/stylesheets/tooltip.css')
+  link(rel='stylesheet', href="#{site.baseUrl}/stylesheets/syntax.qtcreator.css")
+  link(rel='stylesheet', href="#{site.baseUrl}/stylesheets/tooltip.css")
+  style 
+   | nav {
+   |   display: flex; align-items: baseline;
+   | }
 
 block content
   div(id='content')
-    h1= title
-    
-    include includes/breadcrumb.jade
+    nav
+      include includes/breadcrumb.jade
+      div(style="flex-grow: 1;")
+      div(style="display: flex; gap: 1em;")
+        a(href="#{site.baseUrl}/raw/#{project.name}/#{projectRevision.name}/#{file.relativePath}") Raw
+        a(href="#{site.baseUrl}/download/#{project.name}/#{projectRevision.name}/#{file.relativePath}") Download
     pre(id="srccode") #{file.content}
     script(type='text/javascript') 
+      | var site = { baseUrl: "#{site.baseUrl}" };
       | var project = { name: "#{project.name}", revision: "#{projectRevision.name}" };
       | var file = { id: #{file.id}}
       | var diagnosticLevels = !{JSON.stringify(file.diagnosticLevels)};
@@ -18,6 +26,6 @@ block content
       | var includes = !{JSON.stringify(file.includes)};
       | var sema = !{JSON.stringify(file.sema)};
       | var symdefs = !{JSON.stringify(file.symdefs)};
-    script(type='text/javascript' src='/bundle.js')
-    script(type='text/javascript' src='/javascripts/codebrowser.js')
+    script(type='text/javascript' src="#{site.baseUrl}/bundle.js")
+    script(type='text/javascript' src="#{site.baseUrl}/javascripts/codebrowser.js")
     p Filepath: #{file.path}

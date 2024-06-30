@@ -1,17 +1,19 @@
 extends layout
 
 block content
-  h1= title
-  p Welcome to #{title}!
+  h1 Index
   if projects.length > 0
-    p Browse one of the following projects:
-    ul(class='project-list')
-      each project in projects
-        li 
-          a(href="#{project.name}") #{project.name}
-          ul 
-            each revision in project.revisions
-              li 
-                span #{revision.name}
-  if can_upload
-    a(href="/upload", title="Create a new project") Create a new project
+    table 
+      tbody 
+        each project in projects
+          tr
+            td 
+              a(href="#{project.name}") #{project.name}
+            if canDelete 
+              td 
+                a(href="delete/#{project.name}") Remove
+  p 
+    a(href="symbols.html") Symbol Index
+  if canUpload 
+    p
+      a(href="upload.html") Upload snapshot

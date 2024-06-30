@@ -8,7 +8,6 @@ var fs = require('fs');
 var ProjectManager = require("../src/projectmanager");
 const Database = require('better-sqlite3');
 
-/* GET users listing. */
 router.get('/', function(req, res, next) {
   res.render('upload', {});
 });

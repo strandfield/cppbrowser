@@ -1,37 +1,20 @@
 extends layout
 
 block content
-  h1= title
-  a(href="/") Home
-  if homeDirEntries.length > 0
-    p Tree:
-    ul(class='project-files')
-      each entry in homeDirEntries
-        li 
-          if entry.type == 'dir'
-            a(href="/#{project.name}/tree/#{projectRevision.name}/#{entry.path}") #{entry.name}
-          else 
-            a(href="/#{project.name}/blob/#{projectRevision.name}/#{entry.path}") #{entry.name}
-  div 
-    a(href="/download/#{project.name}/#{projectRevision.name}") Download
-  if can_delete_project
-    div(class='danger-zone')
-      input(id='delete-button', type='button', onclick='deleteProject()', value="Delete project")
-      script. 
-        function deleteProject() {
-          $("#delete-button").prop("disabled", true);
-  
-          let projectname = "#{project.name}";
-          console.log(`About to delete ${projectname}`);
-           	
-          $.ajax({
-            method: "DELETE",
-            url: `/${projectname}`,
-          })
-            .done(function(res) {
-              if (res.success) {
-                window.location.replace(window.location.origin);
-              }
-            });
-        }
-  p You are viewing information about revision #{projectRevision.name} (#{projectRevision.path})
+  h1 Index of #{project.name}
+  table(style="") 
+    colgroup 
+      col(span="1", style="min-width: 240px;")
+      col(span="1")
+    tbody 
+      each revision in project.revisions
+        tr
+          td 
+            a(href="#{project.name}/#{revision.name}") #{revision.name}
+          td(style="display: flex; gap: 1em;")
+            a(href="/download/#{project.name}/#{revision.name}") Download
+            if canDelete
+              a(href="#{site.baseUrl}/delete/#{project.name}/#{revision.name}") Remove
+      tr 
+        td(colspan="2") 
+          a(href="index.html") ..

@@ -1,15 +1,37 @@
 extends layout
 
 block content
-  h1= title
-  
+  if directory.path != "" 
+    h1 Index of #{project.name}/#{projectRevision.name}/#{directory.path}
+  else 
+    h1 Index of #{project.name}/#{projectRevision.name}
+
   include includes/breadcrumb.jade
-  if dir.entries.length > 0
-    ul(class='project-files')
-      each entry in dir.entries
-        li 
-          if entry.type == 'dir'
-            a(href="/#{project.name}/tree/#{projectRevision.name}/#{entry.path}") #{entry.name}
-          else 
-            a(href="/#{project.name}/blob/#{projectRevision.name}/#{entry.path}") #{entry.name}
-  p In folder: #{dir.name} (#{dir.path})
+
+  table 
+    colgroup 
+      col(span="1", style="min-width: 240px;")
+      col(span="1")
+    tbody 
+      each entry in directory.entries
+        if entry.type == 'dir'
+          tr
+            td 
+              a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/#{entry.path}") #{entry.name}
+            td
+        else
+          tr
+            td 
+              a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/#{entry.path}") #{entry.name}
+            td(style="display: flex; gap: 1em;")
+              a(href="#{site.baseUrl}/raw/#{project.name}/#{projectRevision.name}/#{entry.path}") Raw
+              a(href="#{site.baseUrl}/download/#{project.name}/#{projectRevision.name}/#{entry.path}") Download
+      tr 
+        td
+          if directory.path == "" 
+            a(href="#{site.baseUrl}/#{project.name}") ..
+          else if directory.parent_path
+            a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/#{directory.parent_path}") ..
+          else
+            a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}") ..
+        td

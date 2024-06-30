@@ -85,6 +85,10 @@ function SymbolIs(s, what) {
     }
 }
 
+function IsLocalSymbol(s) {
+    return (s.flags & 1)
+}
+
 function GetSymbol(q) {
     if (q.symbolId) {
         return sema.symbols[q.symbolId];
@@ -253,7 +257,7 @@ function doHighlightCode() {
             if (symref && symdefs.definitions[symref.symbolId] && !Array.isArray(symdefs.definitions[symref.symbolId])) {
                 symdef = symdefs.definitions[symref.symbolId];
                 let isatdef = (symdef.fileid == file.id && symdef.line == curlineindex + 1);
-                let islocalsym = (sema.symbols[symref.symbolId].flags & 1);
+                let islocalsym = IsLocalSymbol(sema.symbols[symref.symbolId]);
                 if (!isatdef && !islocalsym) {
                     tagname = "a";
                 } else {
@@ -300,7 +304,7 @@ function doHighlightCode() {
 
                 if (symdef) {
                     let path = symdefsfiles[symdef.fileid];
-                    span.setAttribute('href', `/${project.name}/blob/${project.revision}/${path}#${symref.symbolId}`);
+                    span.setAttribute('href', `${site.baseUrl}/${project.name}/${project.revision}/${path}#${symref.symbolId}`);
                 }
             }
             if (classes && span.classList.length == 0) {
@@ -386,7 +390,7 @@ function insertIncludes() {
         }
         span.setAttribute('class', "include");
         let a = document.createElement('A');
-        a.setAttribute('href', `/${project.name}/blob/${project.revision}/${include.included.path}`)
+        a.setAttribute('href', `${site.baseUrl}/${project.name}/${project.revision}/${include.included.path}`);
         a.innerText = span.innerText;
         span.innerText = "";
         span.appendChild(a);
@@ -573,8 +577,10 @@ class CodeNavigator {
             content += `Line ${this.#getLine(ref)}<br/>`;
         });
 
-        //content += `<div style='text-align: right;'><a href='/${project.name}/symbols/${symid}.html'>More...</a></div>`;
-
+        if (!IsLocalSymbol(symbol)) {
+            content += `<div style='text-align: right;'><a href='${site.baseUrl}/${project.name}/${project.revision}/symbols/${symid}'>More...</a></div>`;
+        }
+        
         this.tooltip.showAfterDelay(elem, () => this.tooltip.setHtml(content));
     }
 

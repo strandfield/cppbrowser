@@ -7,10 +7,10 @@ block content
       p Upload successful
     else 
       p Upload failed
-    a(href="/upload") Upload another snapshot
-  else
+    a(href="#{site.baseUrl}/upload.html") Upload another snapshot
+  else if canUpload
     p Upload a new snapshot
-    form(action="/upload", method='post', enctype='multipart/form-data')
+    form(action="#{site.baseUrl}/upload.html", method='post', enctype='multipart/form-data')
       p
         input(type='file', name="database")
       label(for="projectname") Project name:
@@ -19,4 +19,6 @@ block content
         input(type='text', name="projectrevision")
       div
         input(type='submit')
-  a(href="/", title="Home") Go to Home
+  else 
+    p Snapshot uploading is disabled.
+  a(href="#{site.baseUrl}/index.html", title="Home") Go to Home

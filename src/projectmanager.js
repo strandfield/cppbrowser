@@ -34,6 +34,14 @@ class ProjectManager
         return this.projects[name];
     }
 
+    getProjects() {
+        let list = [];
+        for (let key in this.projects) {
+            list.push(this.projects[key]);
+        }
+        return list;
+    }
+
     #getOrCreateProject(name) {
         let p = this.projects[name];
         if (!p) {
