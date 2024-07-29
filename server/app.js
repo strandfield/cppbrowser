@@ -101,21 +101,29 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
+if (conf?.features?.upload ?? true) {
+  console.log("Snapshot upload is enabled");
+}
+
+app.locals.restApi = {
+  baseUrl: "/api"
+};
 app.locals.site = {
   baseUrl: "/ui/static"
 };
 
+// API routes
+var apiRouter = require('./routes/api')(app);
+app.use(app.locals.restApi.baseUrl, apiRouter);
+
+// Download routes
+app.use("/download", require('./routes/download')(app));
+
+// Static UI routes
+var indexRouter = require('./routes/index')(app);
 app.use(app.locals.site.baseUrl, express.static(path.join(__dirname, 'public')));
 app.use(app.locals.site.baseUrl, express.static(path.join(__dirname, 'dist')));
-
-var indexRouter = require('./routes/index')(app);
 app.use(app.locals.site.baseUrl, indexRouter);
-
-if (conf?.features?.upload ?? true) {
-  console.log("Snapshot upload is enabled");
-  var uploadRouter = require('./routes/upload');
-  app.use('/upload', uploadRouter);
-}
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

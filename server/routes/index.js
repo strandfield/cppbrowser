@@ -435,10 +435,6 @@ function UploadSnapshot(req, res, next) {
     fs.rm(dbPath, function(err){});
   }
 
-  // res.json({
-  //   success: true 
-  // });
-
   res.render("upload", {
     uploadResult: {
       success: success

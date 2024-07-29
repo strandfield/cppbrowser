@@ -476,6 +476,20 @@ class ProjectRevision
         return this.#readSymbols(rows);
     }
 
+    getChildSymbolsEx(parentid, fields = "") {
+        parentid = ProjectRevision.#convertSymbolIdFromHex(parentid);
+        let q = "";
+        if (fields.length > 0) {
+            q = `SELECT id, kind, name, displayname, ${fields} FROM symbol WHERE parent = ?`;
+        } else {
+            q = "SELECT id, kind, name, displayname FROM symbol WHERE parent = ?";
+        }
+        let stmt = this.db.prepare(q);
+        stmt.safeIntegers();
+        let rows = stmt.all(parentid);
+        return this.#readSymbols(rows);
+    }
+
     getTopLevelSymbols() {
         let stmt = this.db.prepare("SELECT id, kind, name, displayname, flags, parameterIndex, type, value FROM symbol WHERE parent IS NULL");
         stmt.safeIntegers();
@@ -742,12 +756,14 @@ class Project
             let i = this.revisions.indexOf(rev);
             this.revisions.splice(i, 1);
             ProjectRevision.destroy(rev);
+            return true;
         } else if (rev instanceof ProjectVersion) {
             let i = this.revisions.findIndex(e => ProjectVersion.eq(rev, e.projectVersion));
             if (i != -1) {
                 rev = this.revisions[i];
                 this.revisions.splice(i, 1);
                 ProjectRevision.destroy(rev);
+                return true;
             }
         } else if (typeof rev == 'string') {
             let i = this.revisions.findIndex(e => e.projectVersion.toString() == rev);
@@ -755,8 +771,11 @@ class Project
                 rev = this.revisions[i];
                 this.revisions.splice(i, 1);
                 ProjectRevision.destroy(rev);
+                return true;
             }
         }
+
+        return false;
     }
 };
 

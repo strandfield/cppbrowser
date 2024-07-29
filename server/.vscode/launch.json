@@ -7,12 +7,11 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "server",
+            "name": "cppbrowser",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "cwd": "${workspaceFolder}/server",
-            "program": "${workspaceFolder}\\server\\bin\\www"
+            "program": "${workspaceFolder}\\bin\\www"
         }
     ]
 }
