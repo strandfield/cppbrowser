@@ -4,7 +4,7 @@ import SnapshotItem from './SnapshotItem.vue';
 
 import { ref } from 'vue'
 
-const props = defineProps({
+defineProps({
   project: {
     type: Object,
     required: true
@@ -15,10 +15,6 @@ const isOpen = ref(false);
 
 function toggle() {
   isOpen.value = !isOpen.value;
-}
-
-function select() {
-  console.log(props.project.name);
 }
 
 </script>

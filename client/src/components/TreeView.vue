@@ -3,18 +3,10 @@ import ProjectItem from './TreeView/ProjectItem.vue'
 
 import { snapshots } from '@/state/snapshots';
 
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
 
 onMounted(() => {
   console.log(`treeview is now mounted.`);
-
-  // $.ajax({
-  //   url: "/api/snapshots"
-  // }) .done(function( data ) {
-  //     console.log(JSON.stringify(data));
-    
-  // });
-
   snapshots.load();
 })
 

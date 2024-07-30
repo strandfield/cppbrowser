@@ -2,6 +2,67 @@
 import { reactive } from 'vue'
 import $ from "jquery"
 
+function buildTreeFromSortedFiles(files) {
+    let root_folder = {
+        type: 'dir',
+        name: "",
+        path: "",
+        children: []
+    };
+
+    let current_folder = root_folder;
+    let folder_stack = [];
+
+    let enterFolder = function(f) {
+        current_folder.children.push(f);
+        folder_stack.push(current_folder);
+        current_folder = f;
+    }
+
+    let addFileEntryToFolder = function(path, filename = null) {
+        current_folder.children.push({
+            type: 'file',
+            path: path,
+            name: filename != null ? filename : path.substring(path.lastIndexOf("/"))
+        });
+    }
+
+    let leaveFolder = function() {
+        current_folder = folder_stack.pop();
+    }
+
+    function add_file_to_folder(f) {
+        let slash_index = f.indexOf("/", current_folder.path);
+
+        if (slash_index == -1) { // file is exactly in current folder
+            addFileEntryToFolder(f, f.substring(current_folder.path.length));
+        } else { // file is in a nested folder
+            let path_parts = f.substring(current_folder.path.length).split("/");
+            let filename = path_parts.pop();
+            for (const p of path_parts) {
+                let nested_folder = {
+                    type: 'dir',
+                    name: p,
+                    path: current_folder.path + p + "/",
+                    children: []
+                };
+                enterFolder(nested_folder);
+            }
+
+            addFileEntryToFolder(f, filename);
+        }
+    }
+
+    for (const f of files) {
+        while (!f.startsWith(current_folder.path)) { // file isn't in current folder
+            leaveFolder();
+        }
+        add_file_to_folder(f);
+    }
+
+    return root_folder;
+}
+
 const filesobj = {
     filesmap: new Map(),
     callbacks: [],
@@ -45,6 +106,11 @@ const filesobj = {
 
         entry.state = 'loaded';
         entry.data = data;
+
+        if (entry.data.files) {
+            entry.data.files.sort();
+            entry.data.tree = buildTreeFromSortedFiles(entry.data.files);
+        }
 
         let newcallbacks = [];
 
