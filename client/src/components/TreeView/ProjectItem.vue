@@ -25,7 +25,7 @@ function select() {
 
 <template>
   <li class="item">
-    <span @click="toggle">{{ isOpen ? "-" : "+" }}</span><span class="name" @click="select">{{ project.name }}</span>
+    <span @click="toggle">{{ isOpen ? "-" : "+" }}</span><RouterLink :to="{ name: 'project', params: { projectName: project.name } }">{{ project.name }}</RouterLink>
     <ul v-show="isOpen" v-if="project.revisions.length > 0">
       <SnapshotItem v-for="rev in project.revisions" :key="rev.name" :revision="rev"></SnapshotItem>
     </ul>
