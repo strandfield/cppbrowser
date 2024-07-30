@@ -4,12 +4,15 @@ import FileTreeView from '@/components/FileTreeView.vue';
 
 import { files } from '@/state/files';
 
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, provide, watch } from 'vue'
 
 const props = defineProps({
   projectName: String,
   projectRevision: String
 });
+
+provide('projectName', props.projectName);
+provide('projectRevision', props.projectRevision);
 
 const myfiles = ref([]);
 const myFileTree = ref(null);
@@ -33,8 +36,7 @@ onMounted(() => {
   fetchSnapshotFiles();
 });
 
-watch(() => props.projectName, fetchSnapshotFiles, { immediate: false });
-watch(() => props.projectRevision, fetchSnapshotFiles, { immediate: false });
+watch(() => props.projectName + "/" + props.projectRevision, fetchSnapshotFiles, { immediate: false });
 
 function switchFileView() {
   file_tree_view.value = !file_tree_view.value;
