@@ -4,7 +4,7 @@ import FileTreeView from '@/components/FileTreeView.vue';
 
 import { files } from '@/state/files';
 
-import { ref, onMounted, provide, watch } from 'vue'
+import { ref, computed, onMounted, provide, watch } from 'vue'
 
 const props = defineProps({
   projectName: String,
@@ -17,7 +17,15 @@ provide('projectRevision', props.projectRevision);
 const myfiles = ref([]);
 const myFileTree = ref(null);
 
-const file_tree_view = ref(false);
+provide('snapshotFiles', myfiles);
+provide('snapshotFileTree', myFileTree);
+
+
+const treeview_mode = ref('files');
+
+const show_file_treeview = computed(() => {
+  return treeview_mode.value == 'files';
+})
 
 function receiveSnapshotFiles(projectName, projectRevision, data) {
   if (projectName == props.projectName && projectRevision == props.projectRevision) {
@@ -38,23 +46,23 @@ onMounted(() => {
 
 watch(() => props.projectName + "/" + props.projectRevision, fetchSnapshotFiles, { immediate: false });
 
-function switchFileView() {
-  file_tree_view.value = !file_tree_view.value;
-}
-
 </script>
 
 <template>
-  <div>
-    <h2>{{ projectName }}/{{ projectRevision }}</h2>
-    <h3 @click="switchFileView()">Files</h3>
-    <table v-if="myfiles && !file_tree_view">
-      <tbody>
-      <tr v-for="f in myfiles" :key="f">
-        <td>{{ f }}</td>
-      </tr>
-      </tbody>
-    </table>
-    <FileTreeView v-if="myfiles && file_tree_view" :fileTree="myFileTree"></FileTreeView>
+  <div class="snapshot-view">
+    <nav>
+      <div>TODO: version combobox</div>
+      <h3>Files</h3>
+      <FileTreeView v-if="show_file_treeview && myFileTree" :fileTree="myFileTree"></FileTreeView>
+    </nav>
+    <div>
+      <RouterView />
+    </div>
   </div>
 </template>
+
+<style scoped>
+.snapshot-view {
+  display: flex;
+}
+</style>

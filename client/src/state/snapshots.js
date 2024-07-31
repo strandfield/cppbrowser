@@ -44,6 +44,7 @@ const snapshots_object = {
             });
             project_list.sort((a, b) => a.name.localeCompare(b.name));
 
+            // TODO: for each project, find the latest/default version
             this.projects = project_list;
             this.state = 'loaded';
         });

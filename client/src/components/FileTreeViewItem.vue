@@ -32,7 +32,7 @@ function toggle() {
   <li class="item">
     <span  v-if="isDir" @click="toggle">{{ isOpen ? "-" : "+" }}</span>
     <RouterLink v-if="!isDir" :to="{ name: 'file', params: { projectName: projectName, projectRevision: projectRevision, pathParts: pathParts } }">{{ treeItem.name }}</RouterLink>
-    <span v-if="isDir">{{ treeItem.name }}</span>
+    <RouterLink v-if="isDir" :to="{ name: 'dir', params: { projectName: projectName, projectRevision: projectRevision, pathParts: pathParts } }">{{ treeItem.name }}</RouterLink>
     <ul v-if="isDir" v-show="isOpen">
       <FileTreeViewItem v-for="entry in treeItem.children" :key="entry.path" :treeItem="entry"></FileTreeViewItem>
     </ul>

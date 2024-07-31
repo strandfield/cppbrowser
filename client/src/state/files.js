@@ -28,6 +28,16 @@ function buildTreeFromSortedFiles(files) {
     }
 
     let leaveFolder = function() {
+        if (current_folder.path.endsWith("/")) {
+            current_folder.path = current_folder.path.substring(0, current_folder.path.length - 1);
+        }
+
+        let classes = {
+            "dir": 0,
+            "file": 1
+        };
+        current_folder.children.sort((a,b) => classes[a.type] - classes[b.type]);
+
         current_folder = folder_stack.pop();
     }
 
@@ -58,6 +68,10 @@ function buildTreeFromSortedFiles(files) {
             leaveFolder();
         }
         add_file_to_folder(f);
+    }
+
+    while (folder_stack.length > 0) {
+        leaveFolder();
     }
 
     return root_folder;

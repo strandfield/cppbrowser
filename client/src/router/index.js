@@ -1,7 +1,9 @@
 import HomeView from '../views/HomeView.vue'
 import ProjectView from '../views/ProjectView.vue'
 import SnapshotView from '@/views/SnapshotView.vue'
+import SnapshotHomeView from '@/views/SnapshotHomeView.vue'
 import FileView from '@/views/FileView.vue'
+import DirectoryView from '@/views/DirectoryView.vue'
 
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -21,16 +23,31 @@ const router = createRouter({
     },
     {
       path: "/snapshots/:projectName/:projectRevision",
-      name: 'snapshot',
       component: SnapshotView,
-      props: true
+      props: true,
+      children: [
+        {
+          path: "",
+          name: 'snapshot',
+          component: SnapshotHomeView,
+          props: true
+        },
+        {
+          path: "files/:pathParts+",
+          name: 'file',
+          component: FileView,
+          props: true
+        }
+        ,
+        {
+          path: "tree/:pathParts+",
+          name: 'dir',
+          component: DirectoryView,
+          props: true
+        }
+      ],
     },
-    {
-      path: "/snapshots/:projectName/:projectRevision/files/:pathParts+",
-      name: 'file',
-      component: FileView,
-      props: true
-    }
+
     // ,
     // {
     //   path: '/about',
