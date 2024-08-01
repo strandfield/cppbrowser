@@ -27,3 +27,17 @@ a,
     place-items: center;
   } */
 }
+
+
+/*TODO: move somewhere else ? */
+.code {
+  white-space: pre;
+  font-family: monospace;
+}
+
+.code th {
+  user-select: none;
+  padding-right: 1ex;
+  text-align: right;
+  font-weight: normal;
+}

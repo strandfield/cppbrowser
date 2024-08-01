@@ -24,6 +24,7 @@ onMounted(() => {
         I am error
       </p>
     </template>
+    <p>TODO: project [combobox or split button for version], by default go to latest version</p>
     <ProjectItem v-for="pro in snapshots.projects" :key="pro.name" :project="pro"></ProjectItem>
   </main>
 </template>
