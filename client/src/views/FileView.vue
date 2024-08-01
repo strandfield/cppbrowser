@@ -1,7 +1,7 @@
 <script setup>
 
 import { ref, onMounted, watch, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useLink } from 'vue-router'
 
 import { parser } from "@lezer/cpp"
 import { highlightTree, classHighlighter } from "@lezer/highlight"
@@ -74,8 +74,6 @@ function setFileContent(data) {
 
   let srccodecontainer = document.getElementById("srccodecontainer");
   srccodecontainer.replaceChildren(codetable);
-
-  console.log(lineviews);
 }
 
 function fetchFileContent() {
@@ -125,7 +123,6 @@ let codeIsHighlighted = false;
 
 function doHighlightCode() {
   ast = parser.parse(sourceCode.value);
-  console.log(ast);
 
   codeIsHighlighted = true;
 
@@ -263,14 +260,27 @@ function doHighlightCode() {
 
         if (symdef) {
           let path = symdefsfiles[symdef.fileid];
-          let target_url = `${site.baseUrl}/${props.projectName}/${props.projectRevision}/files/${path}#${symref.symbolId}`;
-          span.setAttribute('href', target_url);
-          span.onclick = () => {
-            router.push({ name: 'file', params: { 
-              projectName: props.projectName, 
+          let routing_options = {
+            name: 'file', 
+            params: {
+              projectName: props.projectName,
               projectRevision: props.projectRevision,
               pathParts: path.split("/")
-            } });
+            }, 
+            hash: `#${symref.symbolId}`
+          };
+
+          //let target_url = `${site.baseUrl}/${props.projectName}/${props.projectRevision}/files/${path}#${symref.symbolId}`;
+          //span.setAttribute('href', target_url);
+
+          //let link = useLink({to: routing_options});
+
+          let link = router.resolve(routing_options);
+          span.setAttribute('href', `${link.href}`);
+
+          span.onclick = () => {
+            router.push(routing_options);
+            // TODO: if within same file, just scroll to target element
             return false; // ignore the 'href' when clicking
           };
         }
@@ -408,6 +418,7 @@ function insertIncludes() {
     }
     span.setAttribute('class', "include");
     let a = document.createElement('A');
+    // TODO: use router.resolve()
     a.setAttribute('href', `${site.baseUrl}/${props.projectName}/${props.projectRevision}/files/${include.included.path}`);
 
     a.onclick = () => {

@@ -41,11 +41,11 @@ for (const i in lines) {
 codepre.parentElement.insertBefore(codetable, codepre.nextElementSibling);
 codepre.setAttribute('style', "display: none;");
 
-function setLineContent(linenum, html) {
-    let th = document.getElementById("L"+linenum);
-    let td = th.nextElementSibling;
-    td.innerHTML = html;
-}
+// function setLineContent(linenum, html) {
+//     let th = document.getElementById("L"+linenum);
+//     let td = th.nextElementSibling;
+//     td.innerHTML = html;
+// }
 
 function preprocessSema() {
     let s = sema.references.length;
