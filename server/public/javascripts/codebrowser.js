@@ -1,4 +1,10 @@
 
+var diagnosticLevels = [];
+var diagnostics = [];
+var includes = [];
+var sema = null;
+var symdefs = null;
+
 var codepre = document.getElementById('srccode');
 
 let filecontent = codepre.innerText;
@@ -53,10 +59,6 @@ function preprocessSema() {
     });
 
     sema.references.sort((a, b) => { return a.offset - b.offset; });
-}
-
-if (sema?.references) {
-    preprocessSema();
 }
 
 function GetRefFlags(ref) {
@@ -415,11 +417,50 @@ function insertDiagnostics() {
     }
 }
 
+function setupSema(data) {
+    diagnosticLevels = data.sema.diagnosticLevels;
+    diagnostics = data.sema.diagnostics;
+    includes = data.sema.includes;
+    sema = data.sema.symrefs;
+    if (sema?.references) {
+        preprocessSema();
+    }    
+    symdefs = data.sema.symdefs;
+}
+
+function fetchSema() {
+    if (!$) {
+        console.log("jquery is not available");
+        return;
+    }
+
+    // TODO: would it be better if sema was retrieved from a pseudo-static (cacheable) json file
+    // (e.g., "${site.baseUrl}/${project.name}/${project.revision}/.sema/${file.path}.json")
+    // instead of using "api" routes ?
+    const url = `/api/snapshots/${project.name}/${project.revision}/sema/${file.path}`;
+    $.get(url, function (data) {
+        console.log(data);
+        if (!data || !data.success) {
+            console.log("error while fetching file's sema");
+            // TODO: highlight code using heuristic only
+            return;
+        }
+
+        setupSema(data);
+        doHighlightCode();
+        insertIncludes();
+        insertDiagnostics();
+
+        if (location.hash) {
+            // https://stackoverflow.com/questions/3163615/how-to-scroll-an-html-page-to-a-given-anchor
+            let element_to_scroll_to = $(location.hash)[0];
+            element_to_scroll_to.scrollIntoView();
+        }      
+    });
+}
+
 document.addEventListener("DOMContentLoaded", function(event) {
-    doHighlightCode();
-    insertIncludes();
-    insertDiagnostics();
-      
+    fetchSema();
     window.codeNavigator = new CodeNavigator();
 });
 

@@ -188,6 +188,24 @@ function GetFile(req, res, next) {
     return;
   }
 
+  res.send(Buffer.from(content))
+}
+
+function GetFileSema(req, res, next) {
+  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
+  let revision = project?.getRevision(req.params.projectRevision);
+  let path = req.params[0];
+  let f = revision?.getFileByPath(revision.homeDir + "/" + path);
+
+  if (!f) {
+    res.status(404);
+    res.json({
+      success: false,
+      reason: "no such file"
+    });
+    return;
+  }
+
   let symrefs = revision.listSymbolReferencesInFile(f.id);
   if (symrefs) {
     symrefs.symbolKinds = revision.symbolKinds;
@@ -202,37 +220,23 @@ function GetFile(req, res, next) {
   let diagnostics = revision.getFileDiagnostics(f.id);
   let includes = revision.getFileIncludes(f.id);
 
-  // res.render("blob", {
-  //   title: req.params.projectName,
-  //   project: project,
-  //   projectRevision: revision,
-  //   breadcrumb: createBreadCrumbForFile(project, revision, path),
-  //   file: {
-  //     id: f.id,
-  //     path: f.path,
-  //     relativePath: path, 
-  //     content: content,
-  //     diagnosticLevels: diagnostics.diagnosticLevels,
-  //     diagnostics: diagnostics.diagnostics,
-  //     includes: includes,
-  //     sema: symrefs,
-  //     symdefs: {
-  //       definitions: symdefs,
-  //       files: symdeffiles
-  //     }
-  //   }
-  // });
-
-  res.send(Buffer.from(content))
-
-  // res.json({
-  //   success: true,
-  //   file: {
-  //     completePath: f.path,
-  //     path: path,
-  //     content: content
-  //   }
-  // });
+  res.json({
+    success: true,
+    file: {
+      completePath: f.path,
+      path: path
+    },
+    sema: {
+      diagnosticLevels: diagnostics.diagnosticLevels,
+      diagnostics: diagnostics.diagnostics,
+      includes: includes,
+      symrefs: symrefs,
+      symdefs: {
+        definitions: symdefs,
+        files: symdeffiles
+      }
+    }
+  });
 }
 
 function GetSnapshotSymbolTreeItem(req, res, next) {
@@ -335,6 +339,7 @@ function createRouter(app) {
   // file-related routes
   router.get('/snapshots/:projectName/:projectRevision/files', GetSnapshotFiles);
   router.get('/snapshots/:projectName/:projectRevision/files/*', GetFile);
+  router.get('/snapshots/:projectName/:projectRevision/sema/*', GetFileSema);
 
   // symbol-related routes
   router.get('/snapshots/:projectName/:projectRevision/symbols/tree', GetSnapshotSymbolTreeItem);

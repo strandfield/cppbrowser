@@ -20,12 +20,7 @@ block content
     script(type='text/javascript') 
       | var site = { baseUrl: "#{site.baseUrl}" };
       | var project = { name: "#{project.name}", revision: "#{projectRevision.name}" };
-      | var file = { id: #{file.id}}
-      | var diagnosticLevels = !{JSON.stringify(file.diagnosticLevels)};
-      | var diagnostics = !{JSON.stringify(file.diagnostics)};
-      | var includes = !{JSON.stringify(file.includes)};
-      | var sema = !{JSON.stringify(file.sema)};
-      | var symdefs = !{JSON.stringify(file.symdefs)};
+      | var file = { id: #{file.id}, path: "#{file.relativePath}" };
     script(type='text/javascript' src="#{site.baseUrl}/bundle.js")
     script(type='text/javascript' src="#{site.baseUrl}/javascripts/codebrowser.js")
     p Filepath: #{file.path}
