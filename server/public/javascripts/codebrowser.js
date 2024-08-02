@@ -105,7 +105,7 @@ function GetSymbols(list) {
     return list.map(e => GetSymbol(e));
 }
 
-var ast = window.parseCXX(codepre.innerText);
+var ast = cxxParser.parseCXX(codepre.innerText);
 
 // let styles = [];
 
@@ -136,7 +136,7 @@ function testHighlightCode() {
         result.appendChild(document.createTextNode("\n"))
       }
     
-    window.highlightCode(codepre.innerText, ast, emit, emitBreak);
+    cxxParser.highlightCode(codepre.innerText, ast, emit, emitBreak);
     codepre.parentElement.insertBefore(result, codepre.nextElementSibling);
 }
 
@@ -336,7 +336,7 @@ function doHighlightCode() {
             classes: classes
         });
     }
-    window.highlightTree(ast, putStyle);
+    cxxParser.highlightTree(ast, putStyle);
 
     let tokens = genToks(filecontent, lineviews, styles);
 
