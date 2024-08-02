@@ -1,6 +1,6 @@
 
 
-import {parseCXX,highlightTree,highlightCode } from '@cppbrowser/codebrowser'
+import { parseCXX, highlightTree, highlightCode } from '@cppbrowser/codebrowser'
 
 //const {parseCXX,highlightTree,highlightCode } = require('@cppbrowser/codebrowser');
 
