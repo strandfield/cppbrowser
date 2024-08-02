@@ -6,6 +6,7 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
+    "@cppbrowser/codebrowser": "file:../codebrowser",
     "@lezer/cpp": "^1.1.2",
     "@lezer/lr": "^1.4.0",
     "better-sqlite3": "^9.6.0",

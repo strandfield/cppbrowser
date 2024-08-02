@@ -1,21 +1,25 @@
 
 
-const CXX = require('@lezer/cpp');
-const LezerHighlight = require('@lezer/highlight');
+import {parseCXX,highlightTree,highlightCode } from '@cppbrowser/codebrowser'
 
-function parseCXX(text) {
-    return CXX.parser.parse(text);
-}
+//const {parseCXX,highlightTree,highlightCode } = require('@cppbrowser/codebrowser');
 
-function highlightTree(tree, putStyle) {
-    LezerHighlight.highlightTree(tree, LezerHighlight.classHighlighter, putStyle);
-}
+// const CXX = require('@lezer/cpp');
+// const LezerHighlight = require('@lezer/highlight');
 
-function highlightCode(code, tree, emit, emitBreak) {
-    LezerHighlight.highlightCode(code, tree, LezerHighlight.classHighlighter, emit, emitBreak);
-}
+// function parseCXX(text) {
+//     return CXX.parser.parse(text);
+// }
 
-module.exports = {
+// function highlightTree(tree, putStyle) {
+//     LezerHighlight.highlightTree(tree, LezerHighlight.classHighlighter, putStyle);
+// }
+
+// function highlightCode(code, tree, emit, emitBreak) {
+//     LezerHighlight.highlightCode(code, tree, LezerHighlight.classHighlighter, emit, emitBreak);
+// }
+
+export {
     parseCXX,
     highlightTree,
     highlightCode
