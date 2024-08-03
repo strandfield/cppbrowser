@@ -3,7 +3,7 @@
 
 import { CodeViewer } from '@cppbrowser/codebrowser'
 
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch, computed, inject } from 'vue'
 import { useRouter, useLink } from 'vue-router'
 
 import $ from 'jquery'
@@ -15,6 +15,8 @@ const props = defineProps({
 });
 
 const router = useRouter();
+
+const navtooltip = inject('navtooltip');
 
 const sourceCode = ref("");
 
@@ -74,7 +76,7 @@ let linksGenerator = {
 
 onMounted(() => {
   console.log(`fileview is now mounted.`);
-  codeviewer = new CodeViewer(document.getElementById('srccodecontainer'));
+  codeviewer = new CodeViewer(document.getElementById('srccodecontainer'), navtooltip.value);
   fetchFileContent();
 });
 

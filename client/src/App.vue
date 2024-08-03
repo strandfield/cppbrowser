@@ -1,5 +1,18 @@
 <script setup>
+
+import { NavTooltip } from '@cppbrowser/codebrowser';
+
+import { ref, onMounted, provide } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
+
+let navtooltip = ref(null);
+provide('navtooltip', navtooltip);
+
+onMounted(() => {
+  console.log(`App is now mounted.`);
+  navtooltip.value = new NavTooltip();
+});
+
 </script>
 
 <template>
