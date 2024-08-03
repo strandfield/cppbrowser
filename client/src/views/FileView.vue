@@ -20,9 +20,13 @@ const navtooltip = inject('navtooltip');
 
 const sourceCode = ref("");
 
-const filePath = computed(() => props.pathParts.join("/"));
-
 let codeviewer = null;
+
+function scrollToElement(hash) {
+  // https://stackoverflow.com/questions/3163615/how-to-scroll-an-html-page-to-a-given-anchor
+  let element_to_scroll_to = $(hash)[0];
+  element_to_scroll_to.scrollIntoView();
+}
 
 let linksGenerator = {
   createLinkToSymbolDefinition(path, symbolId) {
@@ -42,7 +46,10 @@ let linksGenerator = {
       href: link.href,
       onclick: () => {
         router.push(routing_options);
-        // TODO: if within same file, just scroll to target element
+        if (path == props.pathParts.join("/")) { // if within same file...
+          // ...just scroll to target element
+          scrollToElement(`#${symbolId}`);
+        }
         return false; // ignore the 'href' when clicking
       }
     };
@@ -63,7 +70,6 @@ let linksGenerator = {
       href: link.href,
       onclick: () => {
         router.push(routing_options);
-        // TODO: if within same file, just scroll to target element
         return false; // ignore the 'href' when clicking
       }
     };
@@ -115,9 +121,7 @@ function fetchSema() {
         codeviewer.setSema(data.file, data.sema);
 
         if (location.hash) {
-            // https://stackoverflow.com/questions/3163615/how-to-scroll-an-html-page-to-a-given-anchor
-            let element_to_scroll_to = $(location.hash)[0];
-            element_to_scroll_to.scrollIntoView();
+            scrollToElement(location.hash);
         }      
     });
 }
