@@ -4,6 +4,7 @@ import SnapshotView from '@/views/SnapshotView.vue'
 import SnapshotHomeView from '@/views/SnapshotHomeView.vue'
 import FileView from '@/views/FileView.vue'
 import DirectoryView from '@/views/DirectoryView.vue'
+import SymbolView from '@/views/SymbolView.vue'
 
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -37,12 +38,17 @@ const router = createRouter({
           name: 'file',
           component: FileView,
           props: true
-        }
-        ,
+        },
         {
           path: "tree/:pathParts+",
           name: 'dir',
           component: DirectoryView,
+          props: true
+        },
+        {
+          path: "symbols/:symbolId",
+          name: 'symbol',
+          component: SymbolView,
           props: true
         }
       ],

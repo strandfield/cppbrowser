@@ -3,8 +3,8 @@
 
 import { CodeViewer } from '@cppbrowser/codebrowser'
 
-import { ref, onMounted, watch, computed, inject } from 'vue'
-import { useRouter, useLink } from 'vue-router'
+import { ref, onMounted, watch, inject } from 'vue'
+import { useRouter } from 'vue-router'
 
 import $ from 'jquery'
 
@@ -76,7 +76,25 @@ let linksGenerator = {
 
   },
   createTooltipMoreLink(symbolId) {
-    return null;
+    let routing_options = {
+      name: 'symbol',
+      params: {
+        projectName: props.projectName,
+        projectRevision: props.projectRevision,
+        symbolId: symbolId
+      }
+    };
+
+    let link = router.resolve(routing_options);
+
+    return {
+      href: link.href,
+      onclick: () => {
+        codeviewer.tooltip.hide();
+        router.push(routing_options);
+        return false; // ignore the 'href' when clicking
+      }
+    };
   }
 };
 

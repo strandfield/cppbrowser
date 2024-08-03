@@ -82,17 +82,22 @@ export class NavTooltip
         }, this.showDelay);
     }
 
-    hideAfterDelay(e) {
+    hide() {
+        this.element.style.display = 'none';
+    }
+
+    hideAfterDelay() {
         clearTimeout(this.showTimerId);
         clearTimeout(this.hideTimerId);
-        let tooltip = this.element;
-        this.hideTimerId = setTimeout(function () {
-            tooltip.style.display = 'none';
-        }, this.hideDelay);
+        this.hideTimerId = setTimeout(() => this.hide(), this.hideDelay);
     }
 
     setHtml(html) {
         this.element.innerHTML = html;
+    }
+
+    setDOMContent(contentElement) {
+        this.element.replaceChildren(contentElement);
     }
 };
 
@@ -588,36 +593,69 @@ export class CodeViewer {
         return this.#getParentTD(elem).previousSibling.id.slice(1);
     }
 
-    #showTooltipImpl(elem, symid) {
-        let content = "";
-
+    #fillTooltip(symid) {
         let symbol = this.sema.symrefs.symbols[symid];
         let name = symbol.displayName ?? symbol.name;
-        content += `<b>${name}</b><br/>`;
+        let references = document.querySelectorAll('[sym-id="' + symid + '"]');
+
+        let content_element = document.createElement('DIV');
+
+        let bold = function(txt) {
+            let e = document.createElement('B');
+            e.innerText = txt;
+            content_element.appendChild(e);
+        }
+
+        let text = function(txt) {
+            content_element.appendChild(document.createTextNode(txt));
+        };
+
+        let br = function() {
+            content_element.appendChild(document.createElement('BR'));
+        };
+
+        {
+            bold(name);
+            br();
+        }
 
         if (symbol.type) {
-            content += `Type: ${symbol.type}<br/>`;
+            text(`Type: ${symbol.type}`);
+            br();
         }
 
         if (symbol.value) {
-            content += `Value: ${symbol.value}<br/>`;
+            text(`Value: ${symbol.value}`);
+            br();
         }
 
-        let references = document.querySelectorAll('[sym-id="' + symid + '"]');
-        content += `${references.length} reference(s) in this document:<br/>`;
-        references.forEach(ref => {
-            content += `Line ${this.#getLine(ref)}<br/>`;
-        });
+        {
+            text(`${references.length} reference(s) in this document:`);
+            br();
+            references.forEach(ref => {
+                text(`Line ${this.#getLine(ref)}`);
+                br();
+            });
+        }
 
         if (!SemaHelper.isLocal(symbol)) {
             let link_object = this.linksGenerator?.createTooltipMoreLink(symid);
             // TODO: refactor to be able to handle onclick
             if (link_object) {
-                content += `<div style='text-align: right;'><a href="${link_object.href}">More...</a></div>`;
+                let div = document.createElement('DIV');
+                div.setAttribute('style', "text-align: right;");
+                let a = document.createElement('A');
+                a.setAttribute('href', link_object.href);
+                a.innerText = "More...";
+                if (link_object.onclick) {
+                    a.onclick = link_object.onclick;
+                }
+                div.appendChild(a);
+                content_element.appendChild(div);
             }
         }
         
-        this.tooltip.showAfterDelay(elem, () => this.tooltip.setHtml(content));
+        this.tooltip.setDOMContent(content_element);
     }
 
     showTooltip(elem) {
@@ -628,7 +666,7 @@ export class CodeViewer {
         let symid = elem.getAttribute('sym-id');
         
         if(symid != null && symid != "") {
-          this.#showTooltipImpl(elem, symid);
+          this.tooltip.showAfterDelay(elem, () => this.#fillTooltip(symid));
         } else {
           this.tooltip.hideAfterDelay();
         }
