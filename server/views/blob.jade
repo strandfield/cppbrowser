@@ -16,7 +16,8 @@ block content
       div(style="display: flex; gap: 1em;")
         a(href="#{site.baseUrl}/raw/#{project.name}/#{projectRevision.name}/#{file.relativePath}") Raw
         a(href="#{site.baseUrl}/download/#{project.name}/#{projectRevision.name}/#{file.relativePath}") Download
-    pre(id="srccode") #{file.content}
+    div(class="codeContainer")
+      pre(id="srccode") #{file.content}
     script(type='text/javascript') 
       | var site = { baseUrl: "#{site.baseUrl}" };
       | var project = { name: "#{project.name}", revision: "#{projectRevision.name}" };
