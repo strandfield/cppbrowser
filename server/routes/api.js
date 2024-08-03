@@ -223,6 +223,7 @@ function GetFileSema(req, res, next) {
   res.json({
     success: true,
     file: {
+      id: f.id,
       completePath: f.path,
       path: path
     },

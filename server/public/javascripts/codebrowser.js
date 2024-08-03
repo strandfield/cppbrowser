@@ -37,7 +37,7 @@ function fetchSema() {
         }
 
         CodeBrowser.navigator.setLinksGenerator(linksGenerator);
-        CodeBrowser.navigator.setSema(data.sema);
+        CodeBrowser.navigator.setSema(data.file, data.sema);
 
         if (location.hash) {
             // https://stackoverflow.com/questions/3163615/how-to-scroll-an-html-page-to-a-given-anchor

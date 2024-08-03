@@ -10,6 +10,7 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
   },
   "dependencies": {
+    "@cppbrowser/codebrowser": "file:../codebrowser",
     "@lezer/cpp": "^1.1.2",
     "@lezer/highlight": "^1.2.0",
     "@lezer/lr": "^1.4.2",

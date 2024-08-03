@@ -294,7 +294,7 @@ class SyntaxHighlighter {
             // TODO: utiliser les flags de la ref pour savoir si on est au niveau de la definition ?
             if (matching_ref && symdefs.definitions[matching_ref.symbolId] && !Array.isArray(symdefs.definitions[matching_ref.symbolId])) {
                 symdef = symdefs.definitions[matching_ref.symbolId];
-                let isatdef = (symdef.fileid == file.id && symdef.line == this.currentLineIndex + 1);
+                let isatdef = (symdef.fileid == this.fileInfo.id && symdef.line == this.currentLineIndex + 1);
                 let islocalsym = SemaHelper.isLocal(symrefs.symbols[matching_ref.symbolId]);
                 if (!isatdef && !islocalsym) {
                     let symdefsfiles = symdefs.files;
@@ -366,7 +366,8 @@ class SyntaxHighlighter {
         this.currentTD.appendChild(node);
     }
 
-    run(sema) {
+    run(fileInfo, sema) {
+        this.fileInfo = fileInfo;
         this.sema = sema;
         this.currentLineIndex = -1;
         this.currentTD = null;
@@ -491,7 +492,8 @@ export class CodeViewer {
         this.linksGenerator = linksGenerator;
     }
 
-    setSema(sema) {
+    setSema(fileInfo, sema) {
+        this.fileInfo = fileInfo;
         this.sema = sema;
 
         // Perform some preprocessing...
@@ -512,7 +514,7 @@ export class CodeViewer {
 
         // TODO: create SyntaxHighlighter and the rest
         let highlighter = new SyntaxHighlighter(this.lines, this.toPlainText(), this.#tds, this.linksGenerator);
-        highlighter.run(this.sema);
+        highlighter.run(this.fileInfo, this.sema);
 
         for (const include of sema.includes) {
             let line = include.line;
