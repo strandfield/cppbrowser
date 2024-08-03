@@ -1,5 +1,5 @@
 
-const { ProjectRevision } = require("../src/project.js");
+const { getSnapshotSymbolInfo } = require("../src/symbol.js");
 let ProjectManager = require("../src/projectmanager.js");
 
 const Database = require('better-sqlite3');
@@ -317,6 +317,28 @@ function GetSnapshotSymbolNameDictionary(req, res, next) {
   });
 }
 
+function GetSnapshotSymbol(req, res, next) {
+  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
+  let revision = project?.getRevision(req.params.projectRevision);
+  let symbol = revision?.getSymbolById(req.params.symbolId);
+
+  if (!symbol) {
+    res.status(404);
+    res.json({
+      success: false,
+      reason: "no such symbol"
+    });
+    return;
+  }
+
+  let info = getSnapshotSymbolInfo(symbol, revision);
+
+  res.json({
+    success: true,
+    symbol: info
+  });
+}
+
 function createRouter(app) {
 
   SITE_BASE_URL = app.locals.site.baseUrl;
@@ -345,6 +367,7 @@ function createRouter(app) {
   // symbol-related routes
   router.get('/snapshots/:projectName/:projectRevision/symbols/tree', GetSnapshotSymbolTreeItem);
   router.get('/snapshots/:projectName/:projectRevision/symbols/dict', GetSnapshotSymbolNameDictionary);
+  router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId', GetSnapshotSymbol);
 
   return router;
 }

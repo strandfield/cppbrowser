@@ -36,8 +36,7 @@ block content
       if symbol.definitions && symbol.definitions.length > 0
         if symbol.definitions.length = 1
           - let uniquedef = symbol.definitions[0];
-          - let relpath = uniquedef.filePath.substring(projectRevision.homeDir.length + 1);
-          - let filename = relpath.substring(relpath.lastIndexOf("/")+1);
+          - let relpath = uniquedef.completeFilePath.substring(projectRevision.homeDir.length + 1);
           - let tag = "#L";
           | 
           a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/#{relpath}#{tag}#{uniquedef.line}") Go to definition

@@ -584,7 +584,8 @@ class ProjectRevision
             if (Number(row.file_id) != curfile) {
                 if (curfilerefs.length > 0) {
                     result.push({
-                        file: this.files[curfile],
+                        file: this.files[curfile], // TODO: remove me
+                        filePath: this.files[curfile].substring(this.homeDir.length + 1),
                         references: curfilerefs
                     });
                     curfilerefs = [];
@@ -603,6 +604,7 @@ class ProjectRevision
         if (curfilerefs.length > 0) {
             result.push({
                 file: this.files[curfile],
+                filePath: this.files[curfile].substring(this.homeDir.length + 1),
                 references: curfilerefs
             });
         }
