@@ -226,15 +226,17 @@ class SyntaxHighlighter {
     lines = [];
     text = null;
     tds = null;
+    linksGenerator = null;
 
     currentLineIndex = -1;
     currentTD = null;
 
 
-    constructor(lines, text, tds) {
+    constructor(lines, text, tds, linksGenerator) {
         this.lines = lines;
         this.text = text;
         this.tds = tds;
+        this.linksGenerator = linksGenerator;
     }
 
 
@@ -287,6 +289,7 @@ class SyntaxHighlighter {
         if (classes || matching_ref) {
             let tagname = "span";
             let symdef = null;
+            let link_object = null;
             let tagid = null;
             // TODO: utiliser les flags de la ref pour savoir si on est au niveau de la definition ?
             if (matching_ref && symdefs.definitions[matching_ref.symbolId] && !Array.isArray(symdefs.definitions[matching_ref.symbolId])) {
@@ -294,7 +297,12 @@ class SyntaxHighlighter {
                 let isatdef = (symdef.fileid == file.id && symdef.line == this.currentLineIndex + 1);
                 let islocalsym = SemaHelper.isLocal(symrefs.symbols[matching_ref.symbolId]);
                 if (!isatdef && !islocalsym) {
-                    tagname = "a";
+                    let symdefsfiles = symdefs.files;
+                    let path = symdefsfiles[symdef.fileid];
+                    link_object = this.linksGenerator?.createLinkToSymbolDefinition(path, matching_ref.symbolId);
+                    if (link_object) {
+                        tagname = "a";
+                    }
                 } else {
                     if (isatdef) {
                         tagid = matching_ref.symbolId;
@@ -337,10 +345,11 @@ class SyntaxHighlighter {
                     span.setAttribute("sym-id", symbol.id);
                 }
 
-                if (symdef) {
-                    let symdefsfiles = symdefs.files;
-                    let path = symdefsfiles[symdef.fileid];
-                    span.setAttribute('href', `${site.baseUrl}/${project.name}/${project.revision}/${path}#${matching_ref.symbolId}`);
+                if (link_object) {
+                    span.setAttribute('href', link_object.href);
+                    if (link_object.onclick) {
+                        span.onclick = link_object.onclick;
+                    }
                 }
             }
             if (classes && span.classList.length == 0) {
@@ -420,6 +429,7 @@ class SyntaxHighlighter {
 export class CodeViewer {
     containerElement = null;
     tooltip = null;
+    linksGenerator = null;
     lines = [];
     #tds = [];
     sema = null;
@@ -477,6 +487,10 @@ export class CodeViewer {
         return this.lines.join("\n");
     }
 
+    setLinksGenerator(linksGenerator) {
+        this.linksGenerator = linksGenerator;
+    }
+
     setSema(sema) {
         this.sema = sema;
 
@@ -497,7 +511,7 @@ export class CodeViewer {
         }
 
         // TODO: create SyntaxHighlighter and the rest
-        let highlighter = new SyntaxHighlighter(this.lines, this.toPlainText(), this.#tds);
+        let highlighter = new SyntaxHighlighter(this.lines, this.toPlainText(), this.#tds, this.linksGenerator);
         highlighter.run(this.sema);
 
         for (const include of sema.includes) {
@@ -512,11 +526,17 @@ export class CodeViewer {
                 continue;
             }
             span.setAttribute('class', "include");
-            let a = document.createElement('A');
-            a.setAttribute('href', `${site.baseUrl}/${project.name}/${project.revision}/${include.included.path}`);
-            a.innerText = span.innerText;
-            span.innerText = "";
-            span.appendChild(a);
+            let link_object = this.linksGenerator?.createIncludeLink(include.included.path);
+            if (link_object) {
+                let a = document.createElement('A');
+                a.setAttribute('href', link_object.href);
+                if (link_object.onclick) {
+                    a.onclick = link_object.onclick;
+                }
+                a.innerText = span.innerText;
+                span.innerText = "";
+                span.appendChild(a);
+            }
         }
 
         for (let diagnostic of sema.diagnostics) {
@@ -588,7 +608,11 @@ export class CodeViewer {
         });
 
         if (!SemaHelper.isLocal(symbol)) {
-            content += `<div style='text-align: right;'><a href='${site.baseUrl}/${project.name}/${project.revision}/symbols/${symid}'>More...</a></div>`;
+            let link_object = this.linksGenerator?.createTooltipMoreLink(symid);
+            // TODO: refactor to be able to handle onclick
+            if (link_object) {
+                content += `<div style='text-align: right;'><a href="${link_object.href}">More...</a></div>`;
+            }
         }
         
         this.tooltip.showAfterDelay(elem, () => this.tooltip.setHtml(content));

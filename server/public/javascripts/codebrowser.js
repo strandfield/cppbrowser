@@ -1,4 +1,23 @@
 
+
+let linksGenerator = {
+    createLinkToSymbolDefinition(path, symbolId) {
+        return {
+            href: `${site.baseUrl}/${project.name}/${project.revision}/${path}#${symbolId}`
+        };
+    },
+    createIncludeLink(path) {
+        return {
+            href: `${site.baseUrl}/${project.name}/${project.revision}/${path}`
+        };
+    },
+    createTooltipMoreLink(symbolId) {
+        return {
+            href: `${site.baseUrl}/${project.name}/${project.revision}/symbols/${symbolId}`
+        }
+    }
+};
+
 function fetchSema() {
     if (!$) {
         console.log("jquery is not available");
@@ -17,6 +36,7 @@ function fetchSema() {
             return;
         }
 
+        CodeBrowser.navigator.setLinksGenerator(linksGenerator);
         CodeBrowser.navigator.setSema(data.sema);
 
         if (location.hash) {
