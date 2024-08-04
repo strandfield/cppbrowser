@@ -339,8 +339,165 @@ function GetSnapshotSymbol(req, res, next) {
   });
 }
 
-function createRouter(app) {
+////////////////////////////
+/// Symbol Index methods ///
+////////////////////////////
 
+const symbolKinds = {
+  values: [
+    "<unknown>",
+     "module",
+     "namespace",
+     "namespace-alias",
+     "macro",
+     "enum",
+     "struct",
+     "class",
+     "union",
+     "lambda",
+     "type-alias",
+     "function",
+     "variable",
+     "field",
+     "enum-constant",
+     "instance-method",
+     "class-method",
+     "static-method",
+     "static-property",
+     "constructor",
+     "destructor",
+     "conversion-function",
+     "parameter",
+     "using",
+     "template-type-parameter",
+     "template-template-parameter",
+     "non-type-template-parameter",
+     "concept"
+    ],
+  names: {
+    "module": 1,
+    "namespace": 2,
+    "namespace-alias": 3,
+    "macro": 4,
+    "enum": 5,
+    "struct": 6,
+    "class": 7,
+    "union": 8,
+    "lambda": 9,
+    "type-alias": 10,
+    "function": 11,
+    "variable": 12,
+    "field": 13,
+    "enum-constant": 14,
+    "instance-method": 15,
+    "class-method": 16,
+    "static-method": 17,
+    "static-property": 18,
+    "constructor": 19,
+    "destructor": 20,
+    "conversion-function": 21,
+    "parameter": 22,
+    "using": 23,
+    "template-type-parameter": 24,
+    "template-template-parameter": 25,
+    "non-type-template-parameter": 26,
+    "concept": 27,
+  }
+};
+
+function GetSymbolList(req, res, next) {
+  let sindex = req.app.locals.symbolIndex;
+
+  let filters = req.query.kind?.split(",") ?? [];
+
+  let symbols = {
+
+  };
+
+  for (const [name, value] of Object.entries(symbolKinds.names)) {
+    if (filters.length == 0 || filters.includes(name) || filters.includes(""+value)) {
+      let names = [];
+      let ids = [];
+      sindex.forEachSymbol(s => {
+        if (s.kind == value) {
+          names.push(s.name);
+          ids.push(s.id);
+        }
+      });
+    
+      symbols[name] = {
+        names: names,
+        ids: ids
+      };
+    }
+  }
+
+  res.json({
+    success: true,
+    symbols: symbols
+  });
+}
+
+function GetSymbolTreeRoot(req, res, next) {
+  let sindex = req.app.locals.symbolIndex;
+  let top_level_symbols = sindex.getTopLevelSymbols();
+
+  let children = [];
+
+  for (const symbol of top_level_symbols) {
+    children.push({
+      id: symbol.id,
+      name: symbol.name,
+      displayName: symbol.displayName,
+      kind: symbol.kind,
+      childCount: symbol.childCount ?? 0
+    });
+  }
+
+  res.json({
+    success: true,
+    children: children
+  });
+}
+
+function GetSymbolTreeItem(req, res, next) {
+  let sindex = req.app.locals.symbolIndex;
+  let symbol = sindex.getSymbolById(req.params.symbolId);
+
+  if (!symbol) {
+    res.json({
+      success: false,
+      reason: "no such symbol",
+    });
+    return;
+  }
+
+  let children = [];
+
+  for (const child of sindex.getSymbolChildren(symbol)) {
+    children.push({
+      id: child.id,
+      name: child.name,
+      displayName: child.displayName,
+      kind: child.kind,
+      childCount: child.childCount ?? 0
+    });
+  }
+
+  res.json({
+    success: true,
+    symbol: {
+      id: symbol.id,
+      parentId: symbol.parentId,
+      name: symbol.name,
+      displayName: symbol.displayName,
+      kind: symbol.kind
+    },
+    children: children
+  });
+}
+
+function createRouter(app) {
   SITE_BASE_URL = app.locals.site.baseUrl;
   CAN_DELETE_PROJECT = app?.conf?.features?.deleteProject ?? true;
   CAN_UPLOAD_SNAPSHOT = app?.conf?.features?.upload ?? true;
@@ -368,6 +525,11 @@ function createRouter(app) {
   router.get('/snapshots/:projectName/:projectRevision/symbols/tree', GetSnapshotSymbolTreeItem);
   router.get('/snapshots/:projectName/:projectRevision/symbols/dict', GetSnapshotSymbolNameDictionary);
   router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId', GetSnapshotSymbol);
+
+  // symbol index related routes
+  router.get('/symbols', GetSymbolList);
+  router.get('/symbols/tree', GetSymbolTreeRoot);
+  router.get('/symbols/tree/:symbolId', GetSymbolTreeItem);
 
   return router;
 }

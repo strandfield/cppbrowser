@@ -1,5 +1,4 @@
 
-
 const { ProjectRevision, Project } = require('./project.js');
 const ProjectManager = require("./projectmanager.js");
 
@@ -151,6 +150,10 @@ class SymbolIndex
         refsByProjectRev.sort((a, b) => a.projectRevision.projectName.localeCompare(b.projectRevision.projectName));
 
         return refsByProjectRev;
+    }
+
+    forEachSymbol(f) {
+        this.#symbolsMap.forEach(f);
     }
 };
 
