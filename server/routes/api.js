@@ -1,6 +1,7 @@
 
 const { getSnapshotSymbolInfo } = require("../src/symbol.js");
 let ProjectManager = require("../src/projectmanager.js");
+const { symbolKinds } = require("../src/symbol.js");
 
 const Database = require('better-sqlite3');
 
@@ -343,67 +344,6 @@ function GetSnapshotSymbol(req, res, next) {
 /// Symbol Index methods ///
 ////////////////////////////
 
-const symbolKinds = {
-  values: [
-    "<unknown>",
-     "module",
-     "namespace",
-     "namespace-alias",
-     "macro",
-     "enum",
-     "struct",
-     "class",
-     "union",
-     "lambda",
-     "type-alias",
-     "function",
-     "variable",
-     "field",
-     "enum-constant",
-     "instance-method",
-     "class-method",
-     "static-method",
-     "static-property",
-     "constructor",
-     "destructor",
-     "conversion-function",
-     "parameter",
-     "using",
-     "template-type-parameter",
-     "template-template-parameter",
-     "non-type-template-parameter",
-     "concept"
-    ],
-  names: {
-    "module": 1,
-    "namespace": 2,
-    "namespace-alias": 3,
-    "macro": 4,
-    "enum": 5,
-    "struct": 6,
-    "class": 7,
-    "union": 8,
-    "lambda": 9,
-    "type-alias": 10,
-    "function": 11,
-    "variable": 12,
-    "field": 13,
-    "enum-constant": 14,
-    "instance-method": 15,
-    "class-method": 16,
-    "static-method": 17,
-    "static-property": 18,
-    "constructor": 19,
-    "destructor": 20,
-    "conversion-function": 21,
-    "parameter": 22,
-    "using": 23,
-    "template-type-parameter": 24,
-    "template-template-parameter": 25,
-    "non-type-template-parameter": 26,
-    "concept": 27,
-  }
-};
 
 function GetSymbolList(req, res, next) {
   let sindex = req.app.locals.symbolIndex;
@@ -414,7 +354,7 @@ function GetSymbolList(req, res, next) {
 
   };
 
-  for (const [name, value] of Object.entries(symbolKinds.names)) {
+  for (const [name, value] of Object.entries(symbolKinds.values)) {
     if (filters.length == 0 || filters.includes(name) || filters.includes(""+value)) {
       let names = [];
       let ids = [];
@@ -435,6 +375,14 @@ function GetSymbolList(req, res, next) {
   res.json({
     success: true,
     symbols: symbols
+  });
+}
+
+function GetSymbolIndexSourceSnapshots(req, res, next) {
+  let sindex = req.app.locals.symbolIndex;
+  res.json({
+    success: true,
+    source: sindex.getSource()
   });
 }
 
@@ -497,6 +445,88 @@ function GetSymbolTreeItem(req, res, next) {
   });
 }
 
+function GetSymbolIndexSymbol(req, res, next) {
+  let sindex = req.app.locals.symbolIndex;
+  let info = sindex.getSymbolInfo(req.params.symbolId);
+
+  if (!info) {
+    res.status(404);
+    res.json({
+      success: false,
+      reason: "no such symbol",
+    });
+    return;
+  }
+
+  res.json({
+    success: true,
+    symbol: info
+  });
+}
+
+function GetSymbolIndexSymbolReferences(req, res, next) {
+  let sindex = req.app.locals.symbolIndex;
+  let symbol = sindex.getSymbolById(req.params.symbolId);
+
+  if (!symbol) {
+    res.status(404);
+    res.json({
+      success: false,
+      reason: "no such symbol",
+    });
+    return;
+  }
+
+  let project_filters = req.query.project?.split(",") ?? [];
+  let version_filters = req.query.version?.split(",") ?? [];
+
+  let result = [];
+
+  let sources = sindex.getSource();
+  for (const source of sources) {
+    let project_name = source.project;
+    
+    if (project_filters.length > 0 && !project_filters.includes(project_name)) {
+      continue;
+    }
+
+    let refs_in_snapshots = [];
+
+    for (const project_version of source.versions) {
+      if (version_filters.length > 0 && !version_filters.includes(project_version)) {
+        continue;
+      }
+
+      let snapshot = sindex.getSnapshot(project_name, project_version);
+
+      if (!snapshot) {
+        console.error("bad");
+        continue;
+      }
+
+      let refs = snapshot.listSymbolReferencesByFile(symbol.id);
+      if (refs.length > 0 || version_filters.length > 0) {
+        refs_in_snapshots.push({
+          version: project_version,
+          result: refs
+        });
+      }
+    }
+
+    if (refs_in_snapshots.length > 0 || project_filters.length > 0) {
+      result.push({
+        project: project_name,
+        versions: refs_in_snapshots
+      });
+    }
+  }
+
+  res.json({
+    success: true,
+    result: result,
+  });
+}
+
 function createRouter(app) {
   SITE_BASE_URL = app.locals.site.baseUrl;
   CAN_DELETE_PROJECT = app?.conf?.features?.deleteProject ?? true;
@@ -528,8 +558,11 @@ function createRouter(app) {
 
   // symbol index related routes
   router.get('/symbols', GetSymbolList);
+  router.get('/symbols/snapshots', GetSymbolIndexSourceSnapshots);
   router.get('/symbols/tree', GetSymbolTreeRoot);
   router.get('/symbols/tree/:symbolId', GetSymbolTreeItem);
+  router.get('/symbols/:symbolId', GetSymbolIndexSymbol);
+  router.get('/symbols/:symbolId/references', GetSymbolIndexSymbolReferences);
 
   return router;
 }

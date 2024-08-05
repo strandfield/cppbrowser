@@ -1,6 +1,8 @@
 
 const { ProjectRevision, Project } = require('./project.js');
 const ProjectManager = require("./projectmanager.js");
+const { symbolKinds } = require("../src/symbol.js");
+
 
 class SymbolIndex
 {
@@ -28,6 +30,7 @@ class SymbolIndex
         this.#projectRevisions.push(rev);
 
         let symbols = rev.selectNonLocalDefinedSymbols();
+        // TODO: attach project rev to symbol
         for (const sym of symbols) {
             if (this.#symbolsMap.has(sym.id)) {
                 continue;
@@ -104,6 +107,45 @@ class SymbolIndex
         this.#collectSymbolsChildren();
     }
 
+    getSource() {
+        let snapshots = [...this.#projectRevisions];
+        snapshots.sort((a,b) => {
+            return a.projectName.localeCompare(b.projectName);
+        });
+
+        let result = [];
+        let push_result = function(projectName, versions) {
+            result.push({
+                project: projectName,
+                versions: versions
+            });
+        };
+
+        if (snapshots.length > 0) {
+            let project_name = snapshots[0].projectName;
+            let versions = [];
+            for (const snapshot of snapshots) {
+                if (project_name != snapshot.projectName) {
+                    push_result(project_name, versions);
+                    project_name = snapshot.projectName;
+                    versions = [];
+                }
+
+                versions.push(snapshot.name);
+            }
+
+            push_result(project_name, versions);
+        }
+
+        return result;
+    }
+
+    getSnapshot(projectName, projectRevision) {
+        return this.#projectRevisions.find(e => {
+            return e.projectName == projectName && e.name == projectRevision;
+        });
+    }
+
     getSymbolById(symbolID) {
         return this.#symbolsMap.get(symbolID);
     }
@@ -154,6 +196,154 @@ class SymbolIndex
 
     forEachSymbol(f) {
         this.#symbolsMap.forEach(f);
+    }
+
+    #getSymbolInfoImpl(symbol) {
+        let info = {
+            id: symbol.id,
+            kind: symbolKinds.names[symbol.kind],
+            name: symbol.name,
+            display: symbol.displayName
+        };
+
+        let get_info_children = function() {
+            if (!info.children) {
+                info.children = {};
+            }
+            return info.children;
+        }
+
+        /// TODO: do this for every rev in which the symbol is defined
+        // if (info.kind == 'class' || info.kind == 'struct') {
+        //   info.baseClasses = revision.getBaseClasses(symbol.id);
+        //   info.derivedClasses = revision.getDerivedClasses(symbol.id);
+        // }
+    
+        let children = this.getSymbolChildren(symbol.id);
+
+        if (info.kind == 'namespace') {
+            let k = symbolKinds.values['namespace'];
+            let nss = children.filter(e => e.kind == k);
+            nss.sort((a,b) => a.name.localeCompare(b.name));
+
+            get_info_children().namespaces = nss.map(e => {
+                return {
+                    name: e.name,
+                    id: e.id
+                };
+            });
+        }
+
+        if (info.kind == 'namespace' || info.kind == 'class' || info.kind == 'struct') {
+            let k1 = symbolKinds.values['class'];
+            let k2 = symbolKinds.values['struct'];
+            let k3 = symbolKinds.values['union'];
+            let records = children.filter(e => e.kind == k1 || e.kind == k2 || e.kind == k3);
+            records.sort((a,b) => a.name.localeCompare(b.name));
+
+            get_info_children().records = records.map(e => {
+                return {
+                    name: e.name,
+                    kind: symbolKinds.names[e.kind],
+                    id: e.id
+                };
+            });
+        }
+
+        if (info.kind == 'class' || info.kind == 'struct') {
+            let k = symbolKinds.values['constructor'];
+            let ctors = children.filter(e => e.kind == k);
+
+            get_info_children().constructors = ctors.map(e => {
+                return {
+                    name: e.name,
+                    id: e.id,
+                    display: e.displayName
+                };
+            });
+        }
+
+        if (info.kind == 'class' || info.kind == 'struct') {
+            let k = symbolKinds.values['destructor'];
+            let dtors = children.filter(e => e.kind == k);
+
+            get_info_children().destructors = dtors.map(e => {
+                return {
+                    name: e.name,
+                    id: e.id,
+                    display: e.displayName
+                };
+            });
+        }
+    
+        if (info.kind == 'class' || info.kind == 'struct') {
+            let k = symbolKinds.values['instance-method'];
+            let methods = children.filter(e => e.kind == k);
+
+            get_info_children().methods = methods.map(e => {
+                return {
+                    name: e.name,
+                    id: e.id,
+                    display: e.displayName
+                };
+            });
+        }
+
+        if (info.kind == 'namespace') {
+            let k = symbolKinds.values['function'];
+            let functions = children.filter(e => e.kind == k);
+            functions.sort((a,b) => a.name.localeCompare(b.name));
+
+            get_info_children().functions = functions.map(e => {
+                return {
+                    name: e.name,
+                    id: e.id,
+                    display: e.displayName
+                };
+            });
+        }
+
+        if (info.kind == 'class' || info.kind == 'struct') {
+            let k = symbolKinds.values['field'];
+            let fields = children.filter(e => e.kind == k);
+            fields.sort((a,b) => a.name.localeCompare(b.name));
+
+            get_info_children().fields = fields.map(e => {
+                return {
+                    name: e.name,
+                    id: e.id,
+                };
+            });
+        }
+        
+        if (symbol.parentId) {
+          let parent = this.getSymbolById(symbol.parentId);
+          if (parent) {
+            info.parent = {
+                name: parent.name,
+                id: parent.id,
+                kind: symbolKinds.names[parent.kind]
+            };
+          }
+        }
+    
+        // TODO: list the definitions
+    
+        return info;
+    }
+
+    getSymbolInfo(symbolOrId) {
+        if (!symbolOrId) {
+            return null;
+        }
+
+        if (typeof symbolOrId == 'string') {
+            return this.#getSymbolInfoImpl(this.getSymbolById(symbolOrId));
+        } else if (typeof symbol.id == 'string') {
+            return this.#getSymbolInfoImpl(symbol);
+        } else {
+            return null;
+        }
     }
 };
 
