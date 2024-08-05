@@ -1,3 +1,4 @@
+
 import HomeView from '../views/HomeView.vue'
 import ProjectView from '../views/ProjectView.vue'
 import SnapshotView from '@/views/SnapshotView.vue'
@@ -5,6 +6,10 @@ import SnapshotHomeView from '@/views/SnapshotHomeView.vue'
 import FileView from '@/views/FileView.vue'
 import DirectoryView from '@/views/DirectoryView.vue'
 import SymbolView from '@/views/SymbolView.vue'
+
+import SymbolIndexView from '@/views/SymbolIndexView.vue'
+import SymbolIndexHomeView from '@/views/SymbolIndexHomeView.vue'
+import SymbolIndexSymbolView from '@/views/SymbolIndexSymbolView.vue'
 
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -51,6 +56,25 @@ const router = createRouter({
           component: SymbolView,
           props: true
         }
+      ],
+    },
+    {
+      path: "/symbols",
+      component: SymbolIndexView,
+      props: true,
+      children: [
+        {
+          path: "",
+          name: 'symbolIndex',
+          component: SymbolIndexHomeView,
+          props: true
+        },
+        {
+          path: ":symbolId",
+          name: 'symbolIndexSymbol',
+          component: SymbolIndexSymbolView,
+          props: true
+        },
       ],
     },
 

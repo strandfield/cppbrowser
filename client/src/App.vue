@@ -23,6 +23,7 @@ onMounted(() => {
 
       <nav>
         <RouterLink to="/">Home</RouterLink>
+        <RouterLink to="/symbols">Symbols</RouterLink>
         <!--RouterLink to="/about">About</RouterLink-->
       </nav>
     </div>

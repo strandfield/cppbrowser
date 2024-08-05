@@ -1,0 +1,24 @@
+<script setup>
+
+
+import { inject } from 'vue'
+
+const symbolTree = inject('symbolTree');
+const symbolList = inject('symbolList');
+
+</script>
+
+<template>
+  <div>
+    <h2>Symbol Index</h2>
+    <p>Welcome to the symbol index.</p>
+    <table v-if="symbolTree">
+      <tbody>
+        <tr v-for="child in symbolTree.children" :key="child.id">
+          <td><RouterLink :to="{ name: 'symbolIndexSymbol', params: { symbolId: child.id } }">{{ child.name }}</RouterLink></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>This page is under construction.</p>
+  </div>
+</template>
