@@ -162,3 +162,89 @@ export function fuzzyMatch(str, pattern, scoreFunc = null, maxRecursion = 10)
         return fuzzyMatchRecursive(str, pattern, scoreFunc, 0, [], recursion_count, maxRecursion);
     }
 }
+
+export class AsyncFuzzyMatcher {
+    pattern;
+    matchFunc;
+    matches = [];
+    dataset;
+    #datasetIndex = 0;
+    #timer = null;
+    batchSize = 100;
+    stepDuration = 5;
+    onstep = null;
+    oncomplete = null;
+    
+    constructor(pattern, matchFunc) {
+        this.pattern = pattern;
+        this.matchFunc = matchFunc;
+    }
+
+    start(dataset) {
+        this.flush();
+        this.dataset = dataset;
+        this.#datasetIndex = 0;
+
+        if (!this.#timer) {
+            this.#timer = setTimeout(() => this.#step());
+        }
+    }
+
+    get running() {
+        return this.#timer != null;
+    }
+
+    get progress() {
+        return this.dataset && this.dataset.length > 0 ? this.#datasetIndex / this.dataset.length : 1;
+    }
+
+    cancel() {
+        if (this.#timer) {
+            clearTimeout(this.#timer);
+            this.#timer = null;
+        }
+    }
+
+    flush() {
+        this.matches = [];
+    }
+
+    #step() {
+        let nb_matches = this.matches.length;
+
+        let stop_time = performance.now() + this.stepDuration;
+        do {
+            let end_index =  Math.min(this.dataset.length, this.#datasetIndex + this.batchSize);
+            for (let i = this.#datasetIndex; i < end_index; ++i) {
+                let element = this.dataset[i];
+                let match = this.matchFunc(element, this.pattern);
+                if (match) {
+                    this.matches.push(match);
+                }
+            }
+            this.#datasetIndex = end_index;
+        } while(this.#datasetIndex < this.dataset.length && performance.now() < stop_time);
+
+        if (this.onstep) {
+            this.onstep(this.matches.length - nb_matches);
+        }
+
+        if (this.#datasetIndex == this.dataset.length) {
+            this.#timer = null;
+            if (this.oncomplete) {
+                this.oncomplete();
+            }
+        } else {
+            this.#timer = setTimeout(()=>this.#step());
+        }
+    }
+}
+
+export class AsyncFuzzyTextMatcher extends AsyncFuzzyMatcher {
+    constructor(pattern) {
+        super(pattern, (e, p) => {
+            let m = fuzzyMatch(e, p, sublimeScore);
+            return m ? {text: e, match: m.match, score: m.score} : null;
+        });
+    }
+}
