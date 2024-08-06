@@ -13,6 +13,16 @@
             ],
             "cwd": "${workspaceFolder}/server",
             "program": "${workspaceFolder}\\server\\bin\\www"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "fuzzyMatchTests",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "cwd": "${workspaceFolder}/client",
+            "program": "${workspaceFolder}\\client\\tests\\testFuzzyMatch.js"
         }
     ]
 }
