@@ -15,7 +15,7 @@ const UNMATCHED_LETTER_PENALTY = -1;
 
 function hasFuzzyMatch(str, pattern) {
     if (pattern.length == 0) {
-        return false;
+        return true;
     }
 
     let index_in_pattern = 0;
@@ -158,6 +158,12 @@ export function fuzzyMatch(str, pattern, scoreFunc = null, maxRecursion = 10)
     if (!scoreFunc) {
         return hasFuzzyMatch(str, pattern);
     } else {
+        if (pattern.length == 0) {
+            return {
+                score: 0,
+                macth: []
+            };
+        }
         const recursion_count = 0;
         return fuzzyMatchRecursive(str, pattern, scoreFunc, 0, [], recursion_count, maxRecursion);
     }
@@ -323,4 +329,20 @@ export function fuzzyMatchFilePath(str, pattern, scoreFunc = sublimeScore, maxRe
         match: indices,
         score: score
     };
+}
+
+export class AsyncFileMatcher extends AsyncFuzzyMatcher {
+    constructor(pattern, dataset) {
+        super(pattern.split("/"), ()=>{});
+        this.inputText = pattern;
+        this.dataset = dataset;
+        this.matchFunc = (e, p) => {
+            let m = fuzzyMatchFilePath(e, p);
+            return m ? {element: e, match: m.match, score: m.score} : null;
+        };
+    }
+
+    run() {
+        this.start(this.dataset);
+    }
 }
