@@ -6,8 +6,14 @@ import SnapshotFileSearchResultItem from '@/components/SnapshotFileSearchResultI
 import { AsyncFileMatcher } from '@/lib/fuzzy-match';
 
 import { files } from '@/state/files';
+import { snapshots } from '@/state/snapshots';
+
+import { useRoute, useRouter } from 'vue-router'
 
 import { ref, computed, onMounted, provide, watch } from 'vue'
+
+const route = useRoute();
+const router = useRouter();
 
 const props = defineProps({
   projectName: String,
@@ -15,7 +21,10 @@ const props = defineProps({
 });
 
 provide('projectName', props.projectName);
-provide('projectRevision', props.projectRevision);
+provide('projectRevision', props.projectRevision); // renommer en activeRevision ?
+
+const project = ref(null);
+
 
 const myfiles = ref([]);
 const myFileTree = ref(null);
@@ -34,6 +43,8 @@ function fetchSnapshotFiles() {
   console.log(`fetching files for ${props.projectName}/${props.projectRevision}`);
   files.getFilesForSnapshot(props.projectName, props.projectRevision, receiveSnapshotFiles);
 }
+
+const selectedRevision = ref(null);
 
 const treeview_mode = ref('files');
 
@@ -96,19 +107,53 @@ function restartFileSearch(inputText) {
 
 watch(() => fileSearchText.value, restartFileSearch, { immediate: false });
 
+function fetchProject(name = null) {
+  if (!name) {
+    name = props.projectName;
+  }
+  project.value = snapshots.getProject(name);
+}
+
 onMounted(() => {
   console.log(`snapshotview is now mounted.`);
+  fetchProject();
   fetchSnapshotFiles();
+  selectedRevision.value = props.projectRevision;
 });
 
+watch(() => props.projectName, fetchProject, { immediate: false });
 watch(() => props.projectName + "/" + props.projectRevision, fetchSnapshotFiles, { immediate: false });
+
+function changeSelectedRevision() {
+  if (selectedRevision.value != props.projectRevision) {
+    let routing_options = {
+      name: route.name,
+      params: {
+
+      },
+      hash: route.hash
+    };
+
+    Object.assign(routing_options.params, route.params);
+    routing_options.params.projectRevision =  selectedRevision.value;
+
+    router.push(routing_options);
+  }
+}
+
+watch(() => selectedRevision.value, changeSelectedRevision, { immediate: false });
+
 
 </script>
 
 <template>
   <div class="snapshot-view">
     <nav>
-      <div>TODO: version combobox</div>
+      <div>
+        <select v-if="project" v-model="selectedRevision">
+          <option v-for="rev in project.revisions" :key="rev.name">{{ rev.name }}</option>
+        </select>
+        </div>
       <input v-model="fileSearchText"/>
       <h3>Files</h3>
       <FileTreeView v-if="myFileTree" v-show="show_file_treeview" :fileTree="myFileTree"></FileTreeView>
