@@ -248,3 +248,79 @@ export class AsyncFuzzyTextMatcher extends AsyncFuzzyMatcher {
         });
     }
 }
+
+const MATCHING_FILENAME_BONUS = 15; // bonus the filename is matched
+
+export function fuzzyMatchFilePath(str, pattern, scoreFunc = sublimeScore, maxRecursion = 10) {
+    if (!Array.isArray(pattern)) {
+        console.assert(typeof pattern == 'string');
+        pattern = pattern.split("/");
+    }
+
+    let input_path = str;
+    if (!Array.isArray(input_path)) {
+        console.assert(typeof str == 'string');
+        input_path = str.split("/");
+    }
+
+    if (pattern.length > input_path.length) {
+        return null;
+    }
+
+    let matches = [];
+    {
+        let current_pattern_index = pattern.length - 1;
+        let current_path_index = input_path.length - 1;
+        while (current_path_index >= 0) {
+            let m = fuzzyMatch(input_path[current_path_index], pattern[current_pattern_index], scoreFunc, maxRecursion);
+    
+            if (m) {
+                matches.push({
+                    pathIndex: current_path_index,
+                    match: m
+                });
+    
+                if (matches.length == pattern.length) {
+                    break;
+                } else {
+                    --current_pattern_index;
+                    --current_path_index;
+                }
+            }
+            else {
+                --current_path_index;
+            }
+        }
+    }
+
+    if (matches.length != pattern.length) {
+        return null;
+    }
+
+    let score = 0;
+    if (matches[0].pathIndex == input_path.length - 1) {
+        score += MATCHING_FILENAME_BONUS;
+    }
+    matches.forEach(e => score += e.match.score);
+
+    let indices = [];
+    matches = matches.reverse();
+    {
+        let offset = 0;
+        let current_path_index = 0;
+        for (const m of matches) {
+            while (current_path_index < m.pathIndex) {
+                offset += input_path[current_path_index].length + 1; // don't forget the separator!
+                ++current_path_index;
+            }
+            for (const idx of m.match.match) {
+                indices.push(idx + offset);
+            }
+        }
+    }
+
+    return {
+        match: indices,
+        score: score
+    };
+}
