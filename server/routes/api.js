@@ -273,14 +273,19 @@ function GetSnapshotSymbolTreeItem(req, res, next) {
 
     res.json({
       success: true,
-      symbols: children,
+      symbol: {
+        id: symbolId,
+        name: symbol.name,
+        kind: symbol.kind
+      },
+      children: children,
     });
   } else {
     let symbols = revision.getTopLevelSymbols();
 
     res.json({
       success: true,
-      symbols: symbols,
+      symbols: symbols
     });
   }
 }
@@ -305,16 +310,33 @@ function GetSnapshotSymbolNameDictionary(req, res, next) {
   //   names.push([symbol.name, symbol.kind, symbol.id]);
   // }
 
-  let names = Array.from({ length: 28 }, v => []);
+  let entries = Array.from({ length: 28 }, v => {
+    return {names: [],
+    ids: []};
+  });
   let symbols = revision.selectNonLocalDefinedSymbols();
 
+  // il serait bien, pour chaque symbol, d'avoir accès à son namespace/scope
+  // sous forme d'une seule chaîne de caractère,
+  // pour chaque parentId, on pourrait construire une chaîne "foo::bar::qux"
+  // qui permet d'améliorer la recherche.
+  // select id, parent, name from symbol where id in (select distinct parent from symbol)
   for (const symbol of symbols) {
-    names[symbol.kind].push(symbol.name, symbol.id);
+    entries[symbol.kind].names.push(symbol.name);
+    entries[symbol.kind].ids.push(symbol.id);
   }
+
+  let result = {};
+
+  entries.forEach((value, index) => {
+    if (value.ids.length > 0) {
+      result[symbolKinds.names[index]] = value;
+    }
+  });
 
   res.json({
     success: true,
-    names: names,
+    result: result,
   });
 }
 

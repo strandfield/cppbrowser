@@ -2,6 +2,7 @@
 
 import FileTreeView from '@/components/FileTreeView.vue';
 import SnapshotFileSearchResultItem from '@/components/SnapshotFileSearchResultItem.vue';
+import SnapshotSymbolTreeView from '@/components/SnapshotSymbolTreeView.vue';
 
 import { AsyncFileMatcher } from '@/lib/fuzzy-match';
 
@@ -57,6 +58,18 @@ const fileSearchCompleted = ref(false);
 const show_file_treeview = computed(() => {
   return treeview_mode.value == 'files' && fileSearchText.value == "";
 });
+
+const show_symbol_treeview = computed(() => {
+  return treeview_mode.value == 'symbols';
+});
+
+function switchSidebar() {
+    if (treeview_mode.value == 'files') {
+      treeview_mode.value = 'symbols';
+    } else {
+      treeview_mode.value = 'files';
+    }
+}
 
 function onFileSearchStep() {
   const max_results = 32;
@@ -143,7 +156,6 @@ function changeSelectedRevision() {
 
 watch(() => selectedRevision.value, changeSelectedRevision, { immediate: false });
 
-
 </script>
 
 <template>
@@ -155,9 +167,11 @@ watch(() => selectedRevision.value, changeSelectedRevision, { immediate: false }
         </select>
         </div>
       <input v-model="fileSearchText"/>
-      <h3>Files</h3>
+      <h3 @click="switchSidebar">Files / Symbols</h3>
       <FileTreeView v-if="myFileTree" v-show="show_file_treeview" :fileTree="myFileTree"></FileTreeView>
+      <SnapshotSymbolTreeView v-show="show_symbol_treeview" :projectName="projectName" :projectRevision="projectRevision"></SnapshotSymbolTreeView>
       <p v-if="fileSearchProgress >= 0">progress {{ fileSearchProgress }} </p>
+      <p v-if="fileSearchText.length && fileSearchCompleted >= 0 && fileSearchResults.length == 0">no file matching pattern</p>
       <ul v-if="fileSearchText.length > 0">
         <SnapshotFileSearchResultItem v-for="result in fileSearchResults" :key="result.element" :matchResult="result"></SnapshotFileSearchResultItem>
       </ul>
