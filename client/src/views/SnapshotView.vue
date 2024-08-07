@@ -1,6 +1,7 @@
 <script setup>
 
 import FileTreeView from '@/components/FileTreeView.vue';
+import SnapshotFileSearchResultItem from '@/components/SnapshotFileSearchResultItem.vue';
 
 import { AsyncFileMatcher } from '@/lib/fuzzy-match';
 
@@ -93,10 +94,6 @@ function restartFileSearch(inputText) {
   fileSearchEngine = matcher;
 }
 
-function splitPath(path) {
-  return path.split("/");
-}
-
 watch(() => fileSearchText.value, restartFileSearch, { immediate: false });
 
 onMounted(() => {
@@ -117,9 +114,7 @@ watch(() => props.projectName + "/" + props.projectRevision, fetchSnapshotFiles,
       <FileTreeView v-if="myFileTree" v-show="show_file_treeview" :fileTree="myFileTree"></FileTreeView>
       <p v-if="fileSearchProgress >= 0">progress {{ fileSearchProgress }} </p>
       <ul v-if="fileSearchText.length > 0">
-        <li v-for="result in fileSearchResults" :key="result.element">
-          <RouterLink :to="{ name: 'file', params: { projectName: projectName, projectRevision: projectRevision, pathParts: splitPath(result.element) } }">{{ result.element }}</RouterLink> ({{ result.score }})
-        </li>
+        <SnapshotFileSearchResultItem v-for="result in fileSearchResults" :key="result.element" :matchResult="result"></SnapshotFileSearchResultItem>
       </ul>
     </nav>
     <div>
