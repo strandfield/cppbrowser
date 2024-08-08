@@ -26,7 +26,6 @@ provide('projectRevision', props.projectRevision); // renommer en activeRevision
 
 const project = ref(null);
 
-
 const myfiles = ref([]);
 const myFileTree = ref(null);
 
@@ -169,6 +168,7 @@ watch(() => selectedRevision.value, changeSelectedRevision, { immediate: false }
       <input v-model="fileSearchText"/>
       <h3 @click="switchSidebar">Files / Symbols</h3>
       <FileTreeView v-if="myFileTree" v-show="show_file_treeview" :fileTree="myFileTree"></FileTreeView>
+      <p v-if="show_symbol_treeview">TODO: add symbol search</p>
       <SnapshotSymbolTreeView v-show="show_symbol_treeview" :projectName="projectName" :projectRevision="projectRevision"></SnapshotSymbolTreeView>
       <p v-if="fileSearchProgress >= 0">progress {{ fileSearchProgress }} </p>
       <p v-if="fileSearchText.length && fileSearchCompleted >= 0 && fileSearchResults.length == 0">no file matching pattern</p>
