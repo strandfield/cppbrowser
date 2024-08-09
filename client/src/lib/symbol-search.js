@@ -35,10 +35,18 @@ class SymbolDataset {
     #parentIndexMap = new Map();
     #qualifiedNameMap = new Map();
 
+    constructor() {
+        this.clear();
+    }
+
     clear() {
         this.#parentIndexMap.clear();
+        this.#qualifiedNameMap.clear();
         this.ranges = {};
         this.entries = [];
+        // we push a "null" entry so that index zero isn't used as "parentIndex".
+        // that way we can write !entry.parentIndex instead of entry.parentIndex != null.
+        this.entries.push(new SymbolDatasetEntry(0, ""));
     }
 
     has(kind) {
