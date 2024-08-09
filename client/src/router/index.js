@@ -1,8 +1,8 @@
 
 import HomeView from '../views/HomeView.vue'
 import ProjectSnapshotsView from '../views/ProjectSnapshotsView.vue'
-import SnapshotView from '@/views/SnapshotView.vue'
-import SnapshotHomeView from '@/views/SnapshotHomeView.vue'
+import ProjectView from '@/views/ProjectView.vue'
+import ProjectHomeView from '@/views/ProjectHomeView.vue'
 import FileView from '@/views/FileView.vue'
 import DirectoryView from '@/views/DirectoryView.vue'
 import SymbolView from '@/views/SymbolView.vue'
@@ -29,13 +29,13 @@ const router = createRouter({
     },
     {
       path: "/snapshots/:projectName/:projectRevision",
-      component: SnapshotView,
+      component: ProjectView,
       props: true,
       children: [
         {
           path: "",
           name: 'snapshot',
-          component: SnapshotHomeView,
+          component: ProjectHomeView,
           props: true
         },
         {

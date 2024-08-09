@@ -127,7 +127,7 @@ function fetchProject(name = null) {
 }
 
 onMounted(() => {
-  console.log(`snapshotview is now mounted.`);
+  console.log(`projectview is now mounted.`);
   fetchProject();
   fetchSnapshotFiles();
   selectedRevision.value = props.projectRevision;
