@@ -167,18 +167,23 @@ export class SymbolSearchEngine {
     }
 
     setSearchText(text) {
+        if (this.inputText == text) {
+            return;
+        }
+
         this.inputText = text;
 
         this.query = this.parseQuery(text);
 
-        this.searchResults = [];
         this.#currentRangeIndex = 0;
         this.#currentIndexInRange = 0;
 
         if (text == "") {
+            this.searchResults = [];
             this.#rangesToCheck = [];
             this.state = 'idle';
         } else {
+            this.#rerankSearchResults();
             this.state = 'running';
             this.#rangesToCheck = ['function', 'class', 'struct', 'union', 'enum', 'enum-constant'];
             if (this.#fetchingData) {
@@ -320,7 +325,7 @@ export class SymbolSearchEngine {
                 let symbol = {
                     kind: kind,
                     id: element.id,
-                    name: element.name
+                    name: element.name,
                 };
 
                 if (element.parentIndex) {
@@ -330,6 +335,7 @@ export class SymbolSearchEngine {
                 return {
                     score: m.score,
                     match: m.match,
+                    index: idx,
                     symbol: symbol
                 };
             } else {
@@ -359,8 +365,80 @@ export class SymbolSearchEngine {
             return {
                 score: m.score,
                 match: m.match,
+                index: idx,
                 symbol: symbol
             };
+        }
+    }
+
+    // Called when the search input text has changed to check if the results are still
+    // matching, and if so, to rerank them.
+    #rerankSearchResults() {
+        if (!this.searchResults.length) {
+            return;
+        }
+
+        for (let i = 0; i < this.searchResults.length; ) {
+            let r = this.searchResults[i];
+            
+            let m = this.#matchDatasetItem(r.symbol.kind, this.symbolDataset.at(r.index), r.index);
+
+            if (!m) {
+                this.searchResults.splice(i, 1);
+                continue;
+            }
+
+            // update match and score
+            r.score = m.score;
+            r.match = m.match;
+
+            // mark the result as outdated though, so that it will be removed
+            // when the element is matched again
+            r.outdated = true;
+            
+            ++i; // go on to the next item
+        }
+
+        this.searchResults.sort((a,b) => b.score - a.score);
+    }
+
+    #removeOutdatedResults(firstIndex) {
+
+        let find_next_outdated = (startIndex) => {
+            while (startIndex < this.searchResults.length) {
+                if (this.searchResults[startIndex].outdated) {
+                    return startIndex;
+                } else {
+                    ++startIndex;
+                }
+            }
+            return -1;
+        };
+
+        let i = find_next_outdated(firstIndex);
+
+        while (i != -1) {
+
+            let idx = this.searchResults[i].index;
+            let s = this.searchResults[i].score;
+
+            let j = i + 1;
+            let removed = false;
+            while (j < this.searchResults.length && this.searchResults[j].score == s) {
+                if (this.searchResults[j].index == idx) {
+                    this.searchResults.splice(i, 1);
+                    removed = true;
+                    break;
+                } else {
+                    ++j;
+                }
+            }
+
+            if (!removed) {
+                ++i;
+            }
+
+            i = find_next_outdated(i);
         }
     }
 
@@ -386,6 +464,11 @@ export class SymbolSearchEngine {
 
         if (this.searchResults.length > this.maxResults) {
             this.searchResults.splice(this.searchResults.length, this.searchResults.length - this.maxResults);
+        }
+
+        let outdated_index = this.searchResults.findIndex(e => e.outdated);
+        if (outdated_index != -1) {
+            this.#removeOutdatedResults(outdated_index);
         }
 
         return true;
