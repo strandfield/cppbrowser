@@ -3,7 +3,7 @@
 
 import SnapshotSidebarSymbolTab from '@/components/SnapshotSidebarSymbolTab.vue'
 
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch, computed, provide, toRef } from 'vue'
 
 import $ from 'jquery'
 
@@ -12,6 +12,8 @@ const props = defineProps({
   projectRevision: String,
   symbolId: String
 });
+
+provide('projectRevision', toRef(() => props.projectRevision));
 
 const symbol = ref(null);
 
@@ -31,12 +33,12 @@ function fetchSymbolInfo() {
   });
 }
 
+watch(() => props.projectName + "/" + props.projectRevision + "/" + props.symbolId, fetchSymbolInfo, { immediate: false });
+
 onMounted(() => {
   console.log(`symbolview is now mounted.`);
   fetchSymbolInfo();
 });
-
-watch(() => props.projectName + "/" + props.projectRevision + "/" + props.symbolId, fetchSymbolInfo, { immediate: false });
 
 function getPathParts(path) {
   return path.split("/");

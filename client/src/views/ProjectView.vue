@@ -5,7 +5,7 @@ import { snapshots } from '@/state/snapshots';
 
 import { useRoute, useRouter } from 'vue-router'
 
-import { ref, onMounted, provide, watch } from 'vue'
+import { ref, toRef, onMounted, provide, watch } from 'vue'
 
 const route = useRoute();
 const router = useRouter();
@@ -15,8 +15,8 @@ const props = defineProps({
   projectRevision: String
 });
 
-provide('projectName', props.projectName);
-provide('projectRevision', props.projectRevision);
+provide('projectName', toRef(() => props.projectName));
+provide('projectRevision', toRef(() => props.projectRevision));
 
 const project = ref(null);
 

@@ -14,7 +14,7 @@ const props = defineProps({
 const projectName = inject('projectName');
 const projectRevision = inject('projectRevision');
 
-const fetchUrl = computed(() => `/api/snapshots/${projectName}/${projectRevision}/symbols/tree?symbolId=${props.treeItem.id}`);
+const fetchUrl = computed(() => `/api/snapshots/${projectName}/${projectRevision.value}/symbols/tree?symbolId=${props.treeItem.id}`);
 
 const children = ref([]);
 
@@ -60,6 +60,7 @@ function toggle() {
 
 function refetchChildren() {
   if (isOpen.value) {
+    console.log("symboltreeviewitem refecting children");
     fetchChildren();
   }
 }

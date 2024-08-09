@@ -1,7 +1,7 @@
 <script setup>
 import SnapshotSymbolTreeViewItem from './SnapshotSymbolTreeViewItem.vue'
 
-import { ref, onMounted, provide, watch } from 'vue'
+import { ref, toRef, onMounted, provide, watch } from 'vue'
 
 import $ from 'jquery'
 
@@ -11,11 +11,13 @@ const props = defineProps({
 });
 
 provide('projectName', props.projectName);
-provide('projectRevision', props.projectRevision);
+provide('projectRevision', toRef(() => props.projectRevision));
 
 const symbolTree = ref(null);
 
 function fetchTreeRoot() {
+  console.log("fetching symbol tree root");
+
   symbolTree.value = null;
 
   $.get(`/api/snapshots/${props.projectName}/${props.projectRevision}/symbols/tree`, (data) => {

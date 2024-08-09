@@ -41,16 +41,17 @@ function restartSearch(inputText) {
 }
 
 function reconfigureSearchEngine() {
+  console.log(`need to reconf search engine for version ${projectName.value}/${projectRevision.value}`);
   symbolSearchEngine.reconfigure({
-    projectName: projectName,
-    projectRevision: projectRevision
+    projectName: projectName.value,
+    projectRevision: projectRevision.value
   });
 }
 
 onMounted(() => {
   symbolSearchEngine = new SymbolSearchEngine({
-    projectName: projectName,
-    projectRevision: projectRevision
+    projectName: projectName.value,
+    projectRevision: projectRevision.value
   });
 
   symbolSearchEngine.onstep = () => {
@@ -61,8 +62,8 @@ onMounted(() => {
   };
 });
 
-watch(() => projectName, reconfigureSearchEngine, { immediate: false });
-watch(() => projectRevision, reconfigureSearchEngine, { immediate: false });
+watch(projectName, reconfigureSearchEngine, { immediate: false });
+watch(projectRevision, reconfigureSearchEngine, { immediate: false });
 
 watch(() => searchText.value, restartSearch, { immediate: false });
 
