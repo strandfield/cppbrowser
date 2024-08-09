@@ -303,40 +303,158 @@ function GetSnapshotSymbolNameDictionary(req, res, next) {
     return;
   }
 
-  // let names = [];
-  // let symbols = revision.selectNonLocalDefinedSymbols();
+  let filters = req.query.kind ? req.query.kind.split(",") : symbolKinds.names;
 
-  // for (const symbol of symbols) {
-  //   names.push([symbol.name, symbol.kind, symbol.id]);
-  // }
+  let dict = {
 
-  let entries = Array.from({ length: 28 }, v => {
-    return {names: [],
-    ids: []};
-  });
-  let symbols = revision.selectNonLocalDefinedSymbols();
+  };
 
-  // il serait bien, pour chaque symbol, d'avoir accès à son namespace/scope
-  // sous forme d'une seule chaîne de caractère,
-  // pour chaque parentId, on pourrait construire une chaîne "foo::bar::qux"
-  // qui permet d'améliorer la recherche.
-  // select id, parent, name from symbol where id in (select distinct parent from symbol)
-  for (const symbol of symbols) {
-    entries[symbol.kind].names.push(symbol.name);
-    entries[symbol.kind].ids.push(symbol.id);
+  let select = function(kind) {
+    if (kind == 'namespace') {
+      return revision.selectNamespaces();
+    } else {
+      return revision.selectClassesWithDefinition(kind);
+    }
   }
 
-  let result = {};
+  for (const key of filters) {
+    let rows = select(key);
 
-  entries.forEach((value, index) => {
-    if (value.ids.length > 0) {
-      result[symbolKinds.names[index]] = value;
+    let entries = {
+      id: [],
+      name: [],
+      parent: []
+    };
+
+    for (const row of rows) {
+      entries.id.push(row.id);
+      entries.name.push(row.name);
+      entries.parent.push(row.parent);
     }
-  });
+
+    dict[key] = entries;
+  }
 
   res.json({
     success: true,
-    result: result,
+    dict: dict
+  });
+}
+
+function GetSnapshotSymbolNameDictionaryNs(req, res, next) {
+  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
+  let revision = project?.getRevision(req.params.projectRevision);
+
+  if (!revision) {
+    res.status(404);
+    res.json({
+      success: false,
+      reason: "could not find snapshot"
+    });
+    return;
+  }
+
+  let rows = revision.selectNamespaces();
+
+  let namespaces = {
+    id: [],
+    name: [],
+    parent: []
+  };
+
+  for (const row of rows) {
+    namespaces.id.push(row.id);
+    namespaces.name.push(row.name);
+    namespaces.parent.push(row.parent);
+  }
+
+  res.json({
+    success: true,
+    symbols: {
+      namespace: namespaces
+    }
+  });
+}
+
+function GetSnapshotSymbolNameDictionaryClasses(req, res, next) {
+  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
+  let revision = project?.getRevision(req.params.projectRevision);
+
+  if (!revision) {
+    res.status(404);
+    res.json({
+      success: false,
+      reason: "could not find snapshot"
+    });
+    return;
+  }
+
+  let symbols = {
+
+  };
+
+  for (const key of ['class', 'union', 'struct']) {
+    let rows = revision.selectClassesWithDefinition(key);
+
+    let entries = {
+      id: [],
+      name: [],
+      parent: []
+    };
+
+    for (const row of rows) {
+      entries.id.push(row.id);
+      entries.name.push(row.name);
+      entries.parent.push(row.parent);
+    }
+
+    symbols[key] = entries;
+  }
+
+  res.json({
+    success: true,
+    symbols: symbols
+  });
+}
+
+function GetSnapshotSymbolNameDictionaryEnums(req, res, next) {
+  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
+  let revision = project?.getRevision(req.params.projectRevision);
+
+  if (!revision) {
+    res.status(404);
+    res.json({
+      success: false,
+      reason: "could not find snapshot"
+    });
+    return;
+  }
+
+  let symbols = {
+
+  };
+
+  for (const key of ['enum', 'enum-constant']) {
+    let rows = revision.selectClassesWithDefinition(key);
+
+    let entries = {
+      id: [],
+      name: [],
+      parent: []
+    };
+
+    for (const row of rows) {
+      entries.id.push(row.id);
+      entries.name.push(row.name);
+      entries.parent.push(row.parent);
+    }
+
+    symbols[key] = entries;
+  }
+
+  res.json({
+    success: true,
+    symbols: symbols
   });
 }
 
@@ -576,6 +694,9 @@ function createRouter(app) {
   // symbol-related routes
   router.get('/snapshots/:projectName/:projectRevision/symbols/tree', GetSnapshotSymbolTreeItem);
   router.get('/snapshots/:projectName/:projectRevision/symbols/dict', GetSnapshotSymbolNameDictionary);
+  router.get('/snapshots/:projectName/:projectRevision/symbols/dict/namespaces', GetSnapshotSymbolNameDictionaryNs);
+  router.get('/snapshots/:projectName/:projectRevision/symbols/dict/classes', GetSnapshotSymbolNameDictionaryClasses);
+  router.get('/snapshots/:projectName/:projectRevision/symbols/dict/enums', GetSnapshotSymbolNameDictionaryEnums);
   router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId', GetSnapshotSymbol);
 
   // symbol index related routes

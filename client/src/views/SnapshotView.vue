@@ -2,7 +2,6 @@
 
 import FileTreeView from '@/components/FileTreeView.vue';
 import SnapshotFileSearchResultItem from '@/components/SnapshotFileSearchResultItem.vue';
-import SnapshotSymbolTreeView from '@/components/SnapshotSymbolTreeView.vue';
 
 import { AsyncFileMatcher } from '@/lib/fuzzy-match';
 
@@ -12,6 +11,7 @@ import { snapshots } from '@/state/snapshots';
 import { useRoute, useRouter } from 'vue-router'
 
 import { ref, computed, onMounted, provide, watch } from 'vue'
+import SnapshotSidebarSymbolTab from '@/components/SnapshotSidebarSymbolTab.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -22,7 +22,7 @@ const props = defineProps({
 });
 
 provide('projectName', props.projectName);
-provide('projectRevision', props.projectRevision); // renommer en activeRevision ?
+provide('projectRevision', props.projectRevision);
 
 const project = ref(null);
 
@@ -164,17 +164,16 @@ watch(() => selectedRevision.value, changeSelectedRevision, { immediate: false }
         <select v-if="project" v-model="selectedRevision">
           <option v-for="rev in project.revisions" :key="rev.name">{{ rev.name }}</option>
         </select>
-        </div>
+      </div>
       <input v-model="fileSearchText"/>
       <h3 @click="switchSidebar">Files / Symbols</h3>
       <FileTreeView v-if="myFileTree" v-show="show_file_treeview" :fileTree="myFileTree"></FileTreeView>
-      <p v-if="show_symbol_treeview">TODO: add symbol search</p>
-      <SnapshotSymbolTreeView v-show="show_symbol_treeview" :projectName="projectName" :projectRevision="projectRevision"></SnapshotSymbolTreeView>
       <p v-if="fileSearchProgress >= 0">progress {{ fileSearchProgress }} </p>
       <p v-if="fileSearchText.length && fileSearchCompleted >= 0 && fileSearchResults.length == 0">no file matching pattern</p>
       <ul v-if="fileSearchText.length > 0">
         <SnapshotFileSearchResultItem v-for="result in fileSearchResults" :key="result.element" :matchResult="result"></SnapshotFileSearchResultItem>
       </ul>
+      <SnapshotSidebarSymbolTab v-show="show_symbol_treeview"></SnapshotSidebarSymbolTab>
     </nav>
     <div>
       <RouterView />

@@ -507,6 +507,31 @@ class ProjectRevision
         return this.#readSymbols(rows);
     }
 
+    selectNamespaces() {
+        let query = `SELECT id, parent, name FROM symbol WHERE kind = 2`;
+        let stmt = this.db.prepare(query);
+        stmt.safeIntegers();
+        let rows = stmt.all();
+        rows.forEach(row => {
+            row.id = ProjectRevision.#convertBigIntToHex(row.id),
+            row.parent =  !row.parent ? null : ProjectRevision.#convertBigIntToHex(row.parent);
+        });
+        return rows;
+    }
+
+    selectClassesWithDefinition(keyword = 'class') {
+        let kind = this.getSymbolKindValue(keyword);
+        let query = `SELECT id, parent, name FROM symbol WHERE kind = ${kind} AND (flags & 1 = 0) AND (symbol.id IN (SELECT symbol_id FROM symbolDefinition))`;
+        let stmt = this.db.prepare(query);
+        stmt.safeIntegers();
+        let rows = stmt.all();
+        rows.forEach(row => {
+            row.id = ProjectRevision.#convertBigIntToHex(row.id),
+            row.parent =  !row.parent ? null : ProjectRevision.#convertBigIntToHex(row.parent);
+        });
+        return rows;
+    }
+
     getBaseClasses(symbolId) {
         symbolId = ProjectRevision.#convertSymbolIdFromHex(symbolId);
         let stmt = this.db.prepare("SELECT baseOf.access AS access, baseOf.baseClassID AS baseClassID, symbol.name AS name FROM baseOf LEFT JOIN symbol ON baseOf.baseClassID = symbol.id WHERE baseOf.derivedClassID = ?");
