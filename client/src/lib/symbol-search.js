@@ -171,25 +171,41 @@ export class SymbolSearchEngine {
             return;
         }
 
+        const previous_input_text = this.inputText;
         this.inputText = text;
 
         this.query = this.parseQuery(text);
 
-        this.#currentRangeIndex = 0;
-        this.#currentIndexInRange = 0;
-
         if (text == "") {
+            this.#currentRangeIndex = 0;
+            this.#currentIndexInRange = 0;
             this.searchResults = [];
             this.#rangesToCheck = [];
             this.state = 'idle';
         } else {
-            this.#rerankSearchResults();
-            this.state = 'running';
+            // if we have just added characters to the search text, 
+            // symbols that did not match still won't match so there is
+            // no need to reprocess them.
+            const results_remain_valid = text.startsWith(previous_input_text);
+            if (!results_remain_valid) {
+                this.#currentRangeIndex = 0;
+                this.#currentIndexInRange = 0;
+            }
+            this.#rerankSearchResults(!results_remain_valid);
             this.#rangesToCheck = ['function', 'class', 'struct', 'union', 'enum', 'enum-constant'];
-            if (this.#fetchingData) {
-                this.#scheduleStep();
+
+            if (this.#currentRangeIndex == this.#rangesToCheck.length) {
+                this.state = 'finished';
+                if (this.oncomplete) {
+                    this.oncomplete();
+                }
             } else {
-                this.fetchData();
+                this.state = 'running';
+                if (this.#fetchingData) {
+                    this.#scheduleStep();
+                } else {
+                    this.fetchData();
+                }
             }
         }
     }
@@ -233,7 +249,7 @@ export class SymbolSearchEngine {
         for (let i = 0; i < this.#currentRangeIndex; ++i) {
             let range = this.symbolDataset.ranges[this.#rangesToCheck[i]];
             if (range) {
-                return range.length + done;
+                done = range.length + done;
             } 
         }
 
@@ -373,7 +389,7 @@ export class SymbolSearchEngine {
 
     // Called when the search input text has changed to check if the results are still
     // matching, and if so, to rerank them.
-    #rerankSearchResults() {
+    #rerankSearchResults(outdated = true) {
         if (!this.searchResults.length) {
             return;
         }
@@ -392,9 +408,9 @@ export class SymbolSearchEngine {
             r.score = m.score;
             r.match = m.match;
 
-            // mark the result as outdated though, so that it will be removed
+            // possibly mark the result as outdated though, so that it may be removed
             // when the element is matched again
-            r.outdated = true;
+            r.outdated = outdated;
             
             ++i; // go on to the next item
         }
