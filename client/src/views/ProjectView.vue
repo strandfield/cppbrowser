@@ -81,15 +81,14 @@ watch(() => selectedRevision.value, changeSelectedRevision, { immediate: false }
 <template>
   <div class="project-view">
     <nav>
-      <RouterLink :to="{ name: 'snapshot', params: { projectName: projectName, projectRevision: projectRevision } }">{{ projectName }} &gt;&gt;</RouterLink>
-      <span v-if="project"></span>
+      <RouterLink :to="{ name: 'snapshot', params: { projectName: projectName, projectRevision: projectRevision } }">{{ projectName }}</RouterLink>»
+      <select v-if="project" v-model="selectedRevision">
+        <option v-for="rev in project.revisions" :key="rev.name">{{ rev.name }}</option>
+      </select>
       <RouterLink v-if="project" :to="{ name: 'project', params: { projectName: projectName} }">{{ project.revisions.length }} snapshots</RouterLink>
       <div class="flex-stretch"></div>
       <div class="right-block">
         <input type="text"></input>
-        <select v-if="project" v-model="selectedRevision">
-          <option v-for="rev in project.revisions" :key="rev.name">{{ rev.name }}</option>
-        </select>
       </div>
     </nav>
     <div class="content">
