@@ -180,7 +180,7 @@ export class SymbolSearchEngine {
             this.state = 'idle';
         } else {
             this.state = 'running';
-            this.#rangesToCheck = ['function', 'class', 'struct', 'namespace', 'union']; // TODO: conditionally add enum
+            this.#rangesToCheck = ['function', 'class', 'struct', 'union', 'enum', 'enum-constant'];
             if (this.#fetchingData) {
                 this.#scheduleStep();
             } else {
