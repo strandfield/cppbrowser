@@ -3,8 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import ProjectSnapshotsView from '../views/ProjectSnapshotsView.vue'
 import ProjectView from '@/views/ProjectView.vue'
 import ProjectHomeView from '@/views/ProjectHomeView.vue'
-import FileView from '@/views/FileView.vue'
-import DirectoryView from '@/views/DirectoryView.vue'
+import ProjectFilesystemView from '@/views/ProjectFilesystemView.vue'
 import SymbolView from '@/views/SymbolView.vue'
 
 import SymbolIndexView from '@/views/SymbolIndexView.vue'
@@ -41,13 +40,13 @@ const router = createRouter({
         {
           path: "files/:pathParts+",
           name: 'file',
-          component: FileView,
+          component: ProjectFilesystemView,
           props: true
         },
         {
           path: "tree/:pathParts+",
           name: 'dir',
-          component: DirectoryView,
+          component: ProjectFilesystemView,
           props: true
         },
         {

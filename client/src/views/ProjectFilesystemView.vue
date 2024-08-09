@@ -3,8 +3,8 @@
 
 import { CodeViewer } from '@cppbrowser/codebrowser'
 
-import { ref, onMounted, watch, inject } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, watch, inject, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 
 import $ from 'jquery'
 
@@ -15,6 +15,9 @@ const props = defineProps({
 });
 
 const router = useRouter();
+const route = useRoute();
+
+const isFolder = computed(() => route.name == 'dir');
 
 const navtooltip = inject('navtooltip');
 
@@ -99,7 +102,7 @@ let linksGenerator = {
 };
 
 onMounted(() => {
-  console.log(`fileview is now mounted.`);
+  console.log(`filesystemview is now mounted.`);
   codeviewer = new CodeViewer(document.getElementById('srccodecontainer'), navtooltip.value);
   fetchFileContent();
 });
@@ -114,10 +117,14 @@ function setFileContent(data) {
 function fetchFileContent() {
   sourceCode.value = "";
 
-  $.get(`/api/snapshots/${props.projectName}/${props.projectRevision}/files/${props.pathParts.join("/")}`, (data) => {
+  if (!isFolder.value) {
+    $.get(`/api/snapshots/${props.projectName}/${props.projectRevision}/files/${props.pathParts.join("/")}`, (data) => {
       setFileContent(data);
       fetchSema();
-  });
+    });
+  } else {
+    codeviewer.setPlainText("");
+  }
 }
 
 function fetchSema() {
@@ -144,12 +151,72 @@ function fetchSema() {
     });
 }
 
+///// FOLDER
+
+const snapshotFileTree = inject('snapshotFileTree');
+const snapshotFileTreeItem = ref(null);
+
+onMounted(() => {
+  if (isFolder.value) {
+    fetchDirContent();
+  }
+});
+
+watch(() => props.projectName + "/" + props.projectRevision + "/" + props.pathParts.join("/"), fetchDirContent, { immediate: false });
+watch(() => snapshotFileTree, fetchDirContent, { immediate: false });
+
+function fetchDirContent() {
+  let full_path = `${props.projectName}/${props.projectRevision}/files/${props.pathParts.join("/")}`;
+  console.log("fetching dir content " + full_path);
+
+  let node = snapshotFileTree.value;
+
+  let parts = [...props.pathParts].reverse();
+
+  while (node && parts.length > 0) {
+    const p = parts.pop();
+    node = node.children.find(n => n.name == p);
+  }
+
+  snapshotFileTreeItem.value = node;
+}
+
+function getPathParts(f) {
+  return f.path.split("/");
+}
 
 </script>
 
 <template>
   <div>
     <h2>{{ projectName }}/{{ projectRevision }}/{{ pathParts.join("/") }}</h2>
-    <div id="srccodecontainer"></div>
+    <div v-show="!isFolder" id="srccodecontainer"></div>
+    <div>
+      <div v-if="isFolder">
+        <h3>Files</h3>
+        <table v-if="snapshotFileTreeItem">
+          <tbody>
+            <tr v-if="pathParts.length > 1">
+              <td>
+                <RouterLink
+                  :to="{ name: 'dir', params: { projectName: projectName, projectRevision: projectRevision, pathParts: pathParts.slice(0, -1) } }">..</RouterLink>
+              </td>
+            </tr>
+            <tr v-for="f in snapshotFileTreeItem.children" :key="f.path">
+              <td v-if="f.type == 'file'">
+                <RouterLink
+                  :to="{ name: 'file', params: { projectName: projectName, projectRevision: projectRevision, pathParts: getPathParts(f) } }">
+                  {{ f.name }}</RouterLink>
+              </td>
+              <td v-if="f.type == 'dir'">
+                <RouterLink
+                  :to="{ name: 'dir', params: { projectName: projectName, projectRevision: projectRevision, pathParts: getPathParts(f) } }">
+                  {{ f.name }}</RouterLink>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
