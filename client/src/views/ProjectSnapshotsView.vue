@@ -11,7 +11,6 @@ const props = defineProps({
 const project = ref(null);
 
 onMounted(() => {
-  console.log(`projectview is now mounted.`);
   snapshots.load(); // TODO: ajouter un callback pour appeler fetchProjectInfo()
 });
 
