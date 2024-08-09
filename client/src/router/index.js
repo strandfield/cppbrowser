@@ -4,7 +4,7 @@ import ProjectSnapshotsView from '../views/ProjectSnapshotsView.vue'
 import ProjectView from '@/views/ProjectView.vue'
 import ProjectHomeView from '@/views/ProjectHomeView.vue'
 import ProjectFilesystemView from '@/views/ProjectFilesystemView.vue'
-import SymbolView from '@/views/SymbolView.vue'
+import ProjectSymbolView from '@/views/ProjectSymbolView.vue'
 
 import SymbolIndexView from '@/views/SymbolIndexView.vue'
 import SymbolIndexHomeView from '@/views/SymbolIndexHomeView.vue'
@@ -22,7 +22,7 @@ const router = createRouter({
     },
     {
       path: "/snapshots/:projectName",
-      name: 'project',
+      name: 'project', // TODO: rename me
       component: ProjectSnapshotsView,
       props: true
     },
@@ -52,7 +52,7 @@ const router = createRouter({
         {
           path: "symbols/:symbolId",
           name: 'symbol',
-          component: SymbolView,
+          component: ProjectSymbolView,
           props: true
         }
       ],

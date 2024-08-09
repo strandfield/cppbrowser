@@ -14,12 +14,12 @@ const snapshotFileTree = inject('snapshotFileTree');
 
 const symbolTree = ref(null);
 
-const fetchUrl = computed(() => `/api/snapshots/${props.projectName}/${props.projectRevision}/symbols/tree`);
+const symbolTreeRootFetchUrl = computed(() => `/api/snapshots/${props.projectName}/${props.projectRevision}/symbols/tree`);
 
-function fetchTreeRoot() {
+function fetchSymbolTreeRoot() {
   symbolTree.value = null;
 
-  $.get(fetchUrl.value, (data) => {
+  $.get(symbolTreeRootFetchUrl.value, (data) => {
     if (data.success) {
       symbolTree.value = data;
     }
@@ -27,10 +27,10 @@ function fetchTreeRoot() {
 }
 
 onMounted(() => {
-  fetchTreeRoot();
+  fetchSymbolTreeRoot();
 });
 
-watch(fetchUrl, fetchTreeRoot);
+watch(symbolTreeRootFetchUrl, fetchSymbolTreeRoot);
 
 function getPathParts(f) {
   return f.path.split("/");
@@ -40,12 +40,12 @@ function getPathParts(f) {
 
 <template>
   <div>
-    <h2>{{ projectName }}/{{ projectRevision }}</h2>
+    <h1>{{ projectName }}/{{ projectRevision }}</h1>
     <p>This is the snapshot for {{ projectName }}/{{ projectRevision }}!</p>
     <p>
       TODO: add mixed symbol/file search bar
     </p>
-    <h3>Files</h3>
+    <h2>Files</h2>
     <table v-if="snapshotFileTree">
       <tbody>
         <tr v-for="f in snapshotFileTree.children" :key="f.path">
@@ -58,7 +58,7 @@ function getPathParts(f) {
         </tr>
       </tbody>
     </table>
-    <h3>Symbols</h3>
+    <h2>Symbols</h2>
     <table v-if="symbolTree">
       <tbody>
         <tr v-for="child in symbolTree.symbols" :key="child.id">

@@ -1,17 +1,11 @@
 <script setup>
 
-import FileTreeView from '@/components/FileTreeView.vue';
-import SnapshotFileSearchResultItem from '@/components/SnapshotFileSearchResultItem.vue';
-
-import { AsyncFileMatcher } from '@/lib/fuzzy-match';
-
 import { files } from '@/state/files';
 import { snapshots } from '@/state/snapshots';
 
 import { useRoute, useRouter } from 'vue-router'
 
-import { ref, computed, onMounted, provide, watch } from 'vue'
-import SnapshotSidebarSymbolTab from '@/components/SnapshotSidebarSymbolTab.vue';
+import { ref, onMounted, provide, watch } from 'vue'
 
 const route = useRoute();
 const router = useRouter();
@@ -45,79 +39,6 @@ function fetchSnapshotFiles() {
 }
 
 const selectedRevision = ref(null);
-
-const treeview_mode = ref('files');
-
-const fileSearchText = ref("");
-let fileSearchEngine = null;
-const fileSearchResults = ref([]);
-const fileSearchProgress = ref(-1);
-const fileSearchCompleted = ref(false);
-
-const show_file_treeview = computed(() => {
-  return treeview_mode.value == 'files' && fileSearchText.value == "";
-});
-
-const show_symbol_treeview = computed(() => {
-  return treeview_mode.value == 'symbols';
-});
-
-function switchSidebar() {
-    if (treeview_mode.value == 'files') {
-      treeview_mode.value = 'symbols';
-    } else {
-      treeview_mode.value = 'files';
-    }
-}
-
-function onFileSearchStep() {
-  const max_results = 32;
-  let results = fileSearchResults.value.concat(fileSearchEngine.matches);
-  fileSearchEngine.flush();
-  results.sort((a,b) => b.score - a.score);
-  if (results.length > max_results) {
-    results = results.slice(0, max_results);
-  }
-  fileSearchResults.value = results;
-  fileSearchProgress.value = fileSearchEngine.progress;
-}
-
-function onFileSearchCompleted() {
-  fileSearchCompleted.value = true;
-  fileSearchProgress.value = -1;
-  fileSearchEngine = null;
-}
-
-function restartFileSearch(inputText) {
-  if (fileSearchEngine && fileSearchEngine.inputText == inputText) {
-    return;
-  }
-
-  if (fileSearchEngine) {
-    fileSearchEngine.cancel();
-    fileSearchEngine = null;
-  }
-
-  fileSearchResults.value = [];
-  fileSearchProgress.value = inputText == "" ? -1 : 0;
-  fileSearchCompleted.value = false;
-
-  if (inputText == "") {
-    return;
-  }
-
-  let matcher = new AsyncFileMatcher(inputText, myfiles.value);
-  matcher.onstep = () => {
-    onFileSearchStep();
-  };
-  matcher.oncomplete = () => {
-    onFileSearchCompleted();
-  };
-  matcher.run();
-  fileSearchEngine = matcher;
-}
-
-watch(() => fileSearchText.value, restartFileSearch, { immediate: false });
 
 function fetchProject(name = null) {
   if (!name) {
@@ -158,31 +79,36 @@ watch(() => selectedRevision.value, changeSelectedRevision, { immediate: false }
 </script>
 
 <template>
-  <div class="snapshot-view">
+  <div class="project-view">
     <nav>
-      <div>
+      <RouterLink :to="{ name: 'snapshot', params: { projectName: projectName, projectRevision: projectRevision } }">{{ projectName }} &gt;&gt;</RouterLink>
+      <span v-if="project"></span>
+      <RouterLink v-if="project" :to="{ name: 'project', params: { projectName: projectName} }">{{ project.revisions.length }} snapshots</RouterLink>
+      <div class="flex-stretch"></div>
+      <div class="right-block">
+        <input type="text"></input>
         <select v-if="project" v-model="selectedRevision">
           <option v-for="rev in project.revisions" :key="rev.name">{{ rev.name }}</option>
         </select>
       </div>
-      <input v-model="fileSearchText"/>
-      <h3 @click="switchSidebar">Files / Symbols</h3>
-      <FileTreeView v-if="myFileTree" v-show="show_file_treeview" :fileTree="myFileTree"></FileTreeView>
-      <p v-if="fileSearchProgress >= 0">progress {{ fileSearchProgress }} </p>
-      <p v-if="fileSearchText.length && fileSearchCompleted >= 0 && fileSearchResults.length == 0">no file matching pattern</p>
-      <ul v-if="fileSearchText.length > 0">
-        <SnapshotFileSearchResultItem v-for="result in fileSearchResults" :key="result.element" :matchResult="result"></SnapshotFileSearchResultItem>
-      </ul>
-      <SnapshotSidebarSymbolTab v-show="show_symbol_treeview"></SnapshotSidebarSymbolTab>
     </nav>
-    <div>
+    <div class="content">
       <RouterView />
     </div>
   </div>
 </template>
 
 <style scoped>
-.snapshot-view {
+.project-view {
+
+}
+
+.project-view nav {
   display: flex;
+  align-items: center;
+}
+
+.flex-stretch {
+  flex-grow: 1;
 }
 </style>

@@ -1,5 +1,9 @@
 <script setup>
 
+import FileTreeView from '@/components/FileTreeView.vue';
+import SnapshotFileSearchResultItem from '@/components/SnapshotFileSearchResultItem.vue';
+
+import { AsyncFileMatcher } from '@/lib/fuzzy-match';
 
 import { CodeViewer } from '@cppbrowser/codebrowser'
 
@@ -7,6 +11,9 @@ import { ref, onMounted, watch, inject, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 import $ from 'jquery'
+
+const snapshotFiles = inject('snapshotFiles');
+const snapshotFileTree = inject('snapshotFileTree');
 
 const props = defineProps({
   projectName: String,
@@ -153,7 +160,6 @@ function fetchSema() {
 
 ///// FOLDER
 
-const snapshotFileTree = inject('snapshotFileTree');
 const snapshotFileTreeItem = ref(null);
 
 onMounted(() => {
@@ -185,38 +191,122 @@ function getPathParts(f) {
   return f.path.split("/");
 }
 
-</script>
+// SIDEBAR
 
+
+const treeview_mode = ref('files');
+
+const fileSearchText = ref("");
+let fileSearchEngine = null;
+const fileSearchResults = ref([]);
+const fileSearchProgress = ref(-1);
+const fileSearchCompleted = ref(false);
+
+const show_file_treeview = computed(() => {
+  return treeview_mode.value == 'files' && fileSearchText.value == "";
+});
+
+function onFileSearchStep() {
+  const max_results = 32;
+  let results = fileSearchResults.value.concat(fileSearchEngine.matches);
+  fileSearchEngine.flush();
+  results.sort((a,b) => b.score - a.score);
+  if (results.length > max_results) {
+    results = results.slice(0, max_results);
+  }
+  fileSearchResults.value = results;
+  fileSearchProgress.value = fileSearchEngine.progress;
+}
+
+function onFileSearchCompleted() {
+  fileSearchCompleted.value = true;
+  fileSearchProgress.value = -1;
+  fileSearchEngine = null;
+}
+
+function restartFileSearch(inputText) {
+  if (fileSearchEngine && fileSearchEngine.inputText == inputText) {
+    return;
+  }
+
+  if (fileSearchEngine) {
+    fileSearchEngine.cancel();
+    fileSearchEngine = null;
+  }
+
+  fileSearchResults.value = [];
+  fileSearchProgress.value = inputText == "" ? -1 : 0;
+  fileSearchCompleted.value = false;
+
+  if (inputText == "") {
+    return;
+  }
+
+  let matcher = new AsyncFileMatcher(inputText, snapshotFiles.value);
+  matcher.onstep = () => {
+    onFileSearchStep();
+  };
+  matcher.oncomplete = () => {
+    onFileSearchCompleted();
+  };
+  matcher.run();
+  fileSearchEngine = matcher;
+}
+
+watch(() => fileSearchText.value, restartFileSearch, { immediate: false });
+
+</script>
 <template>
-  <div>
-    <h2>{{ projectName }}/{{ projectRevision }}/{{ pathParts.join("/") }}</h2>
-    <div v-show="!isFolder" id="srccodecontainer"></div>
-    <div>
-      <div v-if="isFolder">
-        <h3>Files</h3>
-        <table v-if="snapshotFileTreeItem">
-          <tbody>
-            <tr v-if="pathParts.length > 1">
-              <td>
-                <RouterLink
-                  :to="{ name: 'dir', params: { projectName: projectName, projectRevision: projectRevision, pathParts: pathParts.slice(0, -1) } }">..</RouterLink>
-              </td>
-            </tr>
-            <tr v-for="f in snapshotFileTreeItem.children" :key="f.path">
-              <td v-if="f.type == 'file'">
-                <RouterLink
-                  :to="{ name: 'file', params: { projectName: projectName, projectRevision: projectRevision, pathParts: getPathParts(f) } }">
-                  {{ f.name }}</RouterLink>
-              </td>
-              <td v-if="f.type == 'dir'">
-                <RouterLink
-                  :to="{ name: 'dir', params: { projectName: projectName, projectRevision: projectRevision, pathParts: getPathParts(f) } }">
-                  {{ f.name }}</RouterLink>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+  <div class="content-with-sidebar">
+    <div class="sidebar">
+      <h3>Files</h3>
+      <input v-model="fileSearchText" />
+      <FileTreeView v-if="snapshotFileTree" v-show="show_file_treeview" :fileTree="snapshotFileTree"></FileTreeView>
+      <p v-if="fileSearchProgress >= 0">progress {{ fileSearchProgress }} </p>
+      <p v-if="fileSearchText.length && fileSearchCompleted >= 0 && fileSearchResults.length == 0">no file matching
+        pattern</p>
+      <ul v-if="fileSearchText.length > 0">
+        <SnapshotFileSearchResultItem v-for="result in fileSearchResults" :key="result.element" :matchResult="result">
+        </SnapshotFileSearchResultItem>
+      </ul>
+    </div>
+    <div class="main-content">
+      <h2>{{ projectName }}/{{ projectRevision }}/{{ pathParts.join("/") }}</h2>
+      <div v-show="!isFolder" id="srccodecontainer"></div>
+      <div>
+        <div v-if="isFolder">
+          <h3>Files</h3>
+          <table v-if="snapshotFileTreeItem">
+            <tbody>
+              <tr v-if="pathParts.length > 1">
+                <td>
+                  <RouterLink
+                    :to="{ name: 'dir', params: { projectName: projectName, projectRevision: projectRevision, pathParts: pathParts.slice(0, -1) } }">
+                    ..</RouterLink>
+                </td>
+              </tr>
+              <tr v-for="f in snapshotFileTreeItem.children" :key="f.path">
+                <td v-if="f.type == 'file'">
+                  <RouterLink
+                    :to="{ name: 'file', params: { projectName: projectName, projectRevision: projectRevision, pathParts: getPathParts(f) } }">
+                    {{ f.name }}</RouterLink>
+                </td>
+                <td v-if="f.type == 'dir'">
+                  <RouterLink
+                    :to="{ name: 'dir', params: { projectName: projectName, projectRevision: projectRevision, pathParts: getPathParts(f) } }">
+                    {{ f.name }}</RouterLink>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.content-with-sidebar {
+  display: flex;
+}
+</style>
