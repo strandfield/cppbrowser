@@ -337,6 +337,10 @@ function GetSnapshotSymbolNameDictionary(req, res, next) {
 
   res.json({
     success: true,
+    params: {
+      projectName: req.params.projectName,
+      projectRevision: req.params.projectRevision
+    },
     dict: dict
   });
 }

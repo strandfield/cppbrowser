@@ -41,7 +41,10 @@ function restartSearch(inputText) {
 }
 
 function reconfigureSearchEngine() {
-  console.log("need to reconfigure engine")
+  symbolSearchEngine.reconfigure({
+    projectName: projectName,
+    projectRevision: projectRevision
+  });
 }
 
 onMounted(() => {

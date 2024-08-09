@@ -145,6 +145,23 @@ export class SymbolSearchEngine {
         this.symbolDataset = new SymbolDataset();
     }
 
+    reconfigure(projectInfo) {
+        if (this.projectInfo.projectName == projectInfo.projectName && this.projectInfo.projectRevision == projectInfo.projectRevision) {
+            return;
+        }
+
+        this.projectInfo = projectInfo;
+        this.symbolDataset.clear();
+
+        this.searchResults = [];
+        this.#currentIndexInRange = 0;
+        this.#currentRangeIndex = 0;
+
+        if (this.running) {
+            this.fetchData();
+        }
+    }
+
     parseQuery(text) {
         if (text.length == 0) {
             return null;
@@ -260,6 +277,10 @@ export class SymbolSearchEngine {
         let url = `/api/snapshots/${this.projectInfo.projectName}/${this.projectInfo.projectRevision}/symbols/dict?kind=namespace,class`;
         $.get(url, data => {
             if (data.success) {
+                if (data.params.projectName != this.projectInfo.projectName || data.params.projectRevision != this.projectInfo.projectRevision) {
+                    return;
+                }
+
                 this.symbolDataset.incorporate({
                     namespace: data.dict.namespace
                 });
@@ -285,6 +306,10 @@ export class SymbolSearchEngine {
         let url = `/api/snapshots/${this.projectInfo.projectName}/${this.projectInfo.projectRevision}/symbols/dict?function,instance-method,static-method,class-method`;
         $.get(url, data => {
             if (data.success) {
+                if (data.params.projectName != this.projectInfo.projectName || data.params.projectRevision != this.projectInfo.projectRevision) {
+                    return;
+                }
+
                 this.symbolDataset.incorporate(data.dict);
                 if (this.running && this.#timer == null) {
                     this.#step();
@@ -303,6 +328,10 @@ export class SymbolSearchEngine {
         let url = `/api/snapshots/${this.projectInfo.projectName}/${this.projectInfo.projectRevision}/symbols/dict?enum,enum-constant`;
         $.get(url, data => {
             if (data.success) {
+                if (data.params.projectName != this.projectInfo.projectName || data.params.projectRevision != this.projectInfo.projectRevision) {
+                    return;
+                }
+
                 this.symbolDataset.incorporate(data.dict);
                 if (this.running && this.#timer == null) {
                     this.#step();
