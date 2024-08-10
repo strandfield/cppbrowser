@@ -66,10 +66,13 @@ function getHashForRef(def) {
         <p>Loading...</p>
       </div>
       <div v-if="symbol">
-        <h2>{{ projectName }}/{{ projectRevision }}/#{{ symbolId }}</h2>
-        <h2 v-if="isClass">{{ symbol.displayName ? symbol.displayName : symbol.name }} Class</h2>
-        <h2 v-else-if="isNamespace">{{ symbol.displayName ? symbol.displayName : symbol.name }} Namespace</h2>
-        <h2 v-else>{{ symbol.displayName ? symbol.displayName : symbol.name }}</h2>
+        <h1 v-if="isClass">{{ symbol.displayName ? symbol.displayName : symbol.name }} Class</h1>
+        <h1 v-else-if="isNamespace">{{ symbol.displayName ? symbol.displayName : symbol.name }} Namespace</h1>
+        <h1 v-else>{{ symbol.displayName ? symbol.displayName : symbol.name }}</h1>
+
+        <p>
+          <b>Symbol ID: #{{ symbolId }}</b>
+        </p>
 
         <p>
           <template v-if="symbol.parent">

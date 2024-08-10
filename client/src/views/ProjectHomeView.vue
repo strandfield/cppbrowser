@@ -41,10 +41,6 @@ function getPathParts(f) {
 <template>
   <div>
     <h1>{{ projectName }}/{{ projectRevision }}</h1>
-    <p>This is the snapshot for {{ projectName }}/{{ projectRevision }}!</p>
-    <p>
-      TODO: add mixed symbol/file search bar
-    </p>
     <h2>Files</h2>
     <table v-if="snapshotFileTree">
       <tbody>

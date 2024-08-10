@@ -88,7 +88,7 @@ watch(() => selectedRevision.value, changeSelectedRevision, { immediate: false }
       <RouterLink v-if="project" :to="{ name: 'project', params: { projectName: projectName} }">{{ project.revisions.length }} snapshots</RouterLink>
       <div class="flex-stretch"></div>
       <div class="right-block">
-        <input type="text"></input>
+        <input type="text" value="TODO!"></input>
       </div>
     </nav>
     <div class="content">

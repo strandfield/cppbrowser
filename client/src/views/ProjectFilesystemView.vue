@@ -25,6 +25,23 @@ const router = useRouter();
 const route = useRoute();
 
 const isFolder = computed(() => route.name == 'dir');
+const fileName = computed(() => props.pathParts.at(props.pathParts.length - 1));
+const breadcrumbParts = computed(() => {
+  if (props.pathParts.length == 1) {
+    return [];
+  }
+  const parts = props.pathParts.slice(0, -1);
+  let result = [];
+  for (let i = 0; i < parts.length; ++i) {
+    let pp = parts.slice(0, i+1);
+    result.push({
+      name: parts[i],
+      path: pp.join("/"),
+      parts: pp
+    });
+  }
+  return result;
+});
 
 const navtooltip = inject('navtooltip');
 
@@ -271,7 +288,21 @@ watch(() => fileSearchText.value, restartFileSearch, { immediate: false });
       </ul>
     </div>
     <div class="main-content">
-      <h2>{{ projectName }}/{{ projectRevision }}/{{ pathParts.join("/") }}</h2>
+      <div class="breadcrumb">
+        <nav>
+          <ol>
+            <li><RouterLink :to="{ name: 'snapshot', params: { projectName: projectName, projectRevision: projectRevision } }">{{ projectName }}</RouterLink></li>
+            <li v-for="part in breadcrumbParts" :key="part.path">
+              <span class="dir-separator">/</span>
+              <RouterLink :to="{ name: 'dir', params: { projectName: projectName, projectRevision: projectRevision, pathParts: part.parts } }">{{ part.name }}</RouterLink>
+            </li>
+          </ol>
+        </nav>
+        <div class="here">
+          <span class="filename-separator">/</span>
+          <h1 id="filename">{{ fileName }}</h1>
+        </div>
+      </div>
       <div v-show="!isFolder" id="srccodecontainer"></div>
       <div>
         <div v-if="isFolder">
@@ -309,4 +340,26 @@ watch(() => fileSearchText.value, restartFileSearch, { immediate: false });
 .content-with-sidebar {
   display: flex;
 }
+
+.breadcrumb {
+  font-size: 16px;
+  display: flex;
+}
+
+.breadcrumb nav ol {
+  display: flex;
+  list-style: none;
+  padding: 0;
+}
+
+.breadcrumb .here h1 {
+  display: inline-block;
+  font-size: 16px;
+}
+
+.breadcrumb .here .filename-separator {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
 </style>
