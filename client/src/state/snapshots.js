@@ -50,6 +50,9 @@ const snapshots_object = {
         });
     },
     getProject(projectName) {
+        if (this.state != 'loaded') {
+            console.warn("getProject() called but state !== 'loaded'");
+        }
         return this.projects.find(p => p.name == projectName);
     }
 };

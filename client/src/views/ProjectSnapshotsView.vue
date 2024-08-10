@@ -11,15 +11,31 @@ const props = defineProps({
 const project = ref(null);
 
 onMounted(() => {
-  snapshots.load(); // TODO: ajouter un callback pour appeler fetchProjectInfo()
+  if (snapshots.state == 'loaded')  {
+    fetchProjectInfo();
+  } else {
+    snapshots.load();
+  }
 });
 
-function fetchProjectInfo(projectName) {
+function fetchProjectInfo(projectName = null) {
+  if (!projectName) {
+    projectName = props.projectName;
+  }
   console.log("fetching info for "+projectName);
-  project.value = snapshots.getProject(projectName);
+  if (snapshots.state == 'loaded') {
+    project.value = snapshots.getProject(projectName);
+  }
 }
 
-watch(() => props.projectName, fetchProjectInfo, { immediate: true });
+function onSnapshotsStateChanged(state) {
+  if (state == 'loaded') {
+    fetchProjectInfo()
+  }
+}
+
+watch(() => props.projectName, fetchProjectInfo, { immediate: false });
+watch(() => snapshots.state, onSnapshotsStateChanged, { immediate: false });
 
 function removeSnapshot(name) {
   console.log("requested remove snapshot: " + name);

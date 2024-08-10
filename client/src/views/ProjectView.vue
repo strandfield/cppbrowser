@@ -44,18 +44,28 @@ function fetchProject(name = null) {
   if (!name) {
     name = props.projectName;
   }
-  project.value = snapshots.getProject(name);
+  if (snapshots.state == 'loaded') {
+    project.value = snapshots.getProject(name);
+  }
 }
 
 onMounted(() => {
   console.log(`projectview is now mounted.`);
+  snapshots.load();
   fetchProject();
   fetchSnapshotFiles();
   selectedRevision.value = props.projectRevision;
 });
 
+function onSnapshotsStateChanged(state) {
+  if (state == 'loaded') {
+    fetchProject();
+  }
+}
+
 watch(() => props.projectName, fetchProject, { immediate: false });
 watch(() => props.projectName + "/" + props.projectRevision, fetchSnapshotFiles, { immediate: false });
+watch(() => snapshots.state, onSnapshotsStateChanged, { immediate: false });
 
 function changeSelectedRevision() {
   if (selectedRevision.value != props.projectRevision) {
