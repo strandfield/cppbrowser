@@ -6,6 +6,7 @@ import { snapshots } from '@/state/snapshots';
 import { useRoute, useRouter } from 'vue-router'
 
 import { ref, toRef, onMounted, provide, watch } from 'vue'
+import ProjectViewSearchBar from '@/components/ProjectViewSearchBar.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -98,7 +99,7 @@ watch(() => selectedRevision.value, changeSelectedRevision, { immediate: false }
       <RouterLink v-if="project" :to="{ name: 'project', params: { projectName: projectName} }">{{ project.revisions.length }} snapshots</RouterLink>
       <div class="flex-stretch"></div>
       <div class="right-block">
-        <input type="text" value="TODO!"></input>
+        <ProjectViewSearchBar></ProjectViewSearchBar>
       </div>
     </nav>
     <div class="content">
