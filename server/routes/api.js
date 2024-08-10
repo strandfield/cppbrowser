@@ -159,6 +159,12 @@ function GetSnapshotFiles(req, res, next) {
 
   res.json({
     success: true,
+    req: {
+      params: {
+        projectName: req.params.projectName,
+        projectRevision: req.params.projectRevision
+      }
+    },
     files: files
   });
 }

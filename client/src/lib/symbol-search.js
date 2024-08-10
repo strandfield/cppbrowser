@@ -496,7 +496,7 @@ export class SymbolSearchEngine {
             // result list is already full: check if we have better results
             // among "matches".
             let best_score = matches.reduce((acc, e) => Math.max(acc, e.score), -10000);
-            if (best_score < this.searchResults[this.searchResults.length - 1]) {
+            if (best_score < this.searchResults[this.searchResults.length - 1].score) {
                 return false;
             }
         }
@@ -508,7 +508,7 @@ export class SymbolSearchEngine {
         this.searchResults.sort((a,b) => b.score - a.score);
 
         if (this.searchResults.length > this.maxResults) {
-            this.searchResults.splice(this.searchResults.length, this.searchResults.length - this.maxResults);
+            this.searchResults.splice(this.maxResults, this.searchResults.length - this.maxResults);
         }
 
         let outdated_index = this.searchResults.findIndex(e => e.outdated);

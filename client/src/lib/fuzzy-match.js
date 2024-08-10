@@ -161,7 +161,7 @@ export function fuzzyMatch(str, pattern, scoreFunc = null, maxRecursion = 10)
         if (pattern.length == 0) {
             return {
                 score: 0,
-                macth: []
+                match: []
             };
         }
         const recursion_count = 0;

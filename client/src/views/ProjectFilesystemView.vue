@@ -3,11 +3,11 @@
 import FileTreeView from '@/components/FileTreeView.vue';
 import SnapshotFileSearchResultItem from '@/components/SnapshotFileSearchResultItem.vue';
 
-import { AsyncFileMatcher } from '@/lib/fuzzy-match';
+import { FileSearchEngine } from '@/lib/file-search';
 
 import { CodeViewer } from '@cppbrowser/codebrowser'
 
-import { ref, onMounted, watch, inject, computed } from 'vue'
+import { ref, reactive, onMounted, watch, inject, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 import $ from 'jquery'
@@ -186,7 +186,7 @@ onMounted(() => {
 });
 
 watch(() => props.projectName + "/" + props.projectRevision + "/" + props.pathParts.join("/"), fetchDirContent, { immediate: false });
-watch(() => snapshotFileTree, fetchDirContent, { immediate: false });
+watch(snapshotFileTree, fetchDirContent, { immediate: false });
 
 function fetchDirContent() {
   let full_path = `${props.projectName}/${props.projectRevision}/files/${props.pathParts.join("/")}`;
@@ -210,80 +210,73 @@ function getPathParts(f) {
 
 // SIDEBAR
 
-
-const treeview_mode = ref('files');
-
-const fileSearchText = ref("");
-let fileSearchEngine = null;
-const fileSearchResults = ref([]);
-const fileSearchProgress = ref(-1);
-const fileSearchCompleted = ref(false);
-
-const show_file_treeview = computed(() => {
-  return treeview_mode.value == 'files' && fileSearchText.value == "";
+const searchText = ref("");
+let searchEngine = null;
+const searchEngineState = reactive({
+  progress: -1,
+  results: [],
+  running: false,
+  completed: false,
+  idle: true
 });
 
-function onFileSearchStep() {
-  const max_results = 32;
-  let results = fileSearchResults.value.concat(fileSearchEngine.matches);
-  fileSearchEngine.flush();
-  results.sort((a,b) => b.score - a.score);
-  if (results.length > max_results) {
-    results = results.slice(0, max_results);
-  }
-  fileSearchResults.value = results;
-  fileSearchProgress.value = fileSearchEngine.progress;
+function readSearchEngineState() {
+  searchEngineState.running = searchEngine.running;
+  searchEngineState.completed = searchEngine.finished;
+  searchEngineState.idle = searchEngine.state == 'idle';
+  searchEngineState.results = searchEngine.searchResults;
+  searchEngineState.progress = searchEngine.progress;
 }
 
-function onFileSearchCompleted() {
-  fileSearchCompleted.value = true;
-  fileSearchProgress.value = -1;
-  fileSearchEngine = null;
+function reconfigureSearchEngine() {
+  if (searchEngine) {
+    searchEngine.reset(snapshotFiles.value);
+  }
 }
 
-function restartFileSearch(inputText) {
-  if (fileSearchEngine && fileSearchEngine.inputText == inputText) {
-    return;
+const show_file_treeview = computed(() => {
+  return searchText.value == "";
+});
+
+function onSearchStep(results_changed) {
+  if (results_changed) {
+    searchEngineState.results = searchEngine.searchResults;
   }
-
-  if (fileSearchEngine) {
-    fileSearchEngine.cancel();
-    fileSearchEngine = null;
-  }
-
-  fileSearchResults.value = [];
-  fileSearchProgress.value = inputText == "" ? -1 : 0;
-  fileSearchCompleted.value = false;
-
-  if (inputText == "") {
-    return;
-  }
-
-  let matcher = new AsyncFileMatcher(inputText, snapshotFiles.value);
-  matcher.onstep = () => {
-    onFileSearchStep();
-  };
-  matcher.oncomplete = () => {
-    onFileSearchCompleted();
-  };
-  matcher.run();
-  fileSearchEngine = matcher;
+  searchEngineState.progress = searchEngine.progress;
 }
 
-watch(() => fileSearchText.value, restartFileSearch, { immediate: false });
+function onSearchCompleted() {
+  readSearchEngineState();
+}
+
+function onSearchTextChanged(inputText) {
+  if (!searchEngine) {
+    searchEngine = new FileSearchEngine(snapshotFiles.value);
+    searchEngine.onstep = onSearchStep;
+    searchEngine.oncomplete = onSearchCompleted;
+  }
+
+  if (searchEngine.inputText != inputText) {
+    searchEngine.setSearchText(inputText);
+    readSearchEngineState();
+  }
+}
+
+watch(() => searchText.value, onSearchTextChanged, { immediate: false });
+watch(snapshotFiles, reconfigureSearchEngine);
 
 </script>
 <template>
   <div class="content-with-sidebar">
     <div class="sidebar">
       <h3>Files</h3>
-      <input v-model="fileSearchText" />
+      <input v-model="searchText" />
       <FileTreeView v-if="snapshotFileTree" v-show="show_file_treeview" :fileTree="snapshotFileTree"></FileTreeView>
-      <p v-if="fileSearchProgress >= 0">progress {{ fileSearchProgress }} </p>
-      <p v-if="fileSearchText.length && fileSearchCompleted >= 0 && fileSearchResults.length == 0">no file matching
+      <p v-if="searchEngineState.running">progress {{ searchEngineState.progress }} </p>
+      <p v-if="searchText.length && searchEngineState.completed && searchEngineState.results.length == 0">no file matching
         pattern</p>
-      <ul v-if="fileSearchText.length > 0">
-        <SnapshotFileSearchResultItem v-for="result in fileSearchResults" :key="result.element" :matchResult="result">
+      <ul v-if="searchText.length > 0">
+        <SnapshotFileSearchResultItem v-for="result in searchEngineState.results" :key="result.matchId" :matchResult="result">
         </SnapshotFileSearchResultItem>
       </ul>
     </div>
