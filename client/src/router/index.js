@@ -5,6 +5,7 @@ import ProjectView from '@/views/ProjectView.vue'
 import ProjectHomeView from '@/views/ProjectHomeView.vue'
 import ProjectFilesystemView from '@/views/ProjectFilesystemView.vue'
 import ProjectSymbolView from '@/views/ProjectSymbolView.vue'
+import SnapshotsView from '@/views/SnapshotsView.vue'
 
 import SymbolIndexView from '@/views/SymbolIndexView.vue'
 import SymbolIndexHomeView from '@/views/SymbolIndexHomeView.vue'
@@ -19,6 +20,11 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView
+    },
+    {
+      path: "/snapshots",
+      name: 'allSnapshots',
+      component: SnapshotsView,
     },
     {
       path: "/snapshots/:projectName",
