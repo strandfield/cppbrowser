@@ -1,9 +1,12 @@
 <script setup>
-import ProjectItem from '@/components/Home/ProjectItem.vue'
 
 import { snapshots } from '@/state/snapshots';
 
 import { onMounted } from 'vue'
+
+function getProjectLatestRevision(project) {
+  return project.revisions[0].name;
+}
 
 onMounted(() => {
   console.log(`homeview is now mounted.`);
@@ -14,17 +17,16 @@ onMounted(() => {
 
 <template>
   <main>
-    <template v-if="snapshots.state == 'loading'">
-      <p>
-        I am loading
-      </p>
-    </template>
-    <template v-if="snapshots.state == 'error'">
-      <p>
-        I am error
-      </p>
-    </template>
-    <p>TODO: project [combobox or split button for version], by default go to latest version</p>
-    <ProjectItem v-for="pro in snapshots.projects" :key="pro.name" :project="pro"></ProjectItem>
+    <h1>Projects</h1>
+    <p v-if="snapshots.state == 'loading'">
+      I am loading
+    </p>
+    <p v-if="snapshots.state == 'error'">
+      I am error
+    </p>
+    <h2 v-for="pro in snapshots.projects" :key="pro.name">
+      <RouterLink
+        :to="{ name: 'snapshot', params: { projectName: pro.name, projectRevision: getProjectLatestRevision(pro)} }">{{ pro.name }}</RouterLink>
+    </h2>
   </main>
 </template>
