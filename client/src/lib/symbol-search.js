@@ -139,6 +139,7 @@ export class SymbolSearchEngine {
     #currentRangeIndex = 0;
     #currentIndexInRange = 0;
     #fetchingData = false;
+    #extraSearchResults = [];
 
     constructor(projectInfo) {
         this.projectInfo = projectInfo;
@@ -154,6 +155,7 @@ export class SymbolSearchEngine {
         this.symbolDataset.clear();
 
         this.searchResults = [];
+        this.#extraSearchResults = [];
         this.#currentIndexInRange = 0;
         this.#currentRangeIndex = 0;
 
@@ -197,6 +199,7 @@ export class SymbolSearchEngine {
             this.#currentRangeIndex = 0;
             this.#currentIndexInRange = 0;
             this.searchResults = [];
+            this.#extraSearchResults = [];
             this.#rangesToCheck = [];
             this.state = 'idle';
         } else {
@@ -419,32 +422,63 @@ export class SymbolSearchEngine {
     // Called when the search input text has changed to check if the results are still
     // matching, and if so, to rerank them.
     #rerankSearchResults(outdated = true) {
+        
         if (!this.searchResults.length) {
             return;
         }
 
-        for (let i = 0; i < this.searchResults.length; ) {
-            let r = this.searchResults[i];
-            
-            let m = this.#matchDatasetItem(r.symbol.kind, this.symbolDataset.at(r.index), r.index);
+        if (outdated || !this.#extraSearchResults.length) {
+            this.#extraSearchResults = [];
 
-            if (!m) {
-                this.searchResults.splice(i, 1);
-                continue;
+            for (let i = 0; i < this.searchResults.length; ) {
+                let r = this.searchResults[i];
+                
+                let m = this.#matchDatasetItem(r.symbol.kind, this.symbolDataset.at(r.index), r.index);
+    
+                if (!m) {
+                    this.searchResults.splice(i, 1);
+                    continue;
+                }
+    
+                // update match and score
+                r.score = m.score;
+                r.match = m.match;
+    
+                // possibly mark the result as outdated though, so that it may be removed
+                // when the element is matched again
+                r.outdated = r.outdated || outdated;
+                
+                ++i; // go on to the next item
             }
+    
+            this.searchResults.sort((a,b) => b.score - a.score);
+        } else {
+            let results = [];
 
-            // update match and score
-            r.score = m.score;
-            r.match = m.match;
-
-            // possibly mark the result as outdated though, so that it may be removed
-            // when the element is matched again
-            r.outdated = outdated;
+            let process_items = (items) => {
+                for (const r of items) {            
+                    let m = this.#matchDatasetItem(r.symbol.kind, this.symbolDataset.at(r.index), r.index);
+        
+                    if (!m) {
+                        continue;
+                    }
+                        
+                    r.score = m.score;
+                    r.match = m.match;
+                    results.push(r);
+                }
+            }
+    
+            process_items(this.searchResults);
+            process_items(this.#extraSearchResults);
             
-            ++i; // go on to the next item
+            this.searchResults = results.sort((a,b) => b.score - a.score);
+            if (this.searchResults.length > this.maxResults) {
+                this.#extraSearchResults = this.searchResults.splice(this.maxResults, this.searchResults.length - this.maxResults);
+            } else {
+                this.#extraSearchResults = [];
+            }
         }
-
-        this.searchResults.sort((a,b) => b.score - a.score);
     }
 
     #removeOutdatedResults(firstIndex) {
@@ -507,13 +541,14 @@ export class SymbolSearchEngine {
 
         this.searchResults.sort((a,b) => b.score - a.score);
 
-        if (this.searchResults.length > this.maxResults) {
-            this.searchResults.splice(this.maxResults, this.searchResults.length - this.maxResults);
-        }
-
         let outdated_index = this.searchResults.findIndex(e => e.outdated);
         if (outdated_index != -1) {
             this.#removeOutdatedResults(outdated_index);
+        }
+
+        if (this.searchResults.length > this.maxResults) {
+            let extra = this.searchResults.splice(this.maxResults, this.searchResults.length - this.maxResults);
+            this.#extraSearchResults = this.#extraSearchResults.concat(extra);
         }
 
         return true;
