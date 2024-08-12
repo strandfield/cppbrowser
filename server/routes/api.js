@@ -494,37 +494,44 @@ function GetSnapshotSymbol(req, res, next) {
 /// Symbol Index methods ///
 ////////////////////////////
 
-
-function GetSymbolList(req, res, next) {
+function GetSymbolIndexDictionary(req, res, next) {
   let sindex = req.app.locals.symbolIndex;
 
-  let filters = req.query.kind?.split(",") ?? [];
+  let filters = req.query.kind ? req.query.kind.split(",") : symbolKinds.names;
 
-  let symbols = {
+  let dict = {
 
   };
 
-  for (const [name, value] of Object.entries(symbolKinds.values)) {
-    if (filters.length == 0 || filters.includes(name) || filters.includes(""+value)) {
-      let names = [];
-      let ids = [];
-      sindex.forEachSymbol(s => {
-        if (s.kind == value) {
-          names.push(s.name);
-          ids.push(s.id);
-        }
-      });
-    
-      symbols[name] = {
-        names: names,
-        ids: ids
-      };
+  let select = function(kind) {
+    if (kind == 'namespace') {
+      return sindex.getNamespaces();
+    } else {
+      return sindex.getSymbolsByKind(kind);
     }
+  }
+
+  for (const key of filters) {
+    let rows = select(key);
+
+    let entries = {
+      id: [],
+      name: [],
+      parent: []
+    };
+
+    for (const row of rows) {
+      entries.id.push(row.id);
+      entries.name.push(row.name);
+      entries.parent.push(row.parentId);
+    }
+
+    dict[key] = entries;
   }
 
   res.json({
     success: true,
-    symbols: symbols
+    dict: dict
   });
 }
 
@@ -710,7 +717,7 @@ function createRouter(app) {
   router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId', GetSnapshotSymbol);
 
   // symbol index related routes
-  router.get('/symbols', GetSymbolList);
+  router.get('/symbols/dict', GetSymbolIndexDictionary);
   router.get('/symbols/snapshots', GetSymbolIndexSourceSnapshots);
   router.get('/symbols/tree', GetSymbolTreeRoot);
   router.get('/symbols/tree/:symbolId', GetSymbolTreeItem);

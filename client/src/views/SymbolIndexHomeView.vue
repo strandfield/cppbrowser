@@ -4,7 +4,6 @@
 import { inject } from 'vue'
 
 const symbolTree = inject('symbolTree');
-const symbolList = inject('symbolList');
 
 </script>
 

@@ -74,6 +74,7 @@ class SymbolDataset {
             const size = ids.length;
             let range = new ArrayRange(this.entries.length, this.entries.length + ids.length);
 
+            // TODO: need to register all parents first
             for (let i = 0; i < size; ++i) {
                 let parent_index = parents[i] ? this.#findParentIndex(parents[i]) : null;
                 if (can_be_parent) {
@@ -161,14 +162,22 @@ export class SymbolSearchEngine {
     #fetchingData = false;
     #extraSearchResults = [];
 
-    constructor(projectInfo) {
+    constructor(projectInfo = null) {
         this.projectInfo = projectInfo;
         this.symbolDataset = new SymbolDataset();
         this.#rangesToCheck = this.#defaultRangesToCheck;
     }
 
+    static isSame(a, b) {
+        if ((a == null && b == null) || ((a == null) != (b == null))) {
+            return true;
+        }
+
+        return a.projectName == b.projectName && a.projectRevision == b.projectRevision;
+    }
+
     reconfigure(projectInfo) {
-        if (this.projectInfo.projectName == projectInfo.projectName && this.projectInfo.projectRevision == projectInfo.projectRevision) {
+        if (SymbolSearchEngine.isSame(this.projectInfo, projectInfo)) {
             return;
         }
 
@@ -348,20 +357,34 @@ export class SymbolSearchEngine {
         return (this.#currentIndexInRange + done) / Math.max(total, 1);
     }
 
+    #getFetchUrl(filters) {
+        if (this.projectInfo) {
+            return `/api/snapshots/${this.projectInfo.projectName}/${this.projectInfo.projectRevision}/symbols/dict?kind=${filters.join(",")}`;
+        } else {
+            return `/api/symbols/dict?kind=${filters.join(",")}`;
+        }
+    }
+
     #fetchTier1() {
-        let url = `/api/snapshots/${this.projectInfo.projectName}/${this.projectInfo.projectRevision}/symbols/dict?kind=namespace,class`;
+        const url = this.#getFetchUrl(['namespace', 'class', 'struct', 'union']);
         $.get(url, data => {
             if (data.success) {
-                if (data.params.projectName != this.projectInfo.projectName || data.params.projectRevision != this.projectInfo.projectRevision) {
+                if (!SymbolSearchEngine.isSame(data.params, this.projectInfo)) {
                     return;
                 }
 
+                // it is important that namespaces are processed first as they cannot be anyone else child
                 this.symbolDataset.incorporate({
                     namespace: data.dict.namespace
                 });
 
                 this.symbolDataset.incorporate({
                     class: data.dict.class
+                });
+
+                this.symbolDataset.incorporate({
+                    struct: data.dict.struct,
+                    union: data.dict.union
                 });
 
                 if (this.running && this.#timer == null) {
@@ -378,10 +401,10 @@ export class SymbolSearchEngine {
     }
 
     #fetchTier2() {
-        let url = `/api/snapshots/${this.projectInfo.projectName}/${this.projectInfo.projectRevision}/symbols/dict?function,instance-method,static-method,class-method`;
+        const url = this.#getFetchUrl(['function', 'instance-method', 'static-method', 'class-method']);
         $.get(url, data => {
             if (data.success) {
-                if (data.params.projectName != this.projectInfo.projectName || data.params.projectRevision != this.projectInfo.projectRevision) {
+                if (!SymbolSearchEngine.isSame(data.params, this.projectInfo)) {
                     return;
                 }
 
@@ -400,10 +423,10 @@ export class SymbolSearchEngine {
     }
 
     #fetchTier3() {
-        let url = `/api/snapshots/${this.projectInfo.projectName}/${this.projectInfo.projectRevision}/symbols/dict?enum,enum-constant`;
+        const url = this.#getFetchUrl(['enum', 'enum-constant']);
         $.get(url, data => {
             if (data.success) {
-                if (data.params.projectName != this.projectInfo.projectName || data.params.projectRevision != this.projectInfo.projectRevision) {
+                if (!SymbolSearchEngine.isSame(data.params, this.projectInfo)) {
                     return;
                 }
 

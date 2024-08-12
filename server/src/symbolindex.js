@@ -345,6 +345,32 @@ class SymbolIndex
             return null;
         }
     }
+
+    getNamespaces() {
+        // TODO: this can probably be optimized as namespace can only be child of other namespaces
+        // leading back to the root node
+        return this.getSymbolsByKind('namespace');
+    }
+
+    getSymbolsByKind(kind) {
+        let results = [];
+
+        if (typeof kind == 'string') {
+            kind = symbolKinds.values[kind];
+        }
+
+        if (kind == null) {
+            return results;
+        }
+
+        this.forEachSymbol(s => {
+            if (s.kind == kind) {
+                results.push(s);
+            }
+        });
+
+        return results;
+    }
 };
 
 module.exports = SymbolIndex;
