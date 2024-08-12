@@ -122,6 +122,24 @@ class SymbolDataset {
     }
 }
 
+export const symbolFilters = {
+    'c': {
+        description: "C++ classes",
+        value: ['class', 'struct']
+    },
+    't': {
+        description: "Types",
+        value: ['class', 'struct', 'union', 'enum']
+    },
+    'm': {
+        description: "Functions",
+        value: ['function', 'instance-method', 'static-method', 'class-method']
+    },
+    'e': {
+        description: "Enums and enum constants",
+        value: ['enum', 'enum-constant']
+    }
+};
 
 export class SymbolSearchEngine {
     projectInfo = null;
@@ -129,12 +147,14 @@ export class SymbolSearchEngine {
     inputText = "";
     searchResults = [];
     maxResults = 32;
+    #filter = null;
     onstep = null;
     oncomplete = null;
     state = 'idle';
     #batchSize = 100;
     #stepDuration = 5;
     #timer = null;
+    #defaultRangesToCheck = ['function', 'instance-method', 'static-method', 'class-method', 'class', 'struct', 'union', 'enum', 'enum-constant'];
     #rangesToCheck = [];
     #currentRangeIndex = 0;
     #currentIndexInRange = 0;
@@ -144,6 +164,7 @@ export class SymbolSearchEngine {
     constructor(projectInfo) {
         this.projectInfo = projectInfo;
         this.symbolDataset = new SymbolDataset();
+        this.#rangesToCheck = this.#defaultRangesToCheck;
     }
 
     reconfigure(projectInfo) {
@@ -200,7 +221,6 @@ export class SymbolSearchEngine {
             this.#currentIndexInRange = 0;
             this.searchResults = [];
             this.#extraSearchResults = [];
-            this.#rangesToCheck = [];
             this.state = 'idle';
         } else {
             // if we have just added characters to the search text, 
@@ -212,7 +232,6 @@ export class SymbolSearchEngine {
                 this.#currentIndexInRange = 0;
             }
             this.#rerankSearchResults(!results_remain_valid);
-            this.#rangesToCheck = ['function', 'class', 'struct', 'union', 'enum', 'enum-constant'];
 
             if (this.#currentRangeIndex == this.#rangesToCheck.length) {
                 this.state = 'finished';
@@ -228,6 +247,59 @@ export class SymbolSearchEngine {
                 }
             }
         }
+    }
+
+    get filter() {
+        return this.#filter;
+    }
+
+    set filter(f) {
+        if (f == this.#filter) {
+            return;
+        }
+
+        let ranges = [];
+
+        if (f == null) {
+            ranges = this.#defaultRangesToCheck;
+        } else if (Array.isArray(f)) {
+            ranges = f;
+        } else if (symbolFilters[f]) {
+            ranges = symbolFilters[f].value;
+        } else {
+            console.error(`bad filter ${f}`);
+            return;
+        }
+
+        this.#filter = f;
+        this.#rangesToCheck = ranges;
+
+        if (this.state == 'idle') {
+            return;
+        }
+
+        this.#currentRangeIndex = 0;
+        this.#currentIndexInRange = 0;
+        this.searchResults = [];
+        this.#extraSearchResults = [];
+
+        if (this.#currentRangeIndex == this.#rangesToCheck.length) {
+            this.state = 'finished';
+            if (this.oncomplete) {
+                this.oncomplete();
+            }
+        } else {
+            this.state = 'running';
+            if (this.#fetchingData) {
+                this.#scheduleStep();
+            } else {
+                this.fetchData();
+            }
+        }
+    }
+
+    clearFilter() {
+        this.filter = null;
     }
 
     get batchSize() {

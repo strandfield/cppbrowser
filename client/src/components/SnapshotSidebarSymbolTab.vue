@@ -2,7 +2,7 @@
 
 import SnapshotSymbolTreeView from '@/components/SnapshotSymbolTreeView.vue';
 
-import { SymbolSearchEngine } from '@/lib/symbol-search.js';
+import { SymbolSearchEngine, symbolFilters } from '@/lib/symbol-search.js';
 
 import { ref, computed, onMounted, inject, watch, reactive } from 'vue'
 
@@ -34,6 +34,20 @@ function readSearchEngineState() {
 function restartSearch(inputText) {
   if (symbolSearchEngine && symbolSearchEngine.inputText == inputText) {
     return;
+  }
+
+  let has_filter = false;
+  for (const key in symbolFilters) {
+    if (inputText.startsWith(key + " ")) {
+      has_filter = true;
+      symbolSearchEngine.filter = key;
+      inputText = inputText.substring(2);
+      break;
+    }
+  }
+
+  if (!has_filter) {
+    symbolSearchEngine.filter = null;
   }
 
   symbolSearchEngine.setSearchText(inputText);
