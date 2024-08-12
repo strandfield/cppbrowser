@@ -41,11 +41,14 @@ onMounted(() => {
   <div class="references-in-project-item">
     <div class="header">
       <h3>{{ projectName }}</h3>
-      <h4>{{ projectVersion }}</h4>
+      <div class="stretch"></div>
+      <select v-model="projectVersion">
+        <option v-for="v in projectVersions" :key="v" :value="v">{{ v }}</option>
+      </select>
       <span @click="toggle">{{ isOpen ? "-" : "+" }}</span>
     </div>
     <div v-show="isOpen" class="content">
-      <SymbolReferencesListView v-if="isOpen" :symbolId="symbolId" :projectName="projectName" :projectVersion="projectVersion" ></SymbolReferencesListView>
+      <SymbolReferencesListView v-if="isOpen" :symbolId="symbolId" :projectName="projectName" :projectVersion="projectVersion"></SymbolReferencesListView>
     </div>
   </div>
 </template>
@@ -53,5 +56,12 @@ onMounted(() => {
 <style scoped>
 .header {
   display: flex;
+}
+
+.header select {
+  margin-right: 1em;
+}
+.stretch {
+  flex-grow: 1;
 }
 </style>
