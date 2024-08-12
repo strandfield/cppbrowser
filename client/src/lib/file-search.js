@@ -13,6 +13,7 @@ export class FileSearchEngine {
     #stepDuration = 5;
     #timer = null;
     #currentSearchIndex = 0;
+    #extraSearchResults = [];
     #nextMatchId = 0;
 
     constructor(dataset = []) {
@@ -31,6 +32,7 @@ export class FileSearchEngine {
         this.#dataset = files;
 
         this.searchResults = [];
+        this.#extraSearchResults = [];
         this.#currentSearchIndex = 0;
         this.#nextMatchId = 0;
 
@@ -70,6 +72,7 @@ export class FileSearchEngine {
             this.#currentSearchIndex = 0;
             this.#nextMatchId = 0;
             this.searchResults = [];
+            this.#extraSearchResults = [];
             this.state = 'idle';
         } else {
             // if we have just added characters to the search text, 
@@ -150,29 +153,59 @@ export class FileSearchEngine {
             return;
         }
 
-        for (let i = 0; i < this.searchResults.length; ) {
-            let r = this.searchResults[i];
-            
-            let m = this.#matchDatasetItem(r.element, r.index);
+        if (outdated || !this.#extraSearchResults.length) {
+            this.#extraSearchResults = [];
 
-            if (!m) {
-                this.searchResults.splice(i, 1);
-                continue;
+            for (let i = 0; i < this.searchResults.length;) {
+                let r = this.searchResults[i];
+
+                let m = this.#matchDatasetItem(r.element, r.index);
+
+                if (!m) {
+                    this.searchResults.splice(i, 1);
+                    continue;
+                }
+
+                // update match and score
+                r.score = m.score;
+                r.match = m.match;
+                r.matchId = m.matchId;
+
+                // possibly mark the result as outdated though, so that it may be removed
+                // when the element is matched again
+                r.outdated = r.outdated || outdated;
+
+                ++i; // go on to the next item
             }
 
-            // update match and score
-            r.score = m.score;
-            r.match = m.match;
-            r.matchId = m.matchId;
+            this.searchResults.sort((a, b) => b.score - a.score);
+        } else {
+            let results = [];
 
-            // possibly mark the result as outdated though, so that it may be removed
-            // when the element is matched again
-            r.outdated = outdated;
+            let process_items = (items) => {
+                for (const r of items) {            
+                    let m = this.#matchDatasetItem(r.element, r.index);
+        
+                    if (!m) {
+                        continue;
+                    }
+                        
+                    r.score = m.score;
+                    r.match = m.match;
+                    results.push(r);
+                }
+            }
+    
+            process_items(this.searchResults);
+            process_items(this.#extraSearchResults);
             
-            ++i; // go on to the next item
+            this.searchResults = results.sort((a,b) => b.score - a.score);
+            if (this.searchResults.length > this.maxResults) {
+                this.#extraSearchResults = this.searchResults.splice(this.maxResults, this.searchResults.length - this.maxResults);
+            } else {
+                this.#extraSearchResults = [];
+            }
         }
-
-        this.searchResults.sort((a,b) => b.score - a.score);
     }
 
     #removeOutdatedResults(firstIndex) {
@@ -235,13 +268,14 @@ export class FileSearchEngine {
 
         this.searchResults.sort((a,b) => b.score - a.score);
 
-        if (this.searchResults.length > this.maxResults) {
-            this.searchResults.splice(this.maxResults, this.searchResults.length - this.maxResults);
-        }
-
         let outdated_index = this.searchResults.findIndex(e => e.outdated);
         if (outdated_index != -1) {
             this.#removeOutdatedResults(outdated_index);
+        }
+
+        if (this.searchResults.length > this.maxResults) {
+            let extra = this.searchResults.splice(this.maxResults, this.searchResults.length - this.maxResults);
+            this.#extraSearchResults = this.#extraSearchResults.concat(extra);
         }
 
         return true;
