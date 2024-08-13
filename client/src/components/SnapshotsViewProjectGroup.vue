@@ -36,15 +36,16 @@ function onChange(event) {
     }
   }
 
-  let new_selection = {
-
-  };
+  let new_selection = {};
 
   for (const child of children) {
-    new_selection[props.project.name + "/" + child.name] = child.checked;
+    new_selection[child.name] = child.checked;
   }
 
-  emit('selectionChanged', new_selection);
+  emit('selectionChanged',  {
+    project: props.project.name,
+    revisions: new_selection
+  });
 }
 
 </script>

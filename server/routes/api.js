@@ -40,6 +40,59 @@ function GetSnapshotNames(req, res, next) {
 }
 
 // à tester
+function DeleteProjectSnapshots(req, res, next) {
+  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
+
+  if (!project) {
+    res.status(404);
+    res.json({
+      success: false,
+      reason: "no such project"
+    });
+    return;
+  }
+
+  if (!CAN_DELETE_PROJECT) {
+    res.status(401);
+    res.json({
+      success: false,
+      reason: "permission denied"
+    });
+    return;
+  }
+
+  let filters = req.query.revision ? req.query.revision.split(",") : [];
+
+  let revisions = project.revisions.slice();
+  let errcount = 0;
+  let removed = {};
+
+  for (const rev of revisions) {
+    if (filters.length == 0 || filters.includes(rev.name)) {
+      const ok = project.removeRevision(rev);
+      removed[rev.name] = errcount;
+      if (!ok) {
+        ++errcount;
+      }
+    }
+  }
+
+  if (project.revisions.length == 0) {
+    ProjectManager.globalInstance.removeProject(project.name);
+  }
+
+  res.json({
+    success: errcount == 0,
+    deleted: removed
+  });
+
+  if (errcount == 0) {
+    let sindex = req.app.locals.symbolIndex;
+    sindex.rebuild();
+  }
+}
+
+// à tester
 function RemoveSnapshot(req, res, next) {
   let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
   let revision = project?.getRevision(req.params.projectRevision);
@@ -59,6 +112,15 @@ function RemoveSnapshot(req, res, next) {
   }
 
   let ok = project.removeRevision(revision);
+
+  if (project.revisions.length == 0) {
+    ProjectManager.globalInstance.removeProject(project.name);
+  }
+
+  if (ok) {
+    let sindex = req.app.locals.symbolIndex;
+    sindex.rebuild();
+  }
 
   res.json({
     success: ok
@@ -130,6 +192,11 @@ function UploadSnapshot(req, res, next) {
   let result = {
     success: (errmssg == "")
   };
+
+  if (result.success) {
+    let sindex = req.app.locals.symbolIndex;
+    sindex.rebuild();
+  }
 
   if (!result.success) {
     result.reason = errmssg;
@@ -694,6 +761,7 @@ function createRouter(app) {
   router.get('/site/info', GetSiteInfo);
   router.get('/snapshots', GetSnapshotNames);
 
+  router.delete('/snapshots/:projectName', DeleteProjectSnapshots);
   router.delete('/snapshots/:projectName/:projectRevision', RemoveSnapshot);
   
   // upload

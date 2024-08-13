@@ -6,6 +6,7 @@ import ProjectHomeView from '@/views/ProjectHomeView.vue'
 import ProjectFilesystemView from '@/views/ProjectFilesystemView.vue'
 import ProjectSymbolView from '@/views/ProjectSymbolView.vue'
 import SnapshotsView from '@/views/SnapshotsView.vue'
+import UploadView from '@/views/UploadView.vue'
 
 import SymbolIndexView from '@/views/SymbolIndexView.vue'
 import SymbolIndexHomeView from '@/views/SymbolIndexHomeView.vue'
@@ -25,6 +26,11 @@ const router = createRouter({
       path: "/snapshots",
       name: 'allSnapshots',
       component: SnapshotsView,
+    },
+    {
+      path: "/upload",
+      name: 'upload',
+      component: UploadView,
     },
     {
       path: "/snapshots/:projectName",

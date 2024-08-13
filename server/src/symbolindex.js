@@ -9,6 +9,7 @@ class SymbolIndex
     #projectRevisions; // array
     #symbolsMap; // Map
     #symbolsChildren; // array
+    #projectManager = null;
 
     constructor() {
         this.#projectRevisions = [];
@@ -20,6 +21,7 @@ class SymbolIndex
         this.#projectRevisions = [];
         this.#symbolsMap.clear();
         this.#symbolsChildren = [];
+        this.#projectManager = null;
     }
 
     #collectSymbolsFromProjectRevision(rev) {
@@ -92,6 +94,7 @@ class SymbolIndex
                 this.#collectSymbolsFromProject(pro);
             }
         } else if (projectContainer instanceof ProjectManager) {
+            this.#projectManager = projectContainer;
             for (const pro of projectContainer.getProjects()) {
                 this.#collectSymbolsFromProject(pro);
             }
@@ -105,6 +108,12 @@ class SymbolIndex
         }
         
         this.#collectSymbolsChildren();
+    }
+
+    rebuild() {
+        const project_manager = this.#projectManager;
+        this.clear();
+        this.build(project_manager);
     }
 
     getSource() {

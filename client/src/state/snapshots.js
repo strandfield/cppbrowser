@@ -11,6 +11,34 @@ import $ from "jquery"
 const snapshots_object = {
     state: 'error',
     projects: [],
+    handleResult(data) {
+        let project_map = new Map();
+        for (const snap of data) {
+            let p = project_map.has(snap.project) ? project_map.get(snap.project) : null;
+            if (!p) {
+                p = {
+                    name: snap.project,
+                    revisions: []
+                };
+                project_map.set(snap.project, p);
+            }
+
+            p.revisions.push({
+                projectName: snap.project,
+                name: snap.name
+            });
+        }
+
+        let project_list = [];
+        project_map.forEach(value => {
+            project_list.push(value);
+        });
+        project_list.sort((a, b) => a.name.localeCompare(b.name));
+
+        // TODO: for each project, find the latest/default version
+        this.projects = project_list;
+        this.state = 'loaded';
+    },
     load() {
         if (this.state == 'loading' || this.state == 'loaded') {
             return;
@@ -21,32 +49,15 @@ const snapshots_object = {
         this.state = 'loading';
 
         $.get("/api/snapshots", (data) => {
-            let project_map = new Map();
-            for (const snap of data) {
-                let p = project_map.has(snap.project) ? project_map.get(snap.project) : null;
-                if (!p) {
-                    p = {
-                        name: snap.project,
-                        revisions: []
-                    };
-                    project_map.set(snap.project, p);
-                }
+            this.handleResult(data);
+        });
+    },
+    forceReload() {
+        this.projects = [];
+        this.state = 'loading';
 
-                p.revisions.push({
-                    projectName: snap.project,
-                    name: snap.name
-                });
-            }
-
-            let project_list = [];
-            project_map.forEach(value => {
-                project_list.push(value);
-            });
-            project_list.sort((a, b) => a.name.localeCompare(b.name));
-
-            // TODO: for each project, find the latest/default version
-            this.projects = project_list;
-            this.state = 'loaded';
+        $.get("/api/snapshots", (data) => {
+            this.handleResult(data);
         });
     },
     getProject(projectName) {

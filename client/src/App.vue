@@ -28,6 +28,14 @@ onMounted(() => {
         <!--RouterLink to="/about">About</RouterLink-->
       </nav>
     </div>
+
+    <div class="stretch">
+
+    </div>
+
+    <div class="right-block">
+      <RouterLink to="/upload">Upload</RouterLink>
+    </div>
   </header>
 
   <RouterView />
@@ -68,10 +76,13 @@ nav a:first-of-type {
   border: 0;
 }
 
+.stretch {
+  flex-grow: 1;
+}
+
 @media (min-width: 1024px) {
   header {
     place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
   }
 
   .logo {

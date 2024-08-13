@@ -311,12 +311,16 @@ function RemoveProjectRevision(req, res, next) {
     ProjectManager.globalInstance.removeProject(project.name);
     res.redirect(`${SITE_BASE_URL}/index.html`);
   }
+
+  // TODO: rebuild symbol index?
 }
 
 function RemoveProject(req, res, next) {
   let projectmanager = ProjectManager.globalInstance;
   projectmanager.removeProject(req.params.projectName);
   res.redirect(`${SITE_BASE_URL}/index.html`);
+
+  // TODO: rebuild symbol index?
 }
 
 function GetUploadPage(req, res, next) {
@@ -380,6 +384,8 @@ function UploadSnapshot(req, res, next) {
       success: success
     }
   });
+
+  // TODO: rebuild symbol index?
 }
 
 function GetSymbolIndex(req, res, next) {

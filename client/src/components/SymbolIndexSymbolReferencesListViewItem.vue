@@ -2,9 +2,7 @@
 
 import SymbolReferencesListView from './SymbolReferencesListView.vue';
 
-import { ref, onMounted, watch } from 'vue'
-
-import $ from 'jquery'
+import { ref, onMounted } from 'vue'
 
 const props = defineProps({
   symbolId: {
