@@ -44,9 +44,9 @@ function removeSnapshot(name) {
 </script>
 
 <template>
-  <div>
-    <h2>{{ projectName }}</h2>
-    <h3>Snapshots</h3>
+  <main>
+    <h1>{{ projectName }}</h1>
+    <h2>Snapshots</h2>
     <table v-if="project">
       <tbody>
       <tr v-for="snapshot in project.revisions" :key="snapshot.name">
@@ -57,5 +57,5 @@ function removeSnapshot(name) {
       </tr>
       </tbody>
     </table>
-  </div>
+  </main>
 </template>

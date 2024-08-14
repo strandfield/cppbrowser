@@ -60,7 +60,7 @@ function toggle() {
       <div v-for="i in depth" :key="i" class="nested-item-indicator">|</div>
     </template>
     <div class="item-toggle-block">
-      <span  v-if="hasChildren || (!loaded && canHaveChildren)" @click="toggle">{{ isOpen ? "-" : "+" }}</span>
+      <span  v-if="hasChildren" @click="toggle">{{ isOpen ? "-" : "+" }}</span>
     </div>
     <div class="item-icon-block">
      

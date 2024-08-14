@@ -14,6 +14,7 @@ let symbolSearchEngine = null;
 const searchEngineState = reactive({
   progress: -1,
   results: [],
+  state: 'idle',
   running: false,
   completed: false,
   idle: true
@@ -23,9 +24,12 @@ const show_symbol_treeview = computed(() => {
   return searchEngineState.idle;
 });
 
+const show_progress_bar = ref(false);
+
 function readSearchEngineState() {
   searchEngineState.running = symbolSearchEngine.running;
   searchEngineState.completed = symbolSearchEngine.finished;
+  searchEngineState.state = symbolSearchEngine.state;
   searchEngineState.idle = symbolSearchEngine.state == 'idle';
   searchEngineState.results = symbolSearchEngine.searchResults;
   searchEngineState.progress = symbolSearchEngine.progress;
@@ -62,6 +66,30 @@ function reconfigureSearchEngine() {
   });
 }
 
+function showProgressBar() {
+  if (searchEngineState.running) {
+    show_progress_bar.value = true;
+  }
+}
+
+function hideProgressBar() {
+  if (searchEngineState.completed || searchEngineState.idle) {
+    show_progress_bar.value = false;
+  }
+}
+
+function onSearchEngineStateChanged(state) {
+  if (state == 'idle') {
+    show_progress_bar.value = false;
+  } else if (state == 'running') {
+    if (!show_progress_bar.value) {
+      setTimeout(showProgressBar, 100);
+    }
+  } else if (state == 'finished') {
+    setTimeout(hideProgressBar, 250);
+  }
+}
+
 onMounted(() => {
   symbolSearchEngine = new SymbolSearchEngine({
     projectName: projectName.value,
@@ -81,15 +109,18 @@ watch(projectRevision, reconfigureSearchEngine, { immediate: false });
 
 watch(() => searchText.value, restartSearch, { immediate: false });
 
+watch(() => searchEngineState.state, onSearchEngineStateChanged);
 
 </script>
 
 <template>
   <div>
     <input v-model="searchText" />
-    <SnapshotSymbolTreeView v-show="show_symbol_treeview" :projectName="projectName" :projectRevision="projectRevision">
-    </SnapshotSymbolTreeView>
-    <p v-if="searchEngineState.running">progress {{ searchEngineState.progress }} </p>
+    <div class="search-progress-bar">
+      <div v-if="show_progress_bar" class="search-progress-fill" :style="`width: ${searchEngineState.progress*100}%`">
+
+      </div>
+    </div>
     <p v-if="searchText.length && searchEngineState.completed && searchEngineState.results.length == 0">no symbol
       matching pattern
     </p>
@@ -98,10 +129,23 @@ watch(() => searchText.value, restartSearch, { immediate: false });
         <RouterLink :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: result.symbol.id } }">{{ result.symbol.name }}</RouterLink>
       </li>
     </ul>
+    <SnapshotSymbolTreeView v-show="show_symbol_treeview" :projectName="projectName" :projectRevision="projectRevision">
+    </SnapshotSymbolTreeView>
   </div>
 </template>
 
 <style scoped>
+.search-progress-bar {
+  width: 100%;
+  height: 2px;
+  margin-top: 4px;
+}
+
+.search-progress-fill {
+  background-color: green;
+  height: 2px;
+}
+
 .search-results {
   list-style: none;
   padding: 0;

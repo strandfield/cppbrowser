@@ -215,6 +215,7 @@ let searchEngine = null;
 const searchEngineState = reactive({
   progress: -1,
   results: [],
+  state: 'idle',
   running: false,
   completed: false,
   idle: true
@@ -223,6 +224,7 @@ const searchEngineState = reactive({
 function readSearchEngineState() {
   searchEngineState.running = searchEngine.running;
   searchEngineState.completed = searchEngine.finished;
+  searchEngineState.state = searchEngine.state;
   searchEngineState.idle = searchEngine.state == 'idle';
   searchEngineState.results = searchEngine.searchResults;
   searchEngineState.progress = searchEngine.progress;
@@ -262,32 +264,73 @@ function onSearchTextChanged(inputText) {
   }
 }
 
+const show_progress_bar = ref(false);
+
+function showProgressBar() {
+  if (searchEngineState.running) {
+    show_progress_bar.value = true;
+  }
+}
+
+function hideProgressBar() {
+  if (searchEngineState.completed || searchEngineState.idle) {
+    show_progress_bar.value = false;
+  }
+}
+
+function onSearchEngineStateChanged(state) {
+  if (state == 'idle') {
+    show_progress_bar.value = false;
+  } else if (state == 'running') {
+    if (!show_progress_bar.value) {
+      setTimeout(showProgressBar, 100);
+    }
+  } else if (state == 'finished') {
+    setTimeout(hideProgressBar, 250);
+  }
+}
+
 watch(() => searchText.value, onSearchTextChanged, { immediate: false });
 watch(snapshotFiles, reconfigureSearchEngine);
+watch(() => searchEngineState.state, onSearchEngineStateChanged);
+
 
 </script>
+
 <template>
   <div class="content-with-sidebar">
     <div class="sidebar">
       <h3>Files</h3>
       <input v-model="searchText" />
-      <FileTreeView v-if="snapshotFileTree" v-show="show_file_treeview" :fileTree="snapshotFileTree"></FileTreeView>
-      <p v-if="searchEngineState.running">progress {{ searchEngineState.progress }} </p>
-      <p v-if="searchText.length && searchEngineState.completed && searchEngineState.results.length == 0">no file matching
+      <div class="search-progress-bar">
+        <div v-if="show_progress_bar" class="search-progress-fill" :style="`width: ${searchEngineState.progress * 100}%`">
+
+        </div>
+      </div>
+      <p v-if="searchText.length && searchEngineState.completed && searchEngineState.results.length == 0">no file
+        matching
         pattern</p>
       <ul v-if="searchText.length > 0" class="search-results">
-        <SnapshotFileSearchResultItem v-for="result in searchEngineState.results" :key="result.matchId" :matchResult="result">
+        <SnapshotFileSearchResultItem v-for="result in searchEngineState.results" :key="result.matchId"
+          :matchResult="result">
         </SnapshotFileSearchResultItem>
       </ul>
+      <FileTreeView v-if="snapshotFileTree" v-show="show_file_treeview" :fileTree="snapshotFileTree"></FileTreeView>
     </div>
     <main class="main-content">
       <div class="breadcrumb">
         <nav>
           <ol>
-            <li><RouterLink :to="{ name: 'snapshot', params: { projectName: projectName, projectRevision: projectRevision } }">{{ projectName }}</RouterLink></li>
+            <li>
+              <RouterLink
+                :to="{ name: 'snapshot', params: { projectName: projectName, projectRevision: projectRevision } }">{{
+                projectName }}</RouterLink>
+            </li>
             <li v-for="part in breadcrumbParts" :key="part.path">
               <span class="dir-separator">/</span>
-              <RouterLink :to="{ name: 'dir', params: { projectName: projectName, projectRevision: projectRevision, pathParts: part.parts } }">{{ part.name }}</RouterLink>
+              <RouterLink
+                :to="{ name: 'dir', params: { projectName: projectName, projectRevision: projectRevision, pathParts: part.parts } }">
+                {{ part.name }}</RouterLink>
             </li>
           </ol>
         </nav>
@@ -341,6 +384,17 @@ watch(snapshotFiles, reconfigureSearchEngine);
 
 .main-content {
   flex-grow: 1;
+}
+
+.search-progress-bar {
+  width: 100%;
+  height: 2px;
+  margin-top: 4px;
+}
+
+.search-progress-fill {
+  background-color: green;
+  height: 2px;
 }
 
 .search-results {

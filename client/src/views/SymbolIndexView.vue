@@ -44,6 +44,7 @@ let symbolSearchEngine = null;
 const searchEngineState = reactive({
   progress: -1,
   results: [],
+  state: 'idle',
   running: false,
   completed: false,
   idle: true
@@ -56,6 +57,7 @@ const show_symbol_treeview = computed(() => {
 function readSearchEngineState() {
   searchEngineState.running = symbolSearchEngine.running;
   searchEngineState.completed = symbolSearchEngine.finished;
+  searchEngineState.state = symbolSearchEngine.state;
   searchEngineState.idle = symbolSearchEngine.state == 'idle';
   searchEngineState.results = symbolSearchEngine.searchResults;
   searchEngineState.progress = symbolSearchEngine.progress;
@@ -99,6 +101,33 @@ function restartSearch(inputText) {
   readSearchEngineState();
 }
 
+const show_progress_bar = ref(false);
+
+function showProgressBar() {
+  if (searchEngineState.running) {
+    show_progress_bar.value = true;
+  }
+}
+
+function hideProgressBar() {
+  if (searchEngineState.completed || searchEngineState.idle) {
+    show_progress_bar.value = false;
+  }
+}
+
+function onSearchEngineStateChanged(state) {
+  if (state == 'idle') {
+    show_progress_bar.value = false;
+  } else if (state == 'running') {
+    if (!show_progress_bar.value) {
+      setTimeout(showProgressBar, 100);
+    }
+  } else if (state == 'finished') {
+    setTimeout(hideProgressBar, 250);
+  }
+}
+watch(() => searchEngineState.state, onSearchEngineStateChanged);
+
 watch(searchText, restartSearch);
 
 
@@ -109,18 +138,21 @@ watch(searchText, restartSearch);
     <nav class="sidebar">
       <h3>Symbols</h3>
       <input v-model="searchText" />
-      <SymbolIndexTreeView v-show="show_symbol_treeview" :symbolTree="symbolTree"></SymbolIndexTreeView>
-      <p v-if="searchEngineState.running">progress {{ searchEngineState.progress }} </p>
+      <div class="search-progress-bar">
+        <div v-if="show_progress_bar" class="search-progress-fill" :style="`width: ${searchEngineState.progress * 100}%`">
+
+        </div>
+      </div>
       <p v-if="searchText.length && searchEngineState.completed && searchEngineState.results.length == 0">no symbol
         matching pattern
       </p>
       <ul v-if="searchEngineState.results.length > 0" class="search-results">
         <li v-for="result in searchEngineState.results" :key="result.symbol.id" class="search-result-item">
-          <RouterLink
-            :to="{ name: 'symbolIndexSymbol', params: { symbolId: result.symbol.id } }">
+          <RouterLink :to="{ name: 'symbolIndexSymbol', params: { symbolId: result.symbol.id } }">
             {{ result.symbol.name }}</RouterLink>
         </li>
       </ul>
+      <SymbolIndexTreeView v-show="show_symbol_treeview" :symbolTree="symbolTree"></SymbolIndexTreeView>
     </nav>
     <div class="main-content">
       <RouterView />
@@ -140,6 +172,17 @@ watch(searchText, restartSearch);
 
 .main-content {
   flex-grow: 1;
+}
+
+.search-progress-bar {
+  width: 100%;
+  height: 2px;
+  margin-top: 4px;
+}
+
+.search-progress-fill {
+  background-color: green;
+  height: 2px;
 }
 
 .search-results {
