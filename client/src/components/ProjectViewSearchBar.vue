@@ -212,4 +212,14 @@ watch(route, hidePopup);
   z-index: 1;
   right: 1rem;
 }
+
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+li {
+  padding: 0.2em;
+}
+
 </style>

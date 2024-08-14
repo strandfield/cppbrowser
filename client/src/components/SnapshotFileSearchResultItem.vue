@@ -50,13 +50,28 @@ function splitPath(path) {
 <template>
   <li>
     <RouterLink
+      :title="matchResult.element"
       :to="{ name: 'file', params: { projectName: projectName, projectRevision: projectRevision, pathParts: splitPath(matchResult.element) } }">
-      <span v-for="(part,index) in matchParts" :key="index" :class="part.class">{{ part.text }}</span></RouterLink> ({{ matchResult.score }})
+      <span v-for="(part,index) in matchParts" :key="index" :class="part.class">{{ part.text }}</span></RouterLink>
   </li>
 </template>
 
 <style scoped>
 .matching-text {
   font-weight: bold;
+}
+
+li {
+  border-bottom: 1px solid lightgray;
+  display: flex;
+  white-space: nowrap;
+}
+
+li a {
+  display: inline-block;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  direction: rtl;
+  flex-shrink: 1;
 }
 </style>

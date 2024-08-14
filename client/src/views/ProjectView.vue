@@ -92,7 +92,7 @@ watch(() => selectedRevision.value, changeSelectedRevision, { immediate: false }
 <template>
   <div class="project-view">
     <nav>
-      <RouterLink :to="{ name: 'snapshot', params: { projectName: projectName, projectRevision: projectRevision } }">{{ projectName }}</RouterLink>»
+      <RouterLink :to="{ name: 'snapshot', params: { projectName: projectName, projectRevision: projectRevision } }">{{ projectName }}</RouterLink><span class="separator">»</span>
       <select v-if="project" class="version-select" v-model="selectedRevision">
         <option v-for="rev in project.revisions" :key="rev.name">{{ rev.name }}</option>
       </select>
@@ -128,6 +128,10 @@ watch(() => selectedRevision.value, changeSelectedRevision, { immediate: false }
 
 .flex-stretch {
   flex-grow: 1;
+}
+
+.separator {
+  padding: 0 0.3em;
 }
 
 

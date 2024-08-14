@@ -275,7 +275,7 @@ watch(snapshotFiles, reconfigureSearchEngine);
       <p v-if="searchEngineState.running">progress {{ searchEngineState.progress }} </p>
       <p v-if="searchText.length && searchEngineState.completed && searchEngineState.results.length == 0">no file matching
         pattern</p>
-      <ul v-if="searchText.length > 0">
+      <ul v-if="searchText.length > 0" class="search-results">
         <SnapshotFileSearchResultItem v-for="result in searchEngineState.results" :key="result.matchId" :matchResult="result">
         </SnapshotFileSearchResultItem>
       </ul>
@@ -343,6 +343,11 @@ watch(snapshotFiles, reconfigureSearchEngine);
   flex-grow: 1;
 }
 
+.search-results {
+  list-style: none;
+  padding: 0;
+}
+
 .breadcrumb {
   font-size: 16px;
   display: flex;
@@ -362,6 +367,10 @@ watch(snapshotFiles, reconfigureSearchEngine);
 .breadcrumb .here .filename-separator {
   padding-left: 4px;
   padding-right: 4px;
+}
+
+.breadcrumb .dir-separator {
+  padding: 0 0.3em;
 }
 
 </style>
