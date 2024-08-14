@@ -280,7 +280,7 @@ watch(snapshotFiles, reconfigureSearchEngine);
         </SnapshotFileSearchResultItem>
       </ul>
     </div>
-    <div class="main-content">
+    <main class="main-content">
       <div class="breadcrumb">
         <nav>
           <ol>
@@ -325,13 +325,22 @@ watch(snapshotFiles, reconfigureSearchEngine);
           </table>
         </div>
       </div>
-    </div>
+    </main>
   </div>
 </template>
 
 <style scoped>
 .content-with-sidebar {
   display: flex;
+}
+
+.sidebar {
+  padding: 1rem;
+  width: 320px;
+}
+
+.main-content {
+  flex-grow: 1;
 }
 
 .breadcrumb {

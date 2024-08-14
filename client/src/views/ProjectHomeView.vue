@@ -39,7 +39,7 @@ function getPathParts(f) {
 </script>
 
 <template>
-  <div>
+  <div class="centered-content">
     <h1>{{ projectName }}/{{ projectRevision }}</h1>
     <h2>Files</h2>
     <table v-if="snapshotFileTree">

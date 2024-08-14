@@ -67,4 +67,7 @@ function getUrlHashForLine(n) {
 
 <style scoped>
 
+table {
+  font-family: 'Courier New', Courier, monospace;
+}
 </style>

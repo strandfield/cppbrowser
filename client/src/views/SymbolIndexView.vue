@@ -105,8 +105,8 @@ watch(searchText, restartSearch);
 </script>
 
 <template>
-  <div class="main-view">
-    <nav>
+  <div class="content-with-sidebar">
+    <nav class="sidebar">
       <h3>Symbols</h3>
       <input v-model="searchText" />
       <SymbolIndexTreeView v-show="show_symbol_treeview" :symbolTree="symbolTree"></SymbolIndexTreeView>
@@ -122,14 +122,23 @@ watch(searchText, restartSearch);
         </li>
       </ul>
     </nav>
-    <div>
+    <div class="main-content">
       <RouterView />
     </div>
   </div>
 </template>
 
 <style scoped>
-.main-view {
+.content-with-sidebar {
   display: flex;
+}
+
+.sidebar {
+  padding: 1rem;
+  width: 320px;
+}
+
+.main-content {
+  flex-grow: 1;
 }
 </style>

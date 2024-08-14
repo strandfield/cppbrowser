@@ -52,6 +52,10 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.references-in-project-item {
+  margin-right: 1em;
+}
+
 .header {
   display: flex;
 }

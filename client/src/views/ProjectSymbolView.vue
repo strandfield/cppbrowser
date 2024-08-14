@@ -60,7 +60,7 @@ function getHashForRef(def) {
       <h3>Symbols</h3>
       <SnapshotSidebarSymbolTab></SnapshotSidebarSymbolTab>
     </div>
-    <div class="main-content">
+    <main class="main-content">
       <div v-if="!symbol">
         <h2>{{ projectName }}/{{ projectRevision }}/#{{ symbolId }}</h2>
         <p>Loading...</p>
@@ -219,12 +219,21 @@ function getHashForRef(def) {
           </p>
         </template>
       </div>
-    </div>
+    </main>
   </div>
 </template>
 
 <style scoped>
 .content-with-sidebar {
   display: flex;
+}
+
+.sidebar {
+  padding: 1rem;
+  width: 320px;
+}
+
+.main-content {
+  flex-grow: 1;
 }
 </style>

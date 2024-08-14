@@ -8,7 +8,7 @@ const symbolTree = inject('symbolTree');
 </script>
 
 <template>
-  <div>
+  <main>
     <h2>Symbol Index</h2>
     <p>Welcome to the symbol index.</p>
     <table v-if="symbolTree">
@@ -18,6 +18,5 @@ const symbolTree = inject('symbolTree');
         </tr>
       </tbody>
     </table>
-    <p>This page is under construction.</p>
-  </div>
+  </main>
 </template>

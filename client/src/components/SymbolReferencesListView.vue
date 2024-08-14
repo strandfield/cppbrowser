@@ -42,6 +42,7 @@ function fetchData() {
             loaded.value = true;
         });
   
+  symbolReferencesByFile.value = [];
   loading.value = true;
 }
 
@@ -65,8 +66,8 @@ function formattedRefCountMessage(n) {
     <SymbolReferencesListViewItem :symbolId="symbolId" :projectName="projectName" :projectVersion="projectVersion"
       :filePath="fileEntry.filePath" :references="fileEntry.references"></SymbolReferencesListViewItem>
   </template>
-  <p v-if="loaded && symbolReferencesByFile.length == 0">The symbol isn't referenced in this version of {{ projectName
-    }}.</p>
+  <p v-if="loading">Loading...</p>
+  <p v-if="loaded && symbolReferencesByFile.length == 0">The symbol isn't referenced in this version of {{ projectName }}.</p>
 </template>
 
 <style scoped>

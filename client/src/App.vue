@@ -33,9 +33,9 @@ onMounted(() => {
 
     </div>
 
-    <div class="right-block">
+    <nav class="right-nav">
       <RouterLink to="/upload">Upload</RouterLink>
-    </div>
+    </nav>
   </header>
 
   <RouterView />
@@ -43,8 +43,10 @@ onMounted(() => {
 
 <style scoped>
 header {
-  line-height: 1.5;
+  padding: 0.5em 1em;
   display: flex;
+  place-items: center;
+  font-size: 12px;
 }
 
 .logo {
@@ -53,9 +55,7 @@ header {
 }
 
 nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
+  
 }
 
 nav a.router-link-exact-active {
@@ -82,7 +82,7 @@ nav a:first-of-type {
 
 @media (min-width: 1024px) {
   header {
-    place-items: center;
+    font-size: 1rem;
   }
 
   .logo {
@@ -98,7 +98,7 @@ nav a:first-of-type {
 
   nav {
     text-align: left;
-    font-size: 1rem;
+    
   }
 }
 </style>

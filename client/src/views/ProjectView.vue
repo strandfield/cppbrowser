@@ -93,7 +93,7 @@ watch(() => selectedRevision.value, changeSelectedRevision, { immediate: false }
   <div class="project-view">
     <nav>
       <RouterLink :to="{ name: 'snapshot', params: { projectName: projectName, projectRevision: projectRevision } }">{{ projectName }}</RouterLink>»
-      <select v-if="project" v-model="selectedRevision">
+      <select v-if="project" class="version-select" v-model="selectedRevision">
         <option v-for="rev in project.revisions" :key="rev.name">{{ rev.name }}</option>
       </select>
       <RouterLink v-if="project" :to="{ name: 'project', params: { projectName: projectName} }">{{ project.revisions.length }} snapshots</RouterLink>
@@ -109,6 +109,7 @@ watch(() => selectedRevision.value, changeSelectedRevision, { immediate: false }
 </template>
 
 <style scoped>
+
 .project-view {
 
 }
@@ -116,9 +117,23 @@ watch(() => selectedRevision.value, changeSelectedRevision, { immediate: false }
 .project-view nav {
   display: flex;
   align-items: center;
+  padding: 0.3em 1em;
+  background-color: beige;
+  font-size: 12px;
+}
+
+.version-select {
+  margin: 0 1em;
 }
 
 .flex-stretch {
   flex-grow: 1;
+}
+
+
+@media (min-width: 1024px) {
+  .project-view nav {
+    font-size: 1rem;
+  }
 }
 </style>
