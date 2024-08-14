@@ -15,3 +15,10 @@ defineProps({
     <FileTreeViewItem v-for="entry in fileTree.children" :key="entry.path" :treeItem="entry"></FileTreeViewItem>
   </ul>
 </template>
+
+<style scoped>
+ul {
+  list-style: none;
+  padding: 0;
+}
+</style>

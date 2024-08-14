@@ -41,3 +41,10 @@ onMounted(() => {
     <SnapshotSymbolTreeViewItem v-for="child in symbolTree.symbols" :key="child.id" :treeItem="child"></SnapshotSymbolTreeViewItem>
   </ul>
 </template>
+
+<style scoped>
+ul {
+  list-style: none;
+  padding: 0;
+}
+</style>

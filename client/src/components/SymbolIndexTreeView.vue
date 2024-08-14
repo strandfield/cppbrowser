@@ -12,3 +12,10 @@ defineProps({
     <SymbolIndexTreeViewItem v-for="child in symbolTree.children" :key="child.id" :treeItem="child"></SymbolIndexTreeViewItem>
   </ul>
 </template>
+
+<style scoped>
+ul{
+  list-style: none;
+  padding: 0;
+}
+</style>

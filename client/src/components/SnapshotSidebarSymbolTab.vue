@@ -93,8 +93,8 @@ watch(() => searchText.value, restartSearch, { immediate: false });
     <p v-if="searchText.length && searchEngineState.completed && searchEngineState.results.length == 0">no symbol
       matching pattern
     </p>
-    <ul v-if="searchEngineState.results.length > 0">
-      <li v-for="result in searchEngineState.results" :key="result.symbol.id">
+    <ul v-if="searchEngineState.results.length > 0" class="search-results">
+      <li v-for="result in searchEngineState.results" :key="result.symbol.id" class="search-result-item">
         <RouterLink :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: result.symbol.id } }">{{ result.symbol.name }}</RouterLink>
       </li>
     </ul>
@@ -102,5 +102,22 @@ watch(() => searchText.value, restartSearch, { immediate: false });
 </template>
 
 <style scoped>
+.search-results {
+  list-style: none;
+  padding: 0;
+}
 
+.search-result-item {
+  border-bottom: 1px solid lightgray;
+  display: flex;
+  white-space: nowrap;
+}
+
+.search-result-item a {
+  display: inline-block;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  direction: rtl;
+  flex-shrink: 1;
+}
 </style>

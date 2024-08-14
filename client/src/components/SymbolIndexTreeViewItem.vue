@@ -8,6 +8,11 @@ const props = defineProps({
   treeItem: {
     type: Object,
     required: true
+  },
+  depth: {
+    type: Number,
+    required: false,
+    default: 0
   }
 });
 
@@ -51,10 +56,18 @@ function toggle() {
 
 <template>
   <li class="item">
-    <span  v-if="hasChildren" @click="toggle">{{ isOpen ? "-" : "+" }}</span>
+    <template v-if="depth > 0">
+      <div v-for="i in depth" :key="i" class="nested-item-indicator">|</div>
+    </template>
+    <div class="item-toggle-block">
+      <span  v-if="hasChildren || (!loaded && canHaveChildren)" @click="toggle">{{ isOpen ? "-" : "+" }}</span>
+    </div>
+    <div class="item-icon-block">
+     
+    </div>
     <RouterLink :to="{ name: 'symbolIndexSymbol', params: { symbolId: treeItem.id } }">{{ treeItem.name }}</RouterLink>
     <ul v-if="hasChildren" v-show="isOpen">
-      <SymbolIndexTreeViewItem v-for="child in children" :key="child.id" :treeItem="child"></SymbolIndexTreeViewItem>
+      <SymbolIndexTreeViewItem v-for="child in children" :key="child.id" :treeItem="child" :depth="depth+1"></SymbolIndexTreeViewItem>
     </ul>
   </li>
 </template>
@@ -63,4 +76,28 @@ function toggle() {
 .item .name {
   font-weight: bold;
 }
+
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+.nested-item-indicator {
+  display: inline-block;
+  width: 1em;
+  text-align: center;
+}
+
+.item-toggle-block {
+  display: inline-block;
+  width: 1em;
+  text-align: center;
+}
+
+.item-icon-block {
+  display: inline-block;
+  width: 16px;
+}
+
 </style>
