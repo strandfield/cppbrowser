@@ -9,8 +9,8 @@ const symbolTree = inject('symbolTree');
 
 <template>
   <main>
-    <h2>Symbol Index</h2>
-    <p>Welcome to the symbol index.</p>
+    <h1>Symbol Index</h1>
+    <p>Top-level symbols:</p>
     <table v-if="symbolTree">
       <tbody>
         <tr v-for="child in symbolTree.children" :key="child.id">

@@ -64,6 +64,11 @@ function onSnapshotsStateChanged(state) {
   }
 }
 
+function getSnapshotsText(n) {
+  if (n > 1) return `${n} snapshots`;
+  else return `${n} snapshot`;
+}
+
 watch(() => props.projectName, fetchProject, { immediate: false });
 watch(() => props.projectName + "/" + props.projectRevision, fetchSnapshotFiles, { immediate: false });
 watch(() => snapshots.state, onSnapshotsStateChanged, { immediate: false });
@@ -96,7 +101,7 @@ watch(() => selectedRevision.value, changeSelectedRevision, { immediate: false }
       <select v-if="project" class="version-select" v-model="selectedRevision">
         <option v-for="rev in project.revisions" :key="rev.name">{{ rev.name }}</option>
       </select>
-      <RouterLink v-if="project" :to="{ name: 'project', params: { projectName: projectName} }">{{ project.revisions.length }} snapshots</RouterLink>
+      <RouterLink v-if="project" :to="{ name: 'project', params: { projectName: projectName} }">{{ getSnapshotsText(project.revisions.length) }}</RouterLink>
       <div class="flex-stretch"></div>
       <div class="right-block">
         <ProjectViewSearchBar></ProjectViewSearchBar>

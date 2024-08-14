@@ -51,9 +51,9 @@ function removeSnapshot(name) {
       <tbody>
       <tr v-for="snapshot in project.revisions" :key="snapshot.name">
         <td>{{ snapshot.name }}</td>
-        <td><RouterLink :to="{ name: 'snapshot', params: { projectName: project.name, projectRevision: snapshot.name } }">{{ snapshot.name }}</RouterLink></td>
+        <td><RouterLink :to="{ name: 'snapshot', params: { projectName: project.name, projectRevision: snapshot.name } }">Browse</RouterLink></td>
         <td><a :href="`/download/${projectName}/${ snapshot.name }`">Download</a></td>
-        <td @click="removeSnapshot(snapshot.name)">Remove</td>
+        <td v-show="false" @click="removeSnapshot(snapshot.name)">Remove</td>
       </tr>
       </tbody>
     </table>
