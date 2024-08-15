@@ -112,6 +112,9 @@ app.locals.site = {
   baseUrl: "/ui/static"
 };
 
+// Dist
+app.use(express.static(path.join(__dirname, 'dist')));
+
 // API routes
 var apiRouter = require('./routes/api')(app);
 app.use(app.locals.restApi.baseUrl, apiRouter);
@@ -122,7 +125,7 @@ app.use("/download", require('./routes/download')(app));
 // Static UI routes
 var indexRouter = require('./routes/index')(app);
 app.use(app.locals.site.baseUrl, express.static(path.join(__dirname, 'public')));
-app.use(app.locals.site.baseUrl, express.static(path.join(__dirname, 'dist')));
+//app.use(app.locals.site.baseUrl, express.static(path.join(__dirname, 'dist')));
 app.use(app.locals.site.baseUrl, indexRouter);
 
 // catch 404 and forward to error handler
