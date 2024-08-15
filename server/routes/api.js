@@ -344,17 +344,25 @@ function GetSnapshotSymbolTreeItem(req, res, next) {
 
     let children = revision.getChildSymbolsEx(symbol.id);
 
+    children.forEach(child => {
+      child.kind = symbolKinds.names[child.kind];
+    });
+
     res.json({
       success: true,
       symbol: {
         id: symbolId,
         name: symbol.name,
-        kind: symbol.kind
+        kind: symbolKinds.names[symbol.kind]
       },
       children: children,
     });
   } else {
     let symbols = revision.getTopLevelSymbols();
+
+    symbols.forEach(s => {
+      s.kind = symbolKinds.names[s.kind];
+    });
 
     res.json({
       success: true,
@@ -621,7 +629,7 @@ function GetSymbolTreeRoot(req, res, next) {
       id: symbol.id,
       name: symbol.name,
       displayName: symbol.displayName,
-      kind: symbol.kind,
+      kind: symbolKinds.names[symbol.kind],
       childCount: symbol.childCount ?? 0
     });
   }
@@ -651,7 +659,7 @@ function GetSymbolTreeItem(req, res, next) {
       id: child.id,
       name: child.name,
       displayName: child.displayName,
-      kind: child.kind,
+      kind: symbolKinds.names[child.kind],
       childCount: child.childCount ?? 0
     });
   }
@@ -663,7 +671,7 @@ function GetSymbolTreeItem(req, res, next) {
       parentId: symbol.parentId,
       name: symbol.name,
       displayName: symbol.displayName,
-      kind: symbol.kind
+      kind: symbolKinds.names[symbol.kind]
     },
     children: children
   });

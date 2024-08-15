@@ -300,7 +300,7 @@ watch(() => searchEngineState.state, onSearchEngineStateChanged);
 <template>
   <div class="content-with-sidebar">
     <div class="sidebar">
-      <h3>Files</h3>
+      <h2>Files</h2>
       <input v-model="searchText" />
       <div class="search-progress-bar">
         <div v-if="show_progress_bar" class="search-progress-fill" :style="`width: ${searchEngineState.progress * 100}%`">
@@ -342,26 +342,34 @@ watch(() => searchEngineState.state, onSearchEngineStateChanged);
       <div v-show="!isFolder" id="srccodecontainer"></div>
       <div>
         <div v-if="isFolder">
-          <h3>Files</h3>
           <table v-if="snapshotFileTreeItem">
             <tbody>
               <tr v-if="pathParts.length > 1">
                 <td>
+                  <div class="d-flex align-items-center">
+                  <img src="/folder.svg" class="item-icon"/>
                   <RouterLink
                     :to="{ name: 'dir', params: { projectName: projectName, projectRevision: projectRevision, pathParts: pathParts.slice(0, -1) } }">
                     ..</RouterLink>
+                  </div>
                 </td>
               </tr>
               <tr v-for="f in snapshotFileTreeItem.children" :key="f.path">
                 <td v-if="f.type == 'file'">
+                  <div class="d-flex align-items-center">
+                  <img src="/file.svg" class="item-icon"/>
                   <RouterLink
                     :to="{ name: 'file', params: { projectName: projectName, projectRevision: projectRevision, pathParts: getPathParts(f) } }">
                     {{ f.name }}</RouterLink>
+                  </div>
                 </td>
                 <td v-if="f.type == 'dir'">
+                  <div class="d-flex align-items-center">
+                  <img src="/folder.svg" class="item-icon"/>
                   <RouterLink
                     :to="{ name: 'dir', params: { projectName: projectName, projectRevision: projectRevision, pathParts: getPathParts(f) } }">
                     {{ f.name }}</RouterLink>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -373,6 +381,7 @@ watch(() => searchEngineState.state, onSearchEngineStateChanged);
 </template>
 
 <style scoped>
+
 .content-with-sidebar {
   display: flex;
 }
@@ -425,6 +434,28 @@ watch(() => searchEngineState.state, onSearchEngineStateChanged);
 
 .breadcrumb .dir-separator {
   padding: 0 0.3em;
+}
+
+table {
+  margin-top: 1em;
+  border: 1px solid lightgray;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+td {
+  padding: 0.4em 0;
+  border: 1px solid lightgrey;
+  padding-left: 1em;
+}
+
+.item-icon {
+  margin-right: 0.5em;
+}
+
+#srccodecontainer {
+  margin-top: 1em;
+  border: 1px solid lightgrey;
 }
 
 </style>
