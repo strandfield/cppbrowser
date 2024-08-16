@@ -1,0 +1,24 @@
+extends layout
+
+block content
+  h1 Upload
+  if uploadResult
+    if uploadResult.success
+      p Upload successful
+    else 
+      p Upload failed
+    a(href="#{site.baseUrl}/upload.html") Upload another snapshot
+  else if canUpload
+    p Upload a new snapshot
+    form(action="#{site.baseUrl}/upload.html", method='post', enctype='multipart/form-data')
+      p
+        input(type='file', name="database")
+      label(for="projectname") Project name:
+        input(type='text', name="projectname")
+      label(for="projectrevision") Project revision:
+        input(type='text', name="projectrevision")
+      div
+        input(type='submit')
+  else 
+    p Snapshot uploading is disabled.
+  a(href="#{site.baseUrl}/index.html", title="Home") Go to Home

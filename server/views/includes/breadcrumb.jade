@@ -1,0 +1,16 @@
+ol(class='breadcrumb')
+  li 
+    a(href="#{site.baseUrl}/#{project.name}") #{project.name}
+  each part in breadcrumb 
+    if part.type == 'current'
+      li 
+        span(class='separator') /
+        | #{part.name}
+    else if part.type == 'revision'
+      li 
+        span(class='separator') /
+        a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}") #{part.name}
+    else if part.type == 'dir'
+      li 
+        span(class='separator') /
+        a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/#{part.path}") #{part.name}

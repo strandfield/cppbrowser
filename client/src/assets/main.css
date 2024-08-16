@@ -1,0 +1,48 @@
+@import './base.css';
+
+#app {
+
+}
+
+main {
+  padding: 1em;
+}
+
+.centered-content {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+a,
+.green {
+  text-decoration: none;
+  color: hsla(160, 100%, 37%, 1);
+  transition: 0.4s;
+}
+
+@media (hover: hover) {
+  a:hover {
+    background-color: hsla(160, 100%, 37%, 0.2);
+  }
+}
+
+@media (min-width: 1024px) {
+  /* body {
+    display: flex;
+    place-items: center;
+  } */
+}
+
+
+/*TODO: move somewhere else ? */
+.code {
+  white-space: pre;
+  font-family: monospace;
+}
+
+.code th {
+  user-select: none;
+  padding-right: 1ex;
+  text-align: right;
+  font-weight: normal;
+}

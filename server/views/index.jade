@@ -1,0 +1,19 @@
+extends layout
+
+block content
+  h1 Index
+  if projects.length > 0
+    table 
+      tbody 
+        each project in projects
+          tr
+            td 
+              a(href="#{project.name}") #{project.name}
+            if canDelete 
+              td 
+                a(href="delete/#{project.name}") Remove
+  p 
+    a(href="symbols.html") Symbol Index
+  if canUpload 
+    p
+      a(href="upload.html") Upload snapshot
