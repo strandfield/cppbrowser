@@ -1,0 +1,27 @@
+extends layout
+
+block stylesheets 
+  link(rel='stylesheet', href="#{site.baseUrl}/stylesheets/syntax.qtcreator.css")
+  link(rel='stylesheet', href="#{site.baseUrl}/stylesheets/tooltip.css")
+  style 
+   | nav {
+   |   display: flex; align-items: baseline;
+   | }
+
+block content
+  div(id='content')
+    nav
+      include includes/breadcrumb.jade
+      div(style="flex-grow: 1;")
+      div(style="display: flex; gap: 1em;")
+        a(href="#{site.baseUrl}/raw/#{project.name}/#{projectRevision.name}/#{file.relativePath}") Raw
+        a(href="#{site.baseUrl}/download/#{project.name}/#{projectRevision.name}/#{file.relativePath}") Download
+    div(class="codeContainer")
+      pre(id="srccode") #{file.content}
+    script(type='text/javascript') 
+      | var site = { baseUrl: "#{site.baseUrl}" };
+      | var project = { name: "#{project.name}", revision: "#{projectRevision.name}" };
+      | var file = { id: #{file.id}, path: "#{file.relativePath}" };
+    script(type='text/javascript' src="#{site.baseUrl}/bundle.js")
+    script(type='text/javascript' src="#{site.baseUrl}/javascripts/codebrowser.js")
+    p Filepath: #{file.path}
