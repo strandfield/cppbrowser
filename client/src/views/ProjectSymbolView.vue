@@ -66,9 +66,9 @@ function getHashForRef(def) {
         <p>Loading...</p>
       </div>
       <div v-if="symbol">
-        <h1 v-if="isClass">{{ symbol.displayName ? symbol.displayName : symbol.name }} Class</h1>
-        <h1 v-else-if="isNamespace">{{ symbol.displayName ? symbol.displayName : symbol.name }} Namespace</h1>
-        <h1 v-else>{{ symbol.displayName ? symbol.displayName : symbol.name }}</h1>
+        <h1 v-if="isClass">{{ symbol.name }} Class</h1>
+        <h1 v-else-if="isNamespace">{{ symbol.name }} Namespace</h1>
+        <h1 v-else>{{ symbol.name }}</h1>
 
         <p>
           <b>Symbol ID: #{{ symbolId }}</b>
@@ -155,7 +155,7 @@ function getHashForRef(def) {
                 <td>
                   <RouterLink
                     :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: child.id } }">
-                    {{ child.displayName ? child.displayName : child.name }}</RouterLink>
+                    {{ child.name }}</RouterLink>
                 </td>
               </tr>
             </tbody>
@@ -200,7 +200,7 @@ function getHashForRef(def) {
                 <td>
                   <RouterLink
                     :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: child.id } }">
-                    {{ child.displayName ? child.displayName : child.name }}</RouterLink>
+                    {{ child.name }}</RouterLink>
                 </td>
               </tr>
             </tbody>

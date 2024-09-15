@@ -1,5 +1,7 @@
 
 
+const { symbolKinds, selectNamespaceQuery } = require('@cppbrowser/snapshot-tools');
+
 const Database = require('better-sqlite3');
 
 const Path = require('node:path');
@@ -21,7 +23,7 @@ class ProjectVersion
             name = name.slice(0, suffixindex);
         }
         let segments = name.split(".");
-        
+
         this.major = Number.parseInt(segments[0]);
 
         if (segments.length >= 2) {
@@ -129,9 +131,6 @@ class ProjectRevision
 
         this.diagnosticLevels = this.#readDiagnosticLevels();
         this.accessSpecifiers = this.#readAccessSpecifiers();
-        this.symbolKinds = this.#readSymbolKinds();
-        this.symbolFlags = this.#readSymbolFlags();
-        this.symbolReferenceFlags = this.#readSymbolReferenceFlags();
     }
 
     static open(dbPath) {
@@ -403,24 +402,8 @@ class ProjectRevision
             symbol.parentId = ProjectRevision.#convertBigIntToHex(row.parent);
         }
 
-        if (row.displayname) {
-            symbol.displayName = row.displayname;
-        }
-
         if (row.flags) {
             symbol.flags = Number(row.flags);
-        }
-
-        if (row.parameterIndex) {
-            symbol.parameterIndex = Number(row.parameterIndex);
-        }
-
-        if (row.type) {
-            symbol.type = row.type;
-        }
-
-        if (row.value) {
-            symbol.value = row.value;
         }
 
         return symbol;
@@ -455,14 +438,14 @@ class ProjectRevision
 
     getSymbolById(idhex) {
         let idint = ProjectRevision.#convertSymbolIdFromHex(idhex);
-        let stmt = this.db.prepare("SELECT id, kind, parent, name, displayname, flags, parameterIndex, type, value FROM symbol WHERE id = ?");
+        let stmt = this.db.prepare("SELECT id, kind, parent, name, flags FROM symbol WHERE id = ?");
         stmt.safeIntegers();
         let row = stmt.get(idint);
         return this.#readSymbol(row);
     }
 
     getSymbolByName(name) {
-        let stmt = this.db.prepare("SELECT id, kind, parent, name, displayname, flags, parameterIndex, type, value FROM symbol WHERE name = ?");
+        let stmt = this.db.prepare("SELECT id, kind, parent, name, flags FROM symbol WHERE name = ?");
         stmt.safeIntegers();
         let row = stmt.get(name);
         return this.#readSymbol(row);
@@ -470,7 +453,7 @@ class ProjectRevision
 
     getChildSymbols(parentid) {
         parentid = ProjectRevision.#convertSymbolIdFromHex(parentid);
-        let stmt = this.db.prepare("SELECT id, kind, parent, name, displayname, flags, parameterIndex, type, value FROM symbol WHERE parent = ?");
+        let stmt = this.db.prepare("SELECT id, kind, parent, name, flags FROM symbol WHERE parent = ?");
         stmt.safeIntegers();
         let rows = stmt.all(parentid);
         return this.#readSymbols(rows);
@@ -480,9 +463,9 @@ class ProjectRevision
         parentid = ProjectRevision.#convertSymbolIdFromHex(parentid);
         let q = "";
         if (fields.length > 0) {
-            q = `SELECT id, kind, name, displayname, ${fields} FROM symbol WHERE parent = ?`;
+            q = `SELECT id, kind, name, ${fields} FROM symbol WHERE parent = ?`;
         } else {
-            q = "SELECT id, kind, name, displayname FROM symbol WHERE parent = ?";
+            q = "SELECT id, kind, name FROM symbol WHERE parent = ?";
         }
         let stmt = this.db.prepare(q);
         stmt.safeIntegers();
@@ -491,15 +474,17 @@ class ProjectRevision
     }
 
     getTopLevelSymbols() {
-        let stmt = this.db.prepare("SELECT id, kind, name, displayname, flags, parameterIndex, type, value FROM symbol WHERE parent IS NULL");
+        let stmt = this.db.prepare("SELECT id, kind, name, flags FROM symbol WHERE parent IS NULL");
         stmt.safeIntegers();
         let rows = stmt.all();
         return this.#readSymbols(rows);
     }
     
+    // returns the list of non-local symbols (i.e, symbols without the 'local' flag) 
+    // for which at least one definition is found within the project.
     selectNonLocalDefinedSymbols() {
-        let query = `SELECT id, kind, parent, name, displayname, flags, parameterIndex, type, value 
-        FROM symbol WHERE (symbol.id IN (SELECT symbol_id FROM symbolDefinition) OR symbol.kind = 2) AND (flags & 1 = 0)`;
+        let query = `SELECT id, kind, parent, name, flags 
+        FROM symbol WHERE (symbol.id IN (SELECT symbol_id FROM symbolDefinition)) AND (flags & 1 = 0)`;
 
         let stmt = this.db.prepare(query);
         stmt.safeIntegers();
@@ -507,8 +492,9 @@ class ProjectRevision
         return this.#readSymbols(rows);
     }
 
+    // returns the list of namespace and inline-namespaces referenced in the project.
     selectNamespaces() {
-        let query = `SELECT id, parent, name FROM symbol WHERE kind = 2`;
+        let query = selectNamespaceQuery;
         let stmt = this.db.prepare(query);
         stmt.safeIntegers();
         let rows = stmt.all();
@@ -520,7 +506,7 @@ class ProjectRevision
     }
 
     selectClassesWithDefinition(keyword = 'class') {
-        let kind = this.getSymbolKindValue(keyword);
+        let kind = symbolKinds.values[keyword];
         let query = `SELECT id, parent, name FROM symbol WHERE kind = ${kind} AND (flags & 1 = 0) AND (symbol.id IN (SELECT symbol_id FROM symbolDefinition))`;
         let stmt = this.db.prepare(query);
         stmt.safeIntegers();
@@ -567,10 +553,6 @@ class ProjectRevision
         }
 
         return result;
-    }
-
-    getSymbolKindValue(text) {
-        return this.symbolKinds.indexOf(text);
     }
 
     listSymbolReferences(symbolId) {
@@ -639,7 +621,7 @@ class ProjectRevision
 
     listSymbolReferencesInFile(fileid) {
         let query = `WITH referencedSymbols AS (SELECT DISTINCT symbol_id from symbolReference where file_id = ${fileid}) 
-            SELECT id, kind, parent, name, displayname, flags, parameterIndex, type, value FROM symbol 
+            SELECT id, kind, parent, name, flags FROM symbol 
             WHERE id IN referencedSymbols`;
         let stmt = this.db.prepare(query);
         stmt.safeIntegers();
@@ -715,34 +697,6 @@ class ProjectRevision
             kinds.push(r.name);
         }
         return kinds;
-    }
-
-    #readSymbolKinds() {
-        let rows = this.db.prepare('SELECT id, name FROM symbolKind ORDER BY id ASC').all();
-        let kinds = [];
-        for (let r of rows) {
-            assert(Number(r.id) == kinds.length);
-            kinds.push(r.name);
-        }
-        return kinds;
-    }
-
-    #readSymbolFlags() {
-        let rows = this.db.prepare('SELECT name, value FROM symbolFlag').all();
-        let result = {};
-        for (let r of rows) {
-            result[r.name] = Number(r.value);
-        }
-        return result;
-    }
-
-    #readSymbolReferenceFlags() {
-        let rows = this.db.prepare('SELECT name, value FROM symbolReferenceFlag').all();
-        let result = {};
-        for (let r of rows) {
-            result[r.name] = Number(r.value);
-        }
-        return result;
     }
 };
 

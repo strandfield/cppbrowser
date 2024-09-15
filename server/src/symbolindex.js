@@ -1,7 +1,8 @@
 
+const { symbolKinds } = require("@cppbrowser/snapshot-tools");
+
 const { ProjectRevision, Project } = require('./project.js');
 const ProjectManager = require("./projectmanager.js");
-const { symbolKinds } = require("../src/symbol.js");
 
 
 class SymbolIndex
@@ -24,6 +25,16 @@ class SymbolIndex
         this.#projectManager = null;
     }
 
+    #insertSymbols(symbols) {
+        for (const sym of symbols) {
+            if (this.#symbolsMap.has(sym.id)) {
+                continue;
+            } else {
+                this.#symbolsMap.set(sym.id, sym);
+            }
+        }
+    }
+
     #collectSymbolsFromProjectRevision(rev) {
         if (!rev) {
             return;
@@ -33,13 +44,11 @@ class SymbolIndex
 
         let symbols = rev.selectNonLocalDefinedSymbols();
         // TODO: attach project rev to symbol
-        for (const sym of symbols) {
-            if (this.#symbolsMap.has(sym.id)) {
-                continue;
-            } else {
-                this.#symbolsMap.set(sym.id, sym);
-            }
-        }
+        this.#insertSymbols(symbols);
+
+        symbols = rev.selectNamespaces();
+        // TODO: attach project rev to symbol
+        this.#insertSymbols(symbols);
     }
 
     #collectSymbolsFromProject(project) {
@@ -211,8 +220,7 @@ class SymbolIndex
         let info = {
             id: symbol.id,
             kind: symbolKinds.names[symbol.kind],
-            name: symbol.name,
-            display: symbol.displayName
+            name: symbol.name
         };
 
         let get_info_children = function() {
@@ -266,8 +274,7 @@ class SymbolIndex
             get_info_children().constructors = ctors.map(e => {
                 return {
                     name: e.name,
-                    id: e.id,
-                    display: e.displayName
+                    id: e.id
                 };
             });
         }
@@ -279,8 +286,7 @@ class SymbolIndex
             get_info_children().destructors = dtors.map(e => {
                 return {
                     name: e.name,
-                    id: e.id,
-                    display: e.displayName
+                    id: e.id
                 };
             });
         }
@@ -292,8 +298,7 @@ class SymbolIndex
             get_info_children().methods = methods.map(e => {
                 return {
                     name: e.name,
-                    id: e.id,
-                    display: e.displayName
+                    id: e.id
                 };
             });
         }
@@ -306,8 +311,7 @@ class SymbolIndex
             get_info_children().functions = functions.map(e => {
                 return {
                     name: e.name,
-                    id: e.id,
-                    display: e.displayName
+                    id: e.id
                 };
             });
         }

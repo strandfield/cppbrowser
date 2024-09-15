@@ -1,4 +1,6 @@
 
+import { symbolKinds } from '@cppbrowser/snapshot-tools';
+
 import { parser as lezerCxxParser } from '@lezer/cpp';
 import { highlightTree as lezerHighlightTree, classHighlighter as lezerClassHighlighter } from '@lezer/highlight';
 
@@ -113,7 +115,7 @@ class SemaHelper {
         if (!s) {
             return false;
         } else if (s.kind) {
-            return this.sema.symrefs.symbolKinds[s.kind] == what;
+            return symbolKinds.names[s.kind] == what;
         } else if (s.symbolId) {
             return this.symbolIs(this.sema.symrefs.symbols[s.symbolId], what);
         } else if (typeof(s) == 'string') {
@@ -326,7 +328,7 @@ class SyntaxHighlighter {
                 let symbol = symrefs.symbols[matching_ref.symbolId];
                 // TODO: regarder quand le nom du symbol diffère du 'text' à écrire
                 if (symbol) {
-                    let k = symrefs.symbolKinds[symbol.kind];
+                    let k = symbolKinds.names[symbol.kind];
                     if (k == 'namespace') {
                         span.classList.add("namespace");
                     } else if (k == 'enum-constant') {
@@ -505,7 +507,7 @@ export class CodeViewer {
         {
             let symrefs = sema.symrefs;
             let s = symrefs.references.length;
-            symrefs.references = symrefs.references.filter(ref => !(ref.flags & symrefs.refFlags.implicit));
+          //  symrefs.references = symrefs.references.filter(ref => !(ref.flags & symrefs.refFlags.implicit)); // BROKEN
             if (symrefs.references.length < s) {
                 console.log(`Removed ${s - symrefs.references.length} implicit references`);
             }
@@ -595,7 +597,6 @@ export class CodeViewer {
 
     #fillTooltip(symid) {
         let symbol = this.sema.symrefs.symbols[symid];
-        let name = symbol.displayName ?? symbol.name;
         let references = document.querySelectorAll('[sym-id="' + symid + '"]');
 
         let content_element = document.createElement('DIV');
@@ -615,15 +616,17 @@ export class CodeViewer {
         };
 
         {
-            bold(name);
+            bold(symbol.name);
             br();
         }
 
+        // TODO: broken, reimplement me
         if (symbol.type) {
             text(`Type: ${symbol.type}`);
             br();
         }
 
+        // TODO: broken, reimplement me
         if (symbol.value) {
             text(`Value: ${symbol.value}`);
             br();

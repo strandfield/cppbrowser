@@ -1,5 +1,7 @@
 <script setup>
 
+import { symbolKinds } from '@cppbrowser/snapshot-tools';
+
 import { NavTooltip } from '@cppbrowser/codebrowser';
 
 import { ref, onMounted, provide } from 'vue'

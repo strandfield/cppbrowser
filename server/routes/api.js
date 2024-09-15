@@ -1,7 +1,7 @@
 
 const { getSnapshotSymbolInfo } = require("../src/symbol.js");
 let ProjectManager = require("../src/projectmanager.js");
-const { symbolKinds } = require("../src/symbol.js");
+const { symbolKinds } = require("@cppbrowser/snapshot-tools"); 
 
 const Database = require('better-sqlite3');
 
@@ -281,11 +281,6 @@ function GetFileSema(req, res, next) {
   }
 
   let symrefs = revision.listSymbolReferencesInFile(f.id);
-  if (symrefs) {
-    symrefs.symbolKinds = revision.symbolKinds;
-    symrefs.symbolFlags = revision.symbolFlags;
-    symrefs.refFlags = revision.symbolReferenceFlags;
-  }
   let symdefs = revision.listDefinitionsOfSymbolsReferencedInFile(f.id);
   let symdeffiles = {};
   for (const [key, value] of Object.entries(symdefs)) {
@@ -628,7 +623,6 @@ function GetSymbolTreeRoot(req, res, next) {
     children.push({
       id: symbol.id,
       name: symbol.name,
-      displayName: symbol.displayName,
       kind: symbolKinds.names[symbol.kind],
       childCount: symbol.childCount ?? 0
     });
@@ -658,7 +652,6 @@ function GetSymbolTreeItem(req, res, next) {
     children.push({
       id: child.id,
       name: child.name,
-      displayName: child.displayName,
       kind: symbolKinds.names[child.kind],
       childCount: child.childCount ?? 0
     });
@@ -670,7 +663,6 @@ function GetSymbolTreeItem(req, res, next) {
       id: symbol.id,
       parentId: symbol.parentId,
       name: symbol.name,
-      displayName: symbol.displayName,
       kind: symbolKinds.names[symbol.kind]
     },
     children: children

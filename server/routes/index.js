@@ -8,6 +8,7 @@ const Database = require('better-sqlite3');
 var express = require('express');
 
 var fs = require('fs');
+const { symbolKinds } = require("@cppbrowser/snapshot-tools");
 
 let SITE_BASE_URL = "";
 let CAN_DELETE_PROJECT = true;
@@ -184,11 +185,6 @@ function GetFileOrDirectory(req, res, next) {
   }
 
   let symrefs = revision.listSymbolReferencesInFile(f.id);
-  if (symrefs) {
-    symrefs.symbolKinds = revision.symbolKinds;
-    symrefs.symbolFlags = revision.symbolFlags;
-    symrefs.refFlags = revision.symbolReferenceFlags;
-  }
   let symdefs = revision.listDefinitionsOfSymbolsReferencedInFile(f.id);
   let symdeffiles = {};
   for (const [key, value] of Object.entries(symdefs)) {
@@ -416,14 +412,15 @@ function GetSymbolByID(req, res, next) {
   let references = symbol_index.listSymbolReferences(symbol.id);
 
   res.render("symbols/page", {
-    title: symbol.displayName ?? symbol.name,
+    title: symbol.name,
     symbol: symbol,
     parent: parent,
     children: children,
     references: references,
-    SymbolKindNamespace: 2,
-    SymbolKindStruct: 6,
-    SymbolKindClass: 7
+    // TODO: do not use integer values here
+    SymbolKindNamespace: symbolKinds.values['namespace'],
+    SymbolKindStruct: symbolKinds.values['struct'],
+    SymbolKindClass: symbolKinds.values['class']
   });
 }
 
