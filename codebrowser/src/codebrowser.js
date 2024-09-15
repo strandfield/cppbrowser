@@ -1,5 +1,5 @@
 
-import { symbolKinds } from '@cppbrowser/snapshot-tools';
+import { symbolKinds, symbolReference_isImplicit } from '@cppbrowser/snapshot-tools';
 
 import { parser as lezerCxxParser } from '@lezer/cpp';
 import { highlightTree as lezerHighlightTree, classHighlighter as lezerClassHighlighter } from '@lezer/highlight';
@@ -507,7 +507,7 @@ export class CodeViewer {
         {
             let symrefs = sema.symrefs;
             let s = symrefs.references.length;
-          //  symrefs.references = symrefs.references.filter(ref => !(ref.flags & symrefs.refFlags.implicit)); // BROKEN
+            symrefs.references = symrefs.references.filter(ref => !symbolReference_isImplicit(ref));
             if (symrefs.references.length < s) {
                 console.log(`Removed ${s - symrefs.references.length} implicit references`);
             }

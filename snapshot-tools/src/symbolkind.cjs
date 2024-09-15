@@ -69,15 +69,20 @@ const symbolKinds = {
 
 const selectNamespaceQuery = "SELECT id, parent, name FROM symbol WHERE kind = 2 OR kind = 3";
 
+function symbolReference_isImplicit(symRef) {
+  return (symRef.flags & 256) != 0;
+}
+
 function translateKind(k) {
   return symbolKinds.names[k];
 }
 
 function translateFlags(symbol) {
-  
+
 }
 
-module.exports =  {
+module.exports = {
   symbolKinds,
-  selectNamespaceQuery
+  selectNamespaceQuery,
+  symbolReference_isImplicit
 };

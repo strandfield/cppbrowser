@@ -47,6 +47,11 @@ class SymbolIndex
         this.#insertSymbols(symbols);
 
         symbols = rev.selectNamespaces();
+        for (let s of symbols) {
+            // 'selectNonLocalDefinedSymbols()' uses a 'parentId' field
+            // so we need to be consistent.
+            s.parentId = s.parent;
+        }
         // TODO: attach project rev to symbol
         this.#insertSymbols(symbols);
     }

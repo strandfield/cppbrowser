@@ -459,6 +459,7 @@ class ProjectRevision
         return this.#readSymbols(rows);
     }
 
+    // TODO: parameter "fields" seems to be unused
     getChildSymbolsEx(parentid, fields = "") {
         parentid = ProjectRevision.#convertSymbolIdFromHex(parentid);
         let q = "";

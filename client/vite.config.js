@@ -30,5 +30,11 @@ export default defineConfig({
   // see https://stackoverflow.com/questions/74845363/vue3-with-vite-cant-import-commonjs-module
   optimizeDeps: {
     include: ["@cppbrowser/snapshot-tools"],
+    force: true
   },
+  // build: {
+  //   commonjsOptions: {
+  //     include: ["@cppbrowser/snapshot-tools"],
+  //   },
+  // },
 })
