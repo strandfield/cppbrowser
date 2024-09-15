@@ -41,7 +41,7 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
     symbol.fields = children.filter(e => e.kind == fieldkind);
     symbol.fields.sort((a,b) => a.name.localeCompare(b.name));
 
-    let methodkind = symbolKinds.values['instance-method']; 
+    let methodkind = symbolKinds.values['method']; 
     symbol.methods = children.filter(e => e.kind == methodkind);
     symbol.methods.sort((a,b) => a.name.localeCompare(b.name));
 

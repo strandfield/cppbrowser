@@ -32,7 +32,7 @@ function getIconForSymbol(symbol) {
     return "/symbol-variable.svg";
   }  else if (symbol.kind == 'field') {
     return "/symbol-field.svg";
-  } else if (symbol.kind == 'function' || symbol.kind == 'instance-method' || symbol.kind == 'static-method' || symbol.kind == 'class-method') {
+  } else if (symbol.kind == 'function' || symbol.kind == 'method' || symbol.kind == 'static-method' || symbol.kind == 'class-method') {
     return "/symbol-method.svg";
   } else if (symbol.kind == 'struct') {
     return "/symbol-structure.svg";

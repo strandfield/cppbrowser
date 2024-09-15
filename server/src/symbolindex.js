@@ -297,7 +297,7 @@ class SymbolIndex
         }
     
         if (info.kind == 'class' || info.kind == 'struct') {
-            let k = symbolKinds.values['instance-method'];
+            let k = symbolKinds.values['method'];
             let methods = children.filter(e => e.kind == k);
 
             get_info_children().methods = methods.map(e => {

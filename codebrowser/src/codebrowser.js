@@ -337,7 +337,7 @@ class SyntaxHighlighter {
                         span.classList.add("field");
                     } else if (k == 'function') {
                         span.classList.add("fn");
-                    } else if (k == 'instance-method') {
+                    } else if (k == 'method') {
                         span.classList.add("memfn");
                     } else if (k == 'static-method') {
                         span.classList.add("staticfn");
