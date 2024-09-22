@@ -453,52 +453,37 @@ class ProjectRevision
 
     getChildSymbols(parentid) {
         parentid = ProjectRevision.#convertSymbolIdFromHex(parentid);
-        let stmt = this.db.prepare("SELECT id, kind, parent, name, flags FROM symbol WHERE parent = ?");
-        stmt.safeIntegers();
-        let rows = stmt.all(parentid);
-        return this.#readSymbols(rows);
-    }
-
-    // TODO: parameter "fields" seems to be unused
-    getChildSymbolsEx(parentid, fields = "") {
-        parentid = ProjectRevision.#convertSymbolIdFromHex(parentid);
-        let q = "";
-        if (fields.length > 0) {
-            q = `SELECT id, kind, name, ${fields} FROM symbol WHERE parent = ?`;
-        } else {
-            q = "SELECT id, kind, name FROM symbol WHERE parent = ?";
-        }
+        let q = "SELECT id, kind, name, flags FROM symbol WHERE parent = ?";
         let stmt = this.db.prepare(q);
         stmt.safeIntegers();
         let rows = stmt.all(parentid);
         return this.#readSymbols(rows);
     }
 
-    getTopLevelSymbols() {
-        let stmt = this.db.prepare("SELECT id, kind, name, flags FROM symbol WHERE parent IS NULL AND (symbol.id IN (SELECT symbol_id FROM symbolDefinition) OR symbol.kind = 2) AND (symbol.flags & 1 = 0)");
-        stmt.safeIntegers();
-        let rows = stmt.all();
-        return this.#readSymbols(rows);
-    }
-    
-    // returns the list of non-local symbols (i.e, symbols without the 'local' flag) 
-    // for which at least one definition is found within the project.
-    selectNonLocalDefinedSymbols() {
-        let query = `SELECT id, kind, parent, name, flags 
-        FROM symbol WHERE (symbol.id IN (SELECT symbol_id FROM symbolDefinition)) AND (flags & 1 = 0)`;
-
+    /**
+     * @returns all non-local symbols from the project
+     * @note symbols from outside the project that are referenced in the project are excluded from this list
+     */
+    getProjectSymbols() {
+        let query = `SELECT id, kind, parent, name, flags FROM symbol WHERE (symbol.isLocal = 0)`;
         let stmt = this.db.prepare(query);
         stmt.safeIntegers();
         let rows = stmt.all();
         return this.#readSymbols(rows);
     }
 
-    selectNonLocalSymbolsFromProject() {
-        // TODO: si on a un flag "belongs to project" en plus de "local" alors 
-        // on peut ecrire ce genre de fonction et c'est peut-être plus intéressant
-        // que selectNonLocalDefinedSymbols()
+    /**
+     * @returns non-local top-level symbols from the project
+     * @note top-level symbols from outside the project that are referenced in the project are excluded from this list
+     */
+    getProjectTopLevelSymbols() {
+        let stmt = this.db.prepare("SELECT id, kind, name, flags FROM symbol WHERE parent IS NULL AND (symbol.isLocal = 0) AND symbol.isFromProject");
+        stmt.safeIntegers();
+        let rows = stmt.all();
+        return this.#readSymbols(rows);
     }
 
+    // TODO: remove me
     // returns the list of namespace and inline-namespaces referenced in the project.
     selectNamespaces() {
         let query = selectNamespaceQuery;
@@ -512,6 +497,7 @@ class ProjectRevision
         return rows;
     }
 
+    // TODO: remove me
     selectClassesWithDefinition(keyword = 'class') {
         let kind = getSymbolKindByName(keyword);
         let query = `SELECT id, parent, name FROM symbol WHERE kind = ${kind} AND (flags & 1 = 0) AND (symbol.id IN (SELECT symbol_id FROM symbolDefinition))`;

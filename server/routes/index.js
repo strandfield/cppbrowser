@@ -224,7 +224,7 @@ function GetProjectTopLevelSymbols(req, res, next) {
     return;
   }
 
-  let symbols = revision.getTopLevelSymbols();
+  let symbols = revision.getProjectTopLevelSymbols();
 
   res.render("symbol", {
     title: req.params.projectName,

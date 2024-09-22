@@ -29,7 +29,7 @@ const loaded = ref(false);
 const loading = ref(false);
 
 const canHaveChildren = computed(() => {
-  // TODO: use heuristic -> class,namespace,struct, union => true
+  // TODO: add enum-constant
   return !symbol_isMacro(props.treeItem)
    && !symbol_isVarLike(props.treeItem);
 });
@@ -49,6 +49,7 @@ function fetchChildren() {
   $.get(fetchUrl.value, (data) => {
             if (data.success) {
               if (data.symbol.id == props.treeItem.id) {
+                data.children = data.children.sort((a,b) => a.name.localeCompare(b.name));
                 children.value = data.children;
               }
             }
@@ -73,7 +74,6 @@ function toggle() {
 
 function refetchChildren() {
   if (isOpen.value) {
-    console.log("symboltreeviewitem refecting children");
     fetchChildren();
   }
 }

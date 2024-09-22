@@ -42,16 +42,7 @@ class SymbolIndex
 
         this.#projectRevisions.push(rev);
 
-        let symbols = rev.selectNonLocalDefinedSymbols();
-        // TODO: attach project rev to symbol
-        this.#insertSymbols(symbols);
-
-        symbols = rev.selectNamespaces();
-        for (let s of symbols) {
-            // 'selectNonLocalDefinedSymbols()' uses a 'parentId' field
-            // so we need to be consistent.
-            s.parentId = s.parent;
-        }
+        let symbols = rev.getProjectSymbols();
         // TODO: attach project rev to symbol
         this.#insertSymbols(symbols);
     }
@@ -365,6 +356,7 @@ class SymbolIndex
     }
 
     getNamespaces() {
+        // TODO: take into account inline-namespaces ?
         // TODO: this can probably be optimized as namespace can only be child of other namespaces
         // leading back to the root node
         return this.getSymbolsByKind('namespace');

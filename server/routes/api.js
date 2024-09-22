@@ -338,8 +338,7 @@ function GetSnapshotSymbolTreeItem(req, res, next) {
       return;
     }
 
-    // TODO: only fetch symbols that have a definition
-    let children = revision.getChildSymbolsEx(symbol.id);
+    let children = revision.getChildSymbols(symbol.id);
 
     children.forEach(child => {
       child.kind = symbolKinds.names[child.kind];
@@ -355,9 +354,7 @@ function GetSnapshotSymbolTreeItem(req, res, next) {
       children: children,
     });
   } else {
-    // TODO: replace by getting top level symbols that have a definition + macro
-    // that are not header guards
-    let symbols = revision.getTopLevelSymbols();
+    let symbols = revision.getProjectTopLevelSymbols();
 
     symbols.forEach(s => {
       s.kind = symbolKinds.names[s.kind];
