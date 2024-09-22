@@ -1,5 +1,7 @@
 <script setup>
 
+import { symbol_isFromProject, symbol_isMacro, macro_isUsedAsHeaderGuard } from '@cppbrowser/snapshot-tools'
+
 import { ref, inject, onMounted, watch, computed } from 'vue'
 
 import $ from 'jquery'
@@ -20,6 +22,7 @@ function fetchSymbolTreeRoot() {
 
   $.get(symbolTreeRootFetchUrl.value, (data) => {
     if (data.success) {
+      data.symbols = data.symbols.sort((a,b) => a.name.localeCompare(b.name));
       symbolTree.value = data;
     }
   });
@@ -56,6 +59,11 @@ function getPathParts(f) {
   return f.path.split("/");
 }
 
+function shouldDisplaySymbol(sym) {
+  return symbol_isFromProject(sym)
+    && (!symbol_isMacro(sym) || !macro_isUsedAsHeaderGuard(sym));
+}
+
 </script>
 
 <template>
@@ -87,7 +95,7 @@ function getPathParts(f) {
     <h2>Symbols</h2>
     <table v-if="symbolTree">
       <tbody>
-        <tr v-for="child in symbolTree.symbols" :key="child.id">
+        <tr v-for="child in symbolTree.symbols" :key="child.id" v-show="shouldDisplaySymbol(child)">
           <td>
             <div class="d-flex align-items-center">
             <img :src="getIconForSymbol(child)" class="item-icon" />

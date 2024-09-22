@@ -1,6 +1,6 @@
 
 
-const { symbolKinds, selectNamespaceQuery } = require('@cppbrowser/snapshot-tools');
+const { symbolKinds, getSymbolKindByName, selectNamespaceQuery } = require('@cppbrowser/snapshot-tools');
 
 const Database = require('better-sqlite3');
 
@@ -475,7 +475,7 @@ class ProjectRevision
     }
 
     getTopLevelSymbols() {
-        let stmt = this.db.prepare("SELECT id, kind, name, flags FROM symbol WHERE parent IS NULL");
+        let stmt = this.db.prepare("SELECT id, kind, name, flags FROM symbol WHERE parent IS NULL AND (symbol.id IN (SELECT symbol_id FROM symbolDefinition) OR symbol.kind = 2) AND (symbol.flags & 1 = 0)");
         stmt.safeIntegers();
         let rows = stmt.all();
         return this.#readSymbols(rows);
@@ -493,6 +493,12 @@ class ProjectRevision
         return this.#readSymbols(rows);
     }
 
+    selectNonLocalSymbolsFromProject() {
+        // TODO: si on a un flag "belongs to project" en plus de "local" alors 
+        // on peut ecrire ce genre de fonction et c'est peut-être plus intéressant
+        // que selectNonLocalDefinedSymbols()
+    }
+
     // returns the list of namespace and inline-namespaces referenced in the project.
     selectNamespaces() {
         let query = selectNamespaceQuery;
@@ -507,7 +513,7 @@ class ProjectRevision
     }
 
     selectClassesWithDefinition(keyword = 'class') {
-        let kind = symbolKinds.values[keyword];
+        let kind = getSymbolKindByName(keyword);
         let query = `SELECT id, parent, name FROM symbol WHERE kind = ${kind} AND (flags & 1 = 0) AND (symbol.id IN (SELECT symbol_id FROM symbolDefinition))`;
         let stmt = this.db.prepare(query);
         stmt.safeIntegers();

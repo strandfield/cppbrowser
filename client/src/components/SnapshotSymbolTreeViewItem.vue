@@ -1,5 +1,7 @@
 <script setup>
 
+import { symbol_isFromProject, symbol_isMacro, symbol_isVarLike } from '@cppbrowser/snapshot-tools'
+
 import { ref, computed, inject, watch } from 'vue'
 
 import $ from 'jquery'
@@ -28,7 +30,13 @@ const loading = ref(false);
 
 const canHaveChildren = computed(() => {
   // TODO: use heuristic -> class,namespace,struct, union => true
-  return true;
+  return !symbol_isMacro(props.treeItem)
+   && !symbol_isVarLike(props.treeItem);
+});
+
+const shouldBeDisplayed = computed(() => {
+  return symbol_isFromProject(props.treeItem)
+    && (!symbol_isMacro(props.treeItem));
 });
 
 const hasChildren = computed(() => {
@@ -75,7 +83,7 @@ watch(fetchUrl, refetchChildren);
 </script>
 
 <template>
-  <li class="item">
+  <li class="item" v-show="shouldBeDisplayed">
     <template v-if="depth > 0">
       <div v-for="i in depth" :key="i" class="nested-item-indicator">|</div>
     </template>

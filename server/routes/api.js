@@ -284,6 +284,7 @@ function GetFileSema(req, res, next) {
   let symdefs = revision.listDefinitionsOfSymbolsReferencedInFile(f.id);
   let symdeffiles = {};
   for (const [key, value] of Object.entries(symdefs)) {
+    // TODO: value may be an array if the symbol is defined mulitple times
     symdeffiles[value.fileid] = revision.getFilePath(value.fileid);
   }
   let diagnostics = revision.getFileDiagnostics(f.id);
@@ -337,6 +338,7 @@ function GetSnapshotSymbolTreeItem(req, res, next) {
       return;
     }
 
+    // TODO: only fetch symbols that have a definition
     let children = revision.getChildSymbolsEx(symbol.id);
 
     children.forEach(child => {
@@ -353,6 +355,8 @@ function GetSnapshotSymbolTreeItem(req, res, next) {
       children: children,
     });
   } else {
+    // TODO: replace by getting top level symbols that have a definition + macro
+    // that are not header guards
     let symbols = revision.getTopLevelSymbols();
 
     symbols.forEach(s => {
