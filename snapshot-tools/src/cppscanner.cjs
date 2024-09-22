@@ -75,6 +75,9 @@ const symbolKinds = {
 function getSymbolKindByName(name) {
   return symbolKinds.values[name];
 }
+function getSymbolKindValue(nameOrValue) {
+  return Number.isInteger(nameOrValue) ? nameOrValue : getSymbolKindByName(nameOrValue);
+}
 function symbol_isMacro(sym) { 
   let k = Number.isInteger(sym.kind) ? sym.kind : symbolKinds.values[sym.kind];
   return k == 5; 
@@ -203,11 +206,10 @@ function symbolReference_isRef(symRef) {
   return !symbolReference_isDef(symRef) && !symbolReference_isDecl(symRef);
 }
 
-const selectNamespaceQuery = "SELECT id, parent, name FROM symbol WHERE kind = 2 OR kind = 3";
-
 module.exports = {
   symbolKinds,
   getSymbolKindByName,
+  getSymbolKindValue,
   symbol_isMacro,
   symbol_isNamespace,
   symbol_isVarLike,
@@ -246,6 +248,5 @@ module.exports = {
   symbolReference_isDynamic,
   symbolReference_isAddressOf,
   symbolReference_isImplicit,
-  symbolReference_isRef,
-  selectNamespaceQuery
+  symbolReference_isRef
 };

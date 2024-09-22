@@ -1,6 +1,6 @@
 
 
-const { symbolKinds, getSymbolKindByName, selectNamespaceQuery } = require('@cppbrowser/snapshot-tools');
+const { symbolKinds, getSymbolKindByName, getSymbolKindValue, selectNamespaceQuery } = require('@cppbrowser/snapshot-tools');
 
 const Database = require('better-sqlite3');
 
@@ -460,9 +460,15 @@ class ProjectRevision
         return this.#readSymbols(rows);
     }
 
+    // TODO: add getMemberFunctions()
+    // TODO: add getDataMembers()
+    // getFunctions(), getVariables(), getEnumConstants()
+
     /**
      * @returns all non-local symbols from the project
      * @note symbols from outside the project that are referenced in the project are excluded from this list
+     * 
+     * @sa getProjectSymbolsEx()
      */
     getProjectSymbols() {
         let query = `SELECT id, kind, parent, name, flags FROM symbol WHERE (symbol.isLocal = 0)`;
@@ -483,32 +489,61 @@ class ProjectRevision
         return this.#readSymbols(rows);
     }
 
-    // TODO: remove me
-    // returns the list of namespace and inline-namespaces referenced in the project.
-    selectNamespaces() {
-        let query = selectNamespaceQuery;
-        let stmt = this.db.prepare(query);
-        stmt.safeIntegers();
-        let rows = stmt.all();
-        rows.forEach(row => {
-            row.id = ProjectRevision.#convertBigIntToHex(row.id),
-            row.parent =  !row.parent ? null : ProjectRevision.#convertBigIntToHex(row.parent);
-        });
-        return rows;
-    }
+    /**
+     * 
+     * @param {*} opts filtering options
+     * @returns a filtered list of project symbols
+     * 
+     * Possible fields for @a opts are:
+     * - kind: a single symbol kind;
+     * - kinds: an array of symbol kinds
+     * - topLevel: for restricting the query to top-level symbols
+     * - parentId: for specifying a parent symbol id
+     * 
+     * If a single kind is specified, the associated field won't be written in the output.
+     * Likewise, if a parentId is specified, the associated field won't be written in the output. 
+     * 
+     * @sa getProjectSymbols()
+     */
+    getProjectSymbolsEx(opts) {
+        let kinds = opts.kinds ?? [];
+        if (opts.kind) {
+            kinds.push(opts.kind);
+        }
 
-    // TODO: remove me
-    selectClassesWithDefinition(keyword = 'class') {
-        let kind = getSymbolKindByName(keyword);
-        let query = `SELECT id, parent, name FROM symbol WHERE kind = ${kind} AND (flags & 1 = 0) AND (symbol.id IN (SELECT symbol_id FROM symbolDefinition))`;
+        kinds = kinds.map(e => `kind = ${getSymbolKindValue(e)}`);
+
+        if (kinds.length == 0) {
+            return this.getProjectSymbols();
+        }
+
+        let kClause = kinds.length > 0 ? `(${kinds.join(" OR ")})` : "TRUE";
+
+        let parentId = opts.parentId ? ProjectRevision.#convertSymbolIdFromHex(opts.parentId) : null;
+        let pClause = "TRUE";
+        if (parentId) {
+            pClause = "parent = ?";
+        } else if (opts.topLevel) {
+            pClause = "parent IS NULL";
+        }
+
+        let fields = ["id", "name", "flags"];
+
+        if (!opts.kind) {
+            fields.push("kind");
+        }
+
+        if (pClause == "TRUE") {
+            fields.push("parent");
+        }
+
+        fields = fields.join(", ");
+
+        let query = `SELECT ${fields} FROM symbol WHERE (symbol.isLocal = 0) AND ${kClause} AND ${pClause}`;
         let stmt = this.db.prepare(query);
         stmt.safeIntegers();
-        let rows = stmt.all();
-        rows.forEach(row => {
-            row.id = ProjectRevision.#convertBigIntToHex(row.id),
-            row.parent =  !row.parent ? null : ProjectRevision.#convertBigIntToHex(row.parent);
-        });
-        return rows;
+        let rows = parentId ? stmt.all(parentId) : stmt.all();
+        return this.#readSymbols(rows);
     }
 
     getBaseClasses(symbolId) {

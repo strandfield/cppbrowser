@@ -386,16 +386,8 @@ function GetSnapshotSymbolNameDictionary(req, res, next) {
 
   };
 
-  let select = function(kind) {
-    if (kind == 'namespace') {
-      return revision.selectNamespaces();
-    } else {
-      return revision.selectClassesWithDefinition(kind);
-    }
-  }
-
   for (const key of filters) {
-    let rows = select(key);
+    let rows = revision.getProjectSymbolsEx({kind: key});
 
     let entries = {
       id: [],
@@ -406,7 +398,7 @@ function GetSnapshotSymbolNameDictionary(req, res, next) {
     for (const row of rows) {
       entries.id.push(row.id);
       entries.name.push(row.name);
-      entries.parent.push(row.parent);
+      entries.parent.push(row.parentId);
     }
 
     dict[key] = entries;
@@ -435,7 +427,7 @@ function GetSnapshotSymbolNameDictionaryNs(req, res, next) {
     return;
   }
 
-  let rows = revision.selectNamespaces();
+  let rows = revision.getProjectSymbolsEx({kinds: ['namespace', 'inline-namespace']});
 
   let namespaces = {
     id: [],
@@ -446,7 +438,7 @@ function GetSnapshotSymbolNameDictionaryNs(req, res, next) {
   for (const row of rows) {
     namespaces.id.push(row.id);
     namespaces.name.push(row.name);
-    namespaces.parent.push(row.parent);
+    namespaces.parent.push(row.parentId);
   }
 
   res.json({
@@ -475,7 +467,7 @@ function GetSnapshotSymbolNameDictionaryClasses(req, res, next) {
   };
 
   for (const key of ['class', 'union', 'struct']) {
-    let rows = revision.selectClassesWithDefinition(key);
+    let rows = revision.getProjectSymbolsEx({kind: key});
 
     let entries = {
       id: [],
@@ -486,7 +478,7 @@ function GetSnapshotSymbolNameDictionaryClasses(req, res, next) {
     for (const row of rows) {
       entries.id.push(row.id);
       entries.name.push(row.name);
-      entries.parent.push(row.parent);
+      entries.parent.push(row.parentId);
     }
 
     symbols[key] = entries;
@@ -516,7 +508,7 @@ function GetSnapshotSymbolNameDictionaryEnums(req, res, next) {
   };
 
   for (const key of ['enum', 'enum-constant']) {
-    let rows = revision.selectClassesWithDefinition(key);
+    let rows = revision.getProjectSymbolsEx({kind: key});
 
     let entries = {
       id: [],
@@ -527,7 +519,7 @@ function GetSnapshotSymbolNameDictionaryEnums(req, res, next) {
     for (const row of rows) {
       entries.id.push(row.id);
       entries.name.push(row.name);
-      entries.parent.push(row.parent);
+      entries.parent.push(row.parentId);
     }
 
     symbols[key] = entries;
@@ -780,6 +772,7 @@ function createRouter(app) {
   // symbol-related routes
   router.get('/snapshots/:projectName/:projectRevision/symbols/tree', GetSnapshotSymbolTreeItem);
   router.get('/snapshots/:projectName/:projectRevision/symbols/dict', GetSnapshotSymbolNameDictionary);
+  // TODO: check if the 3 following endpoints are still used 
   router.get('/snapshots/:projectName/:projectRevision/symbols/dict/namespaces', GetSnapshotSymbolNameDictionaryNs);
   router.get('/snapshots/:projectName/:projectRevision/symbols/dict/classes', GetSnapshotSymbolNameDictionaryClasses);
   router.get('/snapshots/:projectName/:projectRevision/symbols/dict/enums', GetSnapshotSymbolNameDictionaryEnums);
