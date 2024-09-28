@@ -22,8 +22,10 @@ function getIconForSymbol(k) {
     return "/symbol-enum.svg";
   } else if (k == 'enum-constant') {
     return "/symbol-enum-member.svg";
-  } else if (k == 'namespace') {
+  } else if (k == 'namespace' || k == 'inline-namespace' || k == 'namespace-alias') {
     return "/symbol-namespace.svg";
+  } else if (k == 'operator') {
+    return "/symbol-operator.svg";
   }
   return "/symbol-misc.svg";
 }

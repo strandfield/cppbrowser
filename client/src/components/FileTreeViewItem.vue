@@ -78,6 +78,7 @@ function toggle() {
   flex-shrink: 1;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-wrap: nowrap;
 }
 
 ul {
