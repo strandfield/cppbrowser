@@ -1,5 +1,7 @@
 <script setup>
 
+import SymbolIcon from '@/components/icons/SymbolIcon.vue';
+
 import { symbol_isFromProject, symbol_isMacro, macro_isUsedAsHeaderGuard } from '@cppbrowser/snapshot-tools'
 
 import { ref, inject, onMounted, watch, computed } from 'vue'
@@ -26,27 +28,6 @@ function fetchSymbolTreeRoot() {
       symbolTree.value = data;
     }
   });
-}
-
-function getIconForSymbol(symbol) {
-  if (symbol.kind == 'class') {
-    return "/symbol-class.svg";
-  } else if (symbol.kind == 'variable') {
-    return "/symbol-variable.svg";
-  }  else if (symbol.kind == 'field') {
-    return "/symbol-field.svg";
-  } else if (symbol.kind == 'function' || symbol.kind == 'method' || symbol.kind == 'static-method') {
-    return "/symbol-method.svg";
-  } else if (symbol.kind == 'struct') {
-    return "/symbol-structure.svg";
-  } else if (symbol.kind == 'enum') {
-    return "/symbol-enum.svg";
-  } else if (symbol.kind == 'enum-constant') {
-    return "/symbol-enum-member.svg";
-  } else if (symbol.kind == 'namespace') {
-    return "/symbol-namespace.svg";
-  }
-  return "/symbol-misc.svg";
 }
 
 onMounted(() => {
@@ -98,7 +79,7 @@ function shouldDisplaySymbol(sym) {
         <tr v-for="child in symbolTree.symbols" :key="child.id" v-show="shouldDisplaySymbol(child)">
           <td>
             <div class="d-flex align-items-center">
-            <img :src="getIconForSymbol(child)" class="item-icon" />
+            <SymbolIcon :symbolKind="child.kind" class="item-icon"></SymbolIcon>
             <RouterLink
               :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: child.id } }">
               {{ child.name }}</RouterLink>

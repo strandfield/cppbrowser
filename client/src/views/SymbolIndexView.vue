@@ -1,6 +1,7 @@
 <script setup>
 
 import SymbolIndexTreeView from "@/components/SymbolIndexTreeView.vue"
+import SymbolIcon from "@/components/icons/SymbolIcon.vue";
 
 import { SymbolSearchEngine, symbolFilters } from '@/lib/symbol-search.js';
 
@@ -25,6 +26,7 @@ function fetchSymbolIndexSources() {
 function fetchSymbolTree() {
   $.get("/api/symbols/tree", (data) => {
             if (data.success) {
+              data.children = data.children.sort((a,b) => a.name.localeCompare(b.name));
               symbolTree.value = data;
             }
         });
@@ -148,6 +150,7 @@ watch(searchText, restartSearch);
       </p>
       <ul v-if="searchEngineState.results.length > 0" class="search-results">
         <li v-for="result in searchEngineState.results" :key="result.symbol.id" class="search-result-item">
+          <SymbolIcon :symbolKind="result.symbol.kind"></SymbolIcon>
           <RouterLink :to="{ name: 'symbolIndexSymbol', params: { symbolId: result.symbol.id } }">
             {{ result.symbol.name }}</RouterLink>
         </li>
@@ -200,7 +203,6 @@ watch(searchText, restartSearch);
   display: inline-block;
   text-overflow: ellipsis;
   overflow: hidden;
-  direction: rtl;
   flex-shrink: 1;
 }
 

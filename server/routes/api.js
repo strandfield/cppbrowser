@@ -617,6 +617,7 @@ function GetSymbolTreeRoot(req, res, next) {
       id: symbol.id,
       name: symbol.name,
       kind: symbolKinds.names[symbol.kind],
+      flags: symbol.flags,
       childCount: symbol.childCount ?? 0
     });
   }
