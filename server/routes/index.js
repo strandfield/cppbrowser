@@ -246,7 +246,7 @@ function GetProjectSymbol(req, res, next) {
     return;
   }
 
-  symbol = getSnapshotSymbolInfo(symbol, revision);
+  symbol = getSnapshotSymbolInfoLegacy(symbol, revision);
 
   res.render("symbol", {
     title: req.params.projectName,

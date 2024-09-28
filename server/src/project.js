@@ -546,6 +546,68 @@ class ProjectRevision
         return this.#readSymbols(rows);
     }
 
+    #postProcessSymbolRow(row) {
+        if (!row) {
+            return;
+        }
+
+        row.id = ProjectRevision.#convertBigIntToHex(row.id);
+        
+        if (row.kind) {
+            Number(row.kind);
+        }
+
+        if (row.parent) {
+            row.parentId = ProjectRevision.#convertBigIntToHex(row.parent);
+            row.parent = undefined;
+        }
+
+        if (row.flags) {
+            row.flags = Number(row.flags);
+        }
+    }
+
+    getChildSymbolsEx(parentId, opts) {
+        parentId = ProjectRevision.#convertSymbolIdFromHex(parentId);
+
+        let table = opts.table ?? "symbol";
+
+        let kinds = opts.kinds ?? [];
+        if (opts.kind) {
+            kinds.push(opts.kind);
+        }
+
+        kinds = kinds.map(e => `kind = ${getSymbolKindValue(e)}`);
+        let kClause = kinds.length > 0 ? `(${kinds.join(" OR ")})` : "TRUE";
+
+        let pClause = "parent = ?";
+
+        let eClause = opts.extraClause ?? "TRUE";
+
+        let fields = ["id", "name", "flags"];
+
+        if (opts.fields) {
+            fields = fields.concat(opts.fields);
+        }
+
+        if (!opts.kind) {
+            fields.push("kind");
+        }
+
+        if (pClause == "TRUE") {
+            fields.push("parent");
+        }
+
+        fields = fields.join(", ");
+
+        let query = `SELECT ${fields} FROM ${table} WHERE ${kClause} AND ${pClause} AND ${eClause}`;
+        let stmt = this.db.prepare(query);
+        stmt.safeIntegers();
+        let rows = stmt.all(parentId);
+        rows.forEach(r => this.#postProcessSymbolRow(r));
+        return rows;
+    }
+
     getBaseClasses(symbolId) {
         symbolId = ProjectRevision.#convertSymbolIdFromHex(symbolId);
         let stmt = this.db.prepare("SELECT baseOf.access AS access, baseOf.baseClassID AS baseClassID, symbol.name AS name FROM baseOf LEFT JOIN symbol ON baseOf.baseClassID = symbol.id WHERE baseOf.derivedClassID = ?");
