@@ -20,12 +20,34 @@ const symbol = ref(null);
 const isClass = computed(() => symbol.value?.kind == 'class' || symbol.value?.kind == 'struct');
 const isNamespace = computed(() => symbol.value?.kind == 'namespace');
 
+
+function postProcessSymbolInfo(syminfo) {
+  if (syminfo.functions) {
+    syminfo.functions.sort((a,b) => a.name.localeCompare(b.name));
+  } else {
+    syminfo.functions = [];
+  }
+
+  if (syminfo.methods) {
+    syminfo.methods.sort((a,b) => a.name.localeCompare(b.name));
+  } else {
+    syminfo.methods = [];
+  }
+
+  if (syminfo.staticMethods) {
+    syminfo.staticMethods.sort((a,b) => a.name.localeCompare(b.name));
+  } else {
+    syminfo.staticMethods = [];
+  }
+}
+
 function fetchSymbolInfo() {
   console.log(`fetching symbol info for ${props.symbolId}`);
 
   $.get(`/api/snapshots/${props.projectName}/${props.projectRevision}/symbols/${props.symbolId}`, (data) => {
       if (data.success) {
         console.log(data);
+        postProcessSymbolInfo(data.symbol);
         symbol.value = data.symbol;
       } else {
         console.error(data);
@@ -66,9 +88,9 @@ function getHashForRef(def) {
         <p>Loading...</p>
       </div>
       <div v-if="symbol">
-        <h1 v-if="isClass">{{ symbol.displayName ? symbol.displayName : symbol.name }} Class</h1>
-        <h1 v-else-if="isNamespace">{{ symbol.displayName ? symbol.displayName : symbol.name }} Namespace</h1>
-        <h1 v-else>{{ symbol.displayName ? symbol.displayName : symbol.name }}</h1>
+        <h1 v-if="isClass">{{ symbol.name }} Class</h1>
+        <h1 v-else-if="isNamespace">{{ symbol.name }} Namespace</h1>
+        <h1 v-else>{{ symbol.name }}</h1>
 
         <p>
           <b>Symbol ID: #{{ symbolId }}</b>
@@ -132,6 +154,36 @@ function getHashForRef(def) {
           </table>
         </template>
 
+        <template v-if="symbol.enums && symbol.enums.length > 0">
+          <h3>Enumerations</h3>
+          <table>
+            <tbody>
+              <tr v-for="child in symbol.enums" :key="child.id">
+                <td>
+                  <RouterLink
+                    :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: child.id } }">
+                    {{ child.name }}</RouterLink>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
+
+        <template v-if="symbol.enumConstants && symbol.enumConstants.length > 0">
+          <h3>Values</h3>
+          <table>
+            <tbody>
+              <tr v-for="child in symbol.enumConstants" :key="child.id">
+                <td>
+                  <RouterLink
+                    :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: child.id } }">
+                    {{ child.name }}</RouterLink>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
+
         <template v-if="symbol.records && symbol.records.length > 0">
           <h3>Records</h3>
           <table>
@@ -147,15 +199,18 @@ function getHashForRef(def) {
           </table>
         </template>
 
-        <template v-if="symbol.functions && symbol.functions.length > 0">
+        <template v-if="symbol.functions.length > 0">
           <h3>Functions</h3>
           <table>
             <tbody>
               <tr v-for="child in symbol.functions" :key="child.id">
+                <td class="return-type">
+                  {{ child.returnType }}
+                </td>
                 <td>
                   <RouterLink
                     :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: child.id } }">
-                    {{ child.displayName ? child.displayName : child.name }}</RouterLink>
+                    {{ child.name }}</RouterLink>
                 </td>
               </tr>
             </tbody>
@@ -168,6 +223,9 @@ function getHashForRef(def) {
             <tbody>
               <tr v-for="child in symbol.fields" :key="child.id">
                 <td>
+                  {{ child.type }}
+                </td>
+                <td>
                   <RouterLink
                     :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: child.id } }">
                     {{ child.name }}</RouterLink>
@@ -178,11 +236,12 @@ function getHashForRef(def) {
         </template>
 
         <template
-          v-if="(symbol.constructors && symbol.constructors.length > 0) || (symbol.methods && symbol.methods.length > 0)">
+          v-if="(symbol.constructors && symbol.constructors.length > 0) || symbol.methods.length > 0">
           <h3>Functions</h3>
           <table>
             <tbody>
               <tr v-for="child in symbol.constructors" :key="child.id">
+                <td></td>
                 <td>
                   <RouterLink
                     :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: child.id } }">
@@ -190,6 +249,7 @@ function getHashForRef(def) {
                 </td>
               </tr>
               <tr v-for="child in symbol.destructors" :key="child.id">
+                <td></td>
                 <td>
                   <RouterLink
                     :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: child.id } }">
@@ -197,10 +257,32 @@ function getHashForRef(def) {
                 </td>
               </tr>
               <tr v-for="child in symbol.methods" :key="child.id">
+                <td class="return-type">
+                  {{ child.returnType }}
+                </td>
                 <td>
                   <RouterLink
                     :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: child.id } }">
-                    {{ child.displayName ? child.displayName : child.name }}</RouterLink>
+                    {{ child.name }}</RouterLink>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
+
+        <template
+          v-if="symbol.staticMethods.length > 0">
+          <h3>Static methods</h3>
+          <table>
+            <tbody>
+              <tr v-for="child in symbol.staticMethods" :key="child.id">
+                <td class="return-type">
+                  {{ child.returnType }}
+                </td>
+                <td>
+                  <RouterLink
+                    :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: child.id } }">
+                    {{ child.name }}</RouterLink>
                 </td>
               </tr>
             </tbody>
@@ -235,5 +317,9 @@ function getHashForRef(def) {
 
 .main-content {
   flex-grow: 1;
+}
+
+.return-type {
+  text-align: right;
 }
 </style>

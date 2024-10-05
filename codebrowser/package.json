@@ -4,6 +4,7 @@
   "private": true,
   "main": "./src/codebrowser.js",
   "dependencies": {
+    "@cppbrowser/snapshot-tools": "file:../snapshot-tools",
     "@lezer/cpp": "^1.1.2",
     "@lezer/lr": "^1.4.0"
   }

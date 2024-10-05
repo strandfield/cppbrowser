@@ -1,5 +1,7 @@
 
 
+const { symbolKinds, getSymbolKindByName, getSymbolKindValue, selectNamespaceQuery } = require('@cppbrowser/snapshot-tools');
+
 const Database = require('better-sqlite3');
 
 const Path = require('node:path');
@@ -21,7 +23,7 @@ class ProjectVersion
             name = name.slice(0, suffixindex);
         }
         let segments = name.split(".");
-        
+
         this.major = Number.parseInt(segments[0]);
 
         if (segments.length >= 2) {
@@ -129,9 +131,6 @@ class ProjectRevision
 
         this.diagnosticLevels = this.#readDiagnosticLevels();
         this.accessSpecifiers = this.#readAccessSpecifiers();
-        this.symbolKinds = this.#readSymbolKinds();
-        this.symbolFlags = this.#readSymbolFlags();
-        this.symbolReferenceFlags = this.#readSymbolReferenceFlags();
     }
 
     static open(dbPath) {
@@ -403,24 +402,8 @@ class ProjectRevision
             symbol.parentId = ProjectRevision.#convertBigIntToHex(row.parent);
         }
 
-        if (row.displayname) {
-            symbol.displayName = row.displayname;
-        }
-
         if (row.flags) {
             symbol.flags = Number(row.flags);
-        }
-
-        if (row.parameterIndex) {
-            symbol.parameterIndex = Number(row.parameterIndex);
-        }
-
-        if (row.type) {
-            symbol.type = row.type;
-        }
-
-        if (row.value) {
-            symbol.value = row.value;
         }
 
         return symbol;
@@ -455,14 +438,14 @@ class ProjectRevision
 
     getSymbolById(idhex) {
         let idint = ProjectRevision.#convertSymbolIdFromHex(idhex);
-        let stmt = this.db.prepare("SELECT id, kind, parent, name, displayname, flags, parameterIndex, type, value FROM symbol WHERE id = ?");
+        let stmt = this.db.prepare("SELECT id, kind, parent, name, flags FROM symbol WHERE id = ?");
         stmt.safeIntegers();
         let row = stmt.get(idint);
         return this.#readSymbol(row);
     }
 
     getSymbolByName(name) {
-        let stmt = this.db.prepare("SELECT id, kind, parent, name, displayname, flags, parameterIndex, type, value FROM symbol WHERE name = ?");
+        let stmt = this.db.prepare("SELECT id, kind, parent, name, flags FROM symbol WHERE name = ?");
         stmt.safeIntegers();
         let row = stmt.get(name);
         return this.#readSymbol(row);
@@ -470,65 +453,158 @@ class ProjectRevision
 
     getChildSymbols(parentid) {
         parentid = ProjectRevision.#convertSymbolIdFromHex(parentid);
-        let stmt = this.db.prepare("SELECT id, kind, parent, name, displayname, flags, parameterIndex, type, value FROM symbol WHERE parent = ?");
-        stmt.safeIntegers();
-        let rows = stmt.all(parentid);
-        return this.#readSymbols(rows);
-    }
-
-    getChildSymbolsEx(parentid, fields = "") {
-        parentid = ProjectRevision.#convertSymbolIdFromHex(parentid);
-        let q = "";
-        if (fields.length > 0) {
-            q = `SELECT id, kind, name, displayname, ${fields} FROM symbol WHERE parent = ?`;
-        } else {
-            q = "SELECT id, kind, name, displayname FROM symbol WHERE parent = ?";
-        }
+        let q = "SELECT id, kind, name, flags FROM symbol WHERE parent = ?";
         let stmt = this.db.prepare(q);
         stmt.safeIntegers();
         let rows = stmt.all(parentid);
         return this.#readSymbols(rows);
     }
 
-    getTopLevelSymbols() {
-        let stmt = this.db.prepare("SELECT id, kind, name, displayname, flags, parameterIndex, type, value FROM symbol WHERE parent IS NULL");
-        stmt.safeIntegers();
-        let rows = stmt.all();
-        return this.#readSymbols(rows);
-    }
-    
-    selectNonLocalDefinedSymbols() {
-        let query = `SELECT id, kind, parent, name, displayname, flags, parameterIndex, type, value 
-        FROM symbol WHERE (symbol.id IN (SELECT symbol_id FROM symbolDefinition) OR symbol.kind = 2) AND (flags & 1 = 0)`;
+    // TODO: add getMemberFunctions()
+    // TODO: add getDataMembers()
+    // getFunctions(), getVariables(), getEnumConstants()
 
+    /**
+     * @returns all non-local symbols from the project
+     * @note symbols from outside the project that are referenced in the project are excluded from this list
+     * 
+     * @sa getProjectSymbolsEx()
+     */
+    getProjectSymbols() {
+        let query = `SELECT id, kind, parent, name, flags FROM symbol WHERE (symbol.isLocal = 0)`;
         let stmt = this.db.prepare(query);
         stmt.safeIntegers();
         let rows = stmt.all();
         return this.#readSymbols(rows);
     }
 
-    selectNamespaces() {
-        let query = `SELECT id, parent, name FROM symbol WHERE kind = 2`;
-        let stmt = this.db.prepare(query);
+    /**
+     * @returns non-local top-level symbols from the project
+     * @note top-level symbols from outside the project that are referenced in the project are excluded from this list
+     */
+    getProjectTopLevelSymbols() {
+        let stmt = this.db.prepare("SELECT id, kind, name, flags FROM symbol WHERE parent IS NULL AND (symbol.isLocal = 0) AND symbol.isFromProject");
         stmt.safeIntegers();
         let rows = stmt.all();
-        rows.forEach(row => {
-            row.id = ProjectRevision.#convertBigIntToHex(row.id),
-            row.parent =  !row.parent ? null : ProjectRevision.#convertBigIntToHex(row.parent);
-        });
-        return rows;
+        return this.#readSymbols(rows);
     }
 
-    selectClassesWithDefinition(keyword = 'class') {
-        let kind = this.getSymbolKindValue(keyword);
-        let query = `SELECT id, parent, name FROM symbol WHERE kind = ${kind} AND (flags & 1 = 0) AND (symbol.id IN (SELECT symbol_id FROM symbolDefinition))`;
+    /**
+     * 
+     * @param {*} opts filtering options
+     * @returns a filtered list of project symbols
+     * 
+     * Possible fields for @a opts are:
+     * - kind: a single symbol kind;
+     * - kinds: an array of symbol kinds
+     * - topLevel: for restricting the query to top-level symbols
+     * - parentId: for specifying a parent symbol id
+     * 
+     * If a single kind is specified, the associated field won't be written in the output.
+     * Likewise, if a parentId is specified, the associated field won't be written in the output. 
+     * 
+     * @sa getProjectSymbols()
+     */
+    getProjectSymbolsEx(opts) {
+        let kinds = opts.kinds ?? [];
+        if (opts.kind) {
+            kinds.push(opts.kind);
+        }
+
+        kinds = kinds.map(e => `kind = ${getSymbolKindValue(e)}`);
+
+        if (kinds.length == 0) {
+            return this.getProjectSymbols();
+        }
+
+        let kClause = kinds.length > 0 ? `(${kinds.join(" OR ")})` : "TRUE";
+
+        let parentId = opts.parentId ? ProjectRevision.#convertSymbolIdFromHex(opts.parentId) : null;
+        let pClause = "TRUE";
+        if (parentId) {
+            pClause = "parent = ?";
+        } else if (opts.topLevel) {
+            pClause = "parent IS NULL";
+        }
+
+        let fields = ["id", "name", "flags"];
+
+        if (!opts.kind) {
+            fields.push("kind");
+        }
+
+        if (pClause == "TRUE") {
+            fields.push("parent");
+        }
+
+        fields = fields.join(", ");
+
+        let query = `SELECT ${fields} FROM symbol WHERE (symbol.isLocal = 0) AND ${kClause} AND ${pClause}`;
         let stmt = this.db.prepare(query);
         stmt.safeIntegers();
-        let rows = stmt.all();
-        rows.forEach(row => {
-            row.id = ProjectRevision.#convertBigIntToHex(row.id),
-            row.parent =  !row.parent ? null : ProjectRevision.#convertBigIntToHex(row.parent);
-        });
+        let rows = parentId ? stmt.all(parentId) : stmt.all();
+        return this.#readSymbols(rows);
+    }
+
+    #postProcessSymbolRow(row) {
+        if (!row) {
+            return;
+        }
+
+        row.id = ProjectRevision.#convertBigIntToHex(row.id);
+        
+        if (row.kind) {
+            Number(row.kind);
+        }
+
+        if (row.parent) {
+            row.parentId = ProjectRevision.#convertBigIntToHex(row.parent);
+            row.parent = undefined;
+        }
+
+        if (row.flags) {
+            row.flags = Number(row.flags);
+        }
+    }
+
+    getChildSymbolsEx(parentId, opts) {
+        parentId = ProjectRevision.#convertSymbolIdFromHex(parentId);
+
+        let table = opts.table ?? "symbol";
+
+        let kinds = opts.kinds ?? [];
+        if (opts.kind) {
+            kinds.push(opts.kind);
+        }
+
+        kinds = kinds.map(e => `kind = ${getSymbolKindValue(e)}`);
+        let kClause = kinds.length > 0 ? `(${kinds.join(" OR ")})` : "TRUE";
+
+        let pClause = "parent = ?";
+
+        let eClause = opts.extraClause ?? "TRUE";
+
+        let fields = ["id", "name", "flags"];
+
+        if (opts.fields) {
+            fields = fields.concat(opts.fields);
+        }
+
+        if (!opts.kind) {
+            fields.push("kind");
+        }
+
+        if (pClause == "TRUE") {
+            fields.push("parent");
+        }
+
+        fields = fields.join(", ");
+
+        let query = `SELECT ${fields} FROM ${table} WHERE ${kClause} AND ${pClause} AND ${eClause}`;
+        let stmt = this.db.prepare(query);
+        stmt.safeIntegers();
+        let rows = stmt.all(parentId);
+        rows.forEach(r => this.#postProcessSymbolRow(r));
         return rows;
     }
 
@@ -567,10 +643,6 @@ class ProjectRevision
         }
 
         return result;
-    }
-
-    getSymbolKindValue(text) {
-        return this.symbolKinds.indexOf(text);
     }
 
     listSymbolReferences(symbolId) {
@@ -639,7 +711,7 @@ class ProjectRevision
 
     listSymbolReferencesInFile(fileid) {
         let query = `WITH referencedSymbols AS (SELECT DISTINCT symbol_id from symbolReference where file_id = ${fileid}) 
-            SELECT id, kind, parent, name, displayname, flags, parameterIndex, type, value FROM symbol 
+            SELECT id, kind, parent, name, flags FROM symbol 
             WHERE id IN referencedSymbols`;
         let stmt = this.db.prepare(query);
         stmt.safeIntegers();
@@ -715,34 +787,6 @@ class ProjectRevision
             kinds.push(r.name);
         }
         return kinds;
-    }
-
-    #readSymbolKinds() {
-        let rows = this.db.prepare('SELECT id, name FROM symbolKind ORDER BY id ASC').all();
-        let kinds = [];
-        for (let r of rows) {
-            assert(Number(r.id) == kinds.length);
-            kinds.push(r.name);
-        }
-        return kinds;
-    }
-
-    #readSymbolFlags() {
-        let rows = this.db.prepare('SELECT name, value FROM symbolFlag').all();
-        let result = {};
-        for (let r of rows) {
-            result[r.name] = Number(r.value);
-        }
-        return result;
-    }
-
-    #readSymbolReferenceFlags() {
-        let rows = this.db.prepare('SELECT name, value FROM symbolReferenceFlag').all();
-        let result = {};
-        for (let r of rows) {
-            result[r.name] = Number(r.value);
-        }
-        return result;
     }
 };
 

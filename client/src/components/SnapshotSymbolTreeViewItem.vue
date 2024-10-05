@@ -1,5 +1,9 @@
 <script setup>
 
+import SymbolIcon from '@/components/icons/SymbolIcon.vue';
+
+import { symbol_isFromProject, symbol_isMacro, symbol_isVarLike } from '@cppbrowser/snapshot-tools'
+
 import { ref, computed, inject, watch } from 'vue'
 
 import $ from 'jquery'
@@ -27,8 +31,14 @@ const loaded = ref(false);
 const loading = ref(false);
 
 const canHaveChildren = computed(() => {
-  // TODO: use heuristic -> class,namespace,struct, union => true
-  return true;
+  // TODO: add enum-constant
+  return !symbol_isMacro(props.treeItem)
+   && !symbol_isVarLike(props.treeItem);
+});
+
+const shouldBeDisplayed = computed(() => {
+  return symbol_isFromProject(props.treeItem)
+    && (!symbol_isMacro(props.treeItem));
 });
 
 const hasChildren = computed(() => {
@@ -41,6 +51,7 @@ function fetchChildren() {
   $.get(fetchUrl.value, (data) => {
             if (data.success) {
               if (data.symbol.id == props.treeItem.id) {
+                data.children = data.children.sort((a,b) => a.name.localeCompare(b.name));
                 children.value = data.children;
               }
             }
@@ -65,7 +76,6 @@ function toggle() {
 
 function refetchChildren() {
   if (isOpen.value) {
-    console.log("symboltreeviewitem refecting children");
     fetchChildren();
   }
 }
@@ -75,17 +85,20 @@ watch(fetchUrl, refetchChildren);
 </script>
 
 <template>
-  <li class="item">
-    <template v-if="depth > 0">
-      <div v-for="i in depth" :key="i" class="nested-item-indicator">|</div>
-    </template>
-    <div class="item-toggle-block">
-      <span  v-if="hasChildren || (!loaded && canHaveChildren)" @click="toggle">{{ isOpen ? "-" : "+" }}</span>
+  <li class="item" v-show="shouldBeDisplayed">
+    <div class="item-content">
+      <template v-if="depth > 0">
+        <div v-for="i in depth" :key="i" class="indent"><div class="nested-item-indicator"></div></div>
+      </template>
+      <div class="item-toggle-block">
+        <img v-if="hasChildren || (!loaded && canHaveChildren)" @click="toggle" :src="isOpen ? '/chevron-down.svg' : '/chevron-right.svg'"
+            class="toggle-image" />
+      </div>
+      <div class="item-icon-block">
+        <SymbolIcon :symbolKind="treeItem.kind"></SymbolIcon>
+      </div>
+      <RouterLink :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: treeItem.id } }" class="name">{{ treeItem.name }}</RouterLink>
     </div>
-    <div class="item-icon-block">
-     
-    </div>
-    <RouterLink :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: treeItem.id } }">{{ treeItem.name }}</RouterLink>
     <ul v-if="hasChildren" v-show="isOpen">
       <SnapshotSymbolTreeViewItem v-for="child in children" :key="child.id" :treeItem="child" :depth="depth + 1"></SnapshotSymbolTreeViewItem>
     </ul>
@@ -93,8 +106,21 @@ watch(fetchUrl, refetchChildren);
 </template>
 
 <style scoped>
-.item .name {
-  font-weight: bold;
+
+.item {
+  
+}
+
+.item-content {
+  display: flex;
+  align-items: center;
+}
+
+.item-content .name {
+  flex-shrink: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
 }
 
 ul {
@@ -102,20 +128,42 @@ ul {
   padding: 0;
 }
 
-.nested-item-indicator {
+.indent {
   display: inline-block;
-  width: 1em;
-  text-align: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.nested-item-indicator {
+  margin-left: 10px;
+  width: 1px;
+  height: 22px;
+  background-color: lightgrey;
+  border-right: 1px solid lightgrey;
 }
 
 .item-toggle-block {
   display: inline-block;
-  width: 1em;
-  text-align: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.toggle-image {
+  display: block;
+  margin-left: 3px;
+  margin-top: 4px;
 }
 
 .item-icon-block {
   display: inline-block;
-  width: 16px;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+
+  padding-left: 3px;
+  padding-top: 4px; 
 }
+
 </style>

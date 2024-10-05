@@ -1,5 +1,7 @@
 <script setup>
 
+import SymbolIcon from './icons/SymbolIcon.vue';
+
 import { ref, computed, inject } from 'vue'
 
 import $ from 'jquery'
@@ -31,6 +33,7 @@ function fetchChildren() {
   $.get(`/api/symbols/tree/${props.treeItem.id}`, (data) => {
             if (data.success) {
               if (data.symbol.id == props.treeItem.id) {
+                data.children = data.children.sort((a,b) => a.name.localeCompare(b.name));
                 children.value = data.children;
               }
             }
@@ -56,48 +59,84 @@ function toggle() {
 
 <template>
   <li class="item">
-    <template v-if="depth > 0">
-      <div v-for="i in depth" :key="i" class="nested-item-indicator">|</div>
-    </template>
-    <div class="item-toggle-block">
-      <span  v-if="hasChildren" @click="toggle">{{ isOpen ? "-" : "+" }}</span>
+    <div class="item-content">
+      <template v-if="depth > 0">
+        <div v-for="i in depth" :key="i" class="indent"><div class="nested-item-indicator"></div></div>
+      </template>
+      <div class="item-toggle-block">
+        <img v-if="hasChildren" @click="toggle" :src="isOpen ? '/chevron-down.svg' : '/chevron-right.svg'"
+            class="toggle-image" />
+      </div>
+      <div class="item-icon-block">
+        <SymbolIcon :symbolKind="treeItem.kind"></SymbolIcon>
+      </div>
+      <RouterLink :to="{ name: 'symbolIndexSymbol', params: { symbolId: treeItem.id } }" class="name">{{ treeItem.name }}</RouterLink>
     </div>
-    <div class="item-icon-block">
-     
-    </div>
-    <RouterLink :to="{ name: 'symbolIndexSymbol', params: { symbolId: treeItem.id } }">{{ treeItem.name }}</RouterLink>
     <ul v-if="hasChildren" v-show="isOpen">
-      <SymbolIndexTreeViewItem v-for="child in children" :key="child.id" :treeItem="child" :depth="depth+1"></SymbolIndexTreeViewItem>
+      <SymbolIndexTreeViewItem v-for="child in children" :key="child.id" :treeItem="child" :depth="depth + 1"></SymbolIndexTreeViewItem>
     </ul>
   </li>
 </template>
 
 <style scoped>
-.item .name {
-  font-weight: bold;
+
+.item {
+  
 }
 
+.item-content {
+  display: flex;
+  align-items: center;
+}
+
+.item-content .name {
+  flex-shrink: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+}
 
 ul {
   list-style: none;
   padding: 0;
 }
 
-.nested-item-indicator {
+.indent {
   display: inline-block;
-  width: 1em;
-  text-align: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.nested-item-indicator {
+  margin-left: 10px;
+  width: 1px;
+  height: 22px;
+  background-color: lightgrey;
+  border-right: 1px solid lightgrey;
 }
 
 .item-toggle-block {
   display: inline-block;
-  width: 1em;
-  text-align: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.toggle-image {
+  display: block;
+  margin-left: 3px;
+  margin-top: 4px;
 }
 
 .item-icon-block {
   display: inline-block;
-  width: 16px;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+
+  padding-left: 3px;
+  padding-top: 4px; 
 }
 
 </style>

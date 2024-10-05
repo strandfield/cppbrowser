@@ -14,8 +14,11 @@ defineProps({
 </template>
 
 <style scoped>
-ul{
+ul {
   list-style: none;
   padding: 0;
+  line-height: normal;
+  font-size: 15px;
+  font-weight: normal;
 }
 </style>

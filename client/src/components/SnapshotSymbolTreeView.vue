@@ -22,6 +22,7 @@ function fetchTreeRoot() {
 
   $.get(`/api/snapshots/${props.projectName}/${props.projectRevision}/symbols/tree`, (data) => {
     if (data.success) {
+      data.symbols = data.symbols.sort((a,b) => a.name.localeCompare(b.name));
       symbolTree.value = data;
     }
   });
@@ -46,5 +47,8 @@ onMounted(() => {
 ul {
   list-style: none;
   padding: 0;
+  line-height: normal;
+  font-size: 15px;
+  font-weight: normal;
 }
 </style>

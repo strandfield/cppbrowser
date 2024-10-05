@@ -9,16 +9,16 @@ block content
   // include includes/breadcrumb.jade
 
   if symbol.kind == SymbolKindClass || symbol.kind == SymbolKindStruct
-    h2 #{symbol.displayName ? symbol.displayName : symbol.name} Class 
+    h2 #{symbol.name} Class 
   else if symbol.kind == SymbolKindNamespace
-    h2 #{symbol.displayName ? symbol.displayName : symbol.name} Namespace 
+    h2 #{symbol.name} Namespace 
   else 
-    h2 #{symbol.displayName ? symbol.displayName : symbol.name}
+    h2 #{symbol.name}
 
   if parent 
     p 
       | Parent: 
-      a(href="#{site.baseUrl}/symbols/#{parent.id}") #{parent.displayName ? parent.displayName : parent.name}
+      a(href="#{site.baseUrl}/symbols/#{parent.id}") #{parent.name}
       | .
 
   if references && references.length > 0
@@ -44,4 +44,4 @@ block content
         each child in children
           tr
             td 
-              a(href="#{site.baseUrl}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+              a(href="#{site.baseUrl}/symbols/#{child.id}") #{child.name}

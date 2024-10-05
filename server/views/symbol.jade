@@ -12,17 +12,17 @@ block content
         each symbol in symbols
           tr
             td 
-              a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{symbol.id}") #{symbol.displayName ? symbol.displayName : symbol.name}
+              a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{symbol.id}") #{symbol.name}
         tr 
           td
             a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}") ..
   else if symbol != null 
     if symbol.kind == 'class' || symbol.kind == 'struct'
-      h2 #{symbol.displayName ? symbol.displayName : symbol.name} Class 
+      h2 #{symbol.name} Class 
     else if symbol.kind == 'namespace'
-      h2 #{symbol.displayName ? symbol.displayName : symbol.name} Namespace 
+      h2 #{symbol.name} Namespace 
     else 
-      h2 #{symbol.displayName ? symbol.displayName : symbol.name}
+      h2 #{symbol.name}
     p
       if symbol.parent 
         if symbol.parent.kind == 'namespace'
@@ -65,7 +65,7 @@ block content
           each child in symbol.namespaces
             tr
               td 
-                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.name}
     if symbol.records && symbol.records.length > 0
       h3 Records
       table 
@@ -73,7 +73,7 @@ block content
           each child in symbol.records
             tr
               td 
-                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.name}
     if symbol.functions && symbol.functions.length > 0
       h3 Functions
       table 
@@ -81,7 +81,7 @@ block content
           each child in symbol.functions
             tr
               td 
-                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.name}
     if symbol.fields && symbol.fields.length > 0
       h3 Fields
       table 
@@ -89,7 +89,7 @@ block content
           each child in symbol.fields
             tr
               td 
-                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.name}
     if (symbol.constructors && symbol.constructors.length > 0) || (symbol.methods && symbol.methods.length > 0) 
       h3 Functions
       table 
@@ -97,15 +97,15 @@ block content
           each child in symbol.constructors
             tr
               td 
-                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.name}
           each child in symbol.destructors
             tr
               td 
-                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.name}
           each child in symbol.methods
             tr
               td 
-                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.name}
     if symbol.references && symbol.references.length > 0
       h3 References 
       each refsInFile in symbol.references
@@ -125,4 +125,4 @@ block content
           each child in symbol.children
             tr
               td 
-                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.displayName ? child.displayName : child.name}
+                a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/symbols/#{child.id}") #{child.name}
