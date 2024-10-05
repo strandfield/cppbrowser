@@ -195,38 +195,6 @@ class SymbolReferencesConsumer {
             return null;
         }
     }
-
-    // TODO: create a function that returns primary ref and secondary refs
-    selectRef(refs, text) {
-        if (!refs) {
-            return null;
-        } else if (!Array.isArray(refs)) {
-            return refs;
-        }
-
-        let goodname = refs.filter(e => this.getSymbol(e).name == text);
-        if (goodname.length == 1) {
-            return goodname[0];
-        }
-
-        if (goodname.length == 2) {
-            if (this.semaHelper.symbolIs(goodname[0], 'variable') && this.semaHelper.symbolIs(goodname[1], 'constructor')) {
-                return goodname[0];
-            } else if (this.semaHelper.symbolIs(goodname[1], 'variable') && this.semaHelper.symbolIs(goodname[0], 'constructor')) {
-                return goodname[1];
-            }
-
-            if (this.semaHelper.symbolIs(goodname[0], 'class') && this.semaHelper.symbolIs(goodname[1], 'constructor')) {
-                return goodname[1];
-            } else if (this.semaHelper.symbolIs(goodname[1], 'class') && this.semaHelper.symbolIs(goodname[0], 'constructor')) {
-                return goodname[0];
-            }
-        }
-
-        let reflist = refs.map(e => e.symbolId);
-        console.log(`Multiple refs @${refs[0].line}:${refs[0].col} near "${text}": ${JSON.stringify(reflist)}`);
-        return refs[0];
-    }
 }
 
 class SyntaxHighlighter {
@@ -290,43 +258,102 @@ class SyntaxHighlighter {
         let symdefs = this.sema.symdefs;
         let symrefs = this.sema.symrefs;
         let references_at_offset = this.symrefs_consumer.getRefsAtOffset(offset);
-        let matching_ref = this.symrefs_consumer.selectRef(references_at_offset, text);
+        let primary_ref = null;
+        let secondary_refs = [];
+        if (Array.isArray(references_at_offset)) {
+            references_at_offset.sort((a,b) => symbolReference_isImplicit(a) - symbolReference_isImplicit(b));
+            primary_ref = references_at_offset[0];
+            secondary_refs = references_at_offset.slice(1);
+        } else {
+            primary_ref = references_at_offset;
+        }
 
-        let node = document.createTextNode(text);
-        if (classes || matching_ref) {
-            let tagname = "span";
-            let symdef = null;
+        for (const ref of secondary_refs) {         
             let link_object = null;
-            let tagid = null;
-            // TODO: utiliser les flags de la ref pour savoir si on est au niveau de la definition ?
-            if (matching_ref && symdefs.definitions[matching_ref.symbolId] && !Array.isArray(symdefs.definitions[matching_ref.symbolId])) {
-                symdef = symdefs.definitions[matching_ref.symbolId];
-                let isatdef = (symdef.fileid == this.fileInfo.id && symdef.line == this.currentLineIndex + 1);
-                let islocalsym = SemaHelper.isLocal(symrefs.symbols[matching_ref.symbolId]);
-                if (!isatdef && !islocalsym) {
-                    let symdefsfiles = symdefs.files;
-                    let path = symdefsfiles[symdef.fileid];
-                    link_object = this.linksGenerator?.createLinkToSymbolDefinition(path, matching_ref.symbolId);
-                    if (link_object) {
-                        tagname = "a";
+            if (symdefs.definitions[ref.symbolId] && !Array.isArray(symdefs.definitions[ref.symbolId])) {
+                let symdef = symdefs.definitions[ref.symbolId];
+                let path = symdefs.files[symdef.fileid];
+                link_object = this.linksGenerator?.createLinkToSymbolDefinition(path, ref.symbolId);
+            }
+
+            let elem = document.createElement(link_object ? "a" : "span");
+
+            elem.classList.add("impref");
+
+            {
+                let symbol = symrefs.symbols[ref.symbolId];
+                if (symbol) {
+                    // TODO: refactor me with the copied block below
+                    let k = symbolKinds.names[symbol.kind];
+                    if (k == 'namespace') {
+                        elem.classList.add("namespace");
+                    } else if (k == 'enum-constant') {
+                        elem.classList.add("enumconstant");
+                    } else if (k == 'field') {
+                        elem.classList.add("field");
+                    } else if (k == 'function') {
+                        elem.classList.add("fn");
+                    } else if (k == 'method') {
+                        elem.classList.add("memfn");
+                    } else if (k == 'static-method') {
+                        elem.classList.add("staticfn");
+                    } else if (k == 'constructor') {
+                        elem.classList.add("constructor");
+                    } else if (k == 'destructor') {
+                        elem.classList.add("destructor");
+                    } else if (k == 'enum' || k == 'class' || k == 'struct' || k == 'union') {
+                        elem.classList.add("type");
                     }
-                } else {
-                    if (isatdef) {
-                        tagid = matching_ref.symbolId;
+
+                    elem.setAttribute("sym-id", symbol.id);
+                }
+
+                if (link_object) {
+                    elem.setAttribute('href', link_object.href);
+                    if (link_object.onclick) {
+                        elem.onclick = link_object.onclick;
                     }
-                    symdef = null;
                 }
             }
 
-            let span = document.createElement(tagname);
+            if (classes && elem.classList.length == 0) {
+                if (text == 'int' || text == 'bool') {
+                    elem.className = 'tok-keyword';
+                } else {
+                    elem.className = classes;
+                }
 
-            if (tagid) {
-                span.setAttribute('id', tagid);
+            }
+            this.currentTD.appendChild(elem);
+        }
+
+        let node = document.createTextNode(text);
+        if (classes || primary_ref) {
+            let link_object = null;
+            let elemid = null;
+            // TODO: utiliser les flags de la ref pour savoir si on est au niveau de la definition ?
+            if (primary_ref && symdefs.definitions[primary_ref.symbolId] && !Array.isArray(symdefs.definitions[primary_ref.symbolId])) {
+                let symdef = symdefs.definitions[primary_ref.symbolId];
+                let isatdef = (symdef.fileid == this.fileInfo.id && symdef.line == this.currentLineIndex + 1);
+                let islocalsym = SemaHelper.isLocal(symrefs.symbols[primary_ref.symbolId]);
+                if (!isatdef && !islocalsym) {
+                    let path = symdefs.files[symdef.fileid];
+                    link_object = this.linksGenerator?.createLinkToSymbolDefinition(path, primary_ref.symbolId);
+                } else {
+                    if (isatdef) {
+                        elemid = primary_ref.symbolId;
+                    }
+                }
             }
 
-            if (matching_ref) {
-                let symbol = symrefs.symbols[matching_ref.symbolId];
-                // TODO: regarder quand le nom du symbol diffère du 'text' à écrire
+            let span = document.createElement(link_object ? "a" : "span");
+
+            if (elemid) {
+                span.setAttribute('id', elemid);
+            }
+
+            if (primary_ref) {
+                let symbol = symrefs.symbols[primary_ref.symbolId];
                 if (symbol) {
                     let k = symbolKinds.names[symbol.kind];
                     if (k == 'namespace') {
@@ -506,11 +533,6 @@ export class CodeViewer {
         // Perform some preprocessing...
         {
             let symrefs = sema.symrefs;
-            let s = symrefs.references.length;
-            symrefs.references = symrefs.references.filter(ref => !symbolReference_isImplicit(ref));
-            if (symrefs.references.length < s) {
-                console.log(`Removed ${s - symrefs.references.length} implicit references`);
-            }
 
             symrefs.references.forEach(ref => {
                 ref.offset = this.#tds[ref.line - 1].offset + (ref.col - 1);
@@ -519,7 +541,6 @@ export class CodeViewer {
             symrefs.references.sort((a, b) => { return a.offset - b.offset; });
         }
 
-        // TODO: create SyntaxHighlighter and the rest
         let highlighter = new SyntaxHighlighter(this.lines, this.toPlainText(), this.#tds, this.linksGenerator);
         highlighter.run(this.fileInfo, this.sema);
 

@@ -75,3 +75,7 @@ th.highlight+td { background-color: #eee; }
 .diagnostic-fatal::before {
     content: '☠️'
 }
+
+.impref::before {
+    content: "\2380";
+}
