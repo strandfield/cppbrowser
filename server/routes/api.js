@@ -295,6 +295,7 @@ function GetFileSema(req, res, next) {
   }
   let diagnostics = revision.getFileDiagnostics(f.id);
   let includes = revision.getFileIncludes(f.id);
+  let arguments_passed_by_ref = revision.getArgumentsPassedByReference(f.id);
 
   res.json({
     success: true,
@@ -311,6 +312,9 @@ function GetFileSema(req, res, next) {
       symdefs: {
         definitions: symdefs,
         files: symdeffiles
+      },
+      annotations: {
+        refargs: arguments_passed_by_ref
       }
     }
   });

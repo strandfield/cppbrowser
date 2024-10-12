@@ -2,6 +2,8 @@
 
 const { symbolKinds, getSymbolKindByName, getSymbolKindValue, selectNamespaceQuery } = require('@cppbrowser/snapshot-tools');
 
+const { checkTableExists } = require('./database');
+
 const Database = require('better-sqlite3');
 
 const Path = require('node:path');
@@ -131,6 +133,8 @@ class ProjectRevision
 
         this.diagnosticLevels = this.#readDiagnosticLevels();
         this.accessSpecifiers = this.#readAccessSpecifiers();
+
+        this.hasArgumentsPassedByReference = checkTableExists(this.db, "argumentPassedByReference");
     }
 
     static open(dbPath) {
@@ -768,6 +772,16 @@ class ProjectRevision
         }
 
         return definitions;
+    }
+
+    getArgumentsPassedByReference(fileId) {
+        if (!this.hasArgumentsPassedByReference) {
+            return null;
+        }
+
+        let query = `SELECT line, column FROM argumentPassedByReference WHERE file_id = ?`;
+        let stmt = this.db.prepare(query);
+        return stmt.all(fileId);
     }
 
     #readDiagnosticLevels() {

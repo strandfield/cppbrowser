@@ -2,7 +2,9 @@
 
 import SymbolIcon from './icons/SymbolIcon.vue';
 
-import { ref, computed, inject } from 'vue'
+import { symbol_isMacro, macro_isUsedAsHeaderGuard } from '@cppbrowser/snapshot-tools'
+
+import { ref, computed } from 'vue'
 
 import $ from 'jquery'
 
@@ -22,6 +24,10 @@ const children = ref([]);
 
 const loaded = ref(false);
 const loading = ref(false);
+
+const shouldBeDisplayed = computed(() => {
+  return (!symbol_isMacro(props.treeItem) || !macro_isUsedAsHeaderGuard(props.treeItem));
+});
 
 const hasChildren = computed(() => {
   return props.treeItem.childCount > 0;
@@ -58,7 +64,7 @@ function toggle() {
 </script>
 
 <template>
-  <li class="item">
+  <li class="item" v-show="shouldBeDisplayed">
     <div class="item-content">
       <template v-if="depth > 0">
         <div v-for="i in depth" :key="i" class="indent"><div class="nested-item-indicator"></div></div>

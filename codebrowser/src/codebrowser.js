@@ -1,5 +1,5 @@
 
-import { symbolKinds, symbolReference_isImplicit } from '@cppbrowser/snapshot-tools';
+import { symbolKinds, symbol_isLocal, symbolReference_isImplicit } from '@cppbrowser/snapshot-tools';
 
 import { parser as lezerCxxParser } from '@lezer/cpp';
 import { highlightTree as lezerHighlightTree, classHighlighter as lezerClassHighlighter } from '@lezer/highlight';
@@ -153,6 +153,21 @@ class ArrayIterator {
     }
 }
 
+class AnnotationIterator extends ArrayIterator {
+    
+    seek(offset) {
+        while (!this.atEnd() && this.value().offset < offset) {
+            this.next();
+        }
+
+        if (!this.atEnd() && this.value().offset == offset) {
+            return this.value();
+        } else {
+            return null;
+        }
+    }
+}
+
 class SymbolReferencesConsumer {
     refs = [];
     index = 0;
@@ -254,9 +269,47 @@ class SyntaxHighlighter {
         return tokens;
     }
 
+    #addCssClassesBasedOnSymbolKind(element, symbol) {
+        let k = symbolKinds.names[symbol.kind];
+        if (k == 'namespace') {
+            element.classList.add("namespace");
+        } else if (k == 'enum-constant') {
+            element.classList.add("enumconstant");
+        } else if (k == 'field') {
+            element.classList.add("field");
+        } else if (k == 'function') {
+            element.classList.add("fn");
+        } else if (k == 'method') {
+            element.classList.add("memfn");
+        } else if (k == 'static-method') {
+            element.classList.add("staticfn");
+        } else if (k == 'constructor') {
+            element.classList.add("constructor");
+        } else if (k == 'destructor') {
+            element.classList.add("destructor");
+        } else if (k == 'enum' || k == 'class' || k == 'struct' || k == 'union') {
+            element.classList.add("type");
+        } else if (k == 'variable') {
+            element.classList.add("var");
+
+            if (symbol_isLocal(symbol)) {
+                element.classList.add("local");
+            }
+        }
+    }
+
     #emit(text, offset, classes) {
         let symdefs = this.sema.symdefs;
         let symrefs = this.sema.symrefs;
+
+        let arg_passed_by_ref = this.argumentsPassedByRef.seek(offset);
+        if (arg_passed_by_ref) {
+            let node = document.createElement("span");
+            node.classList.add("refarg");
+            node.setAttribute('title', "Argument passed by reference");
+            this.currentTD.appendChild(node);
+        }
+
         let references_at_offset = this.symrefs_consumer.getRefsAtOffset(offset);
         let primary_ref = null;
         let secondary_refs = [];
@@ -283,28 +336,7 @@ class SyntaxHighlighter {
             {
                 let symbol = symrefs.symbols[ref.symbolId];
                 if (symbol) {
-                    // TODO: refactor me with the copied block below
-                    let k = symbolKinds.names[symbol.kind];
-                    if (k == 'namespace') {
-                        elem.classList.add("namespace");
-                    } else if (k == 'enum-constant') {
-                        elem.classList.add("enumconstant");
-                    } else if (k == 'field') {
-                        elem.classList.add("field");
-                    } else if (k == 'function') {
-                        elem.classList.add("fn");
-                    } else if (k == 'method') {
-                        elem.classList.add("memfn");
-                    } else if (k == 'static-method') {
-                        elem.classList.add("staticfn");
-                    } else if (k == 'constructor') {
-                        elem.classList.add("constructor");
-                    } else if (k == 'destructor') {
-                        elem.classList.add("destructor");
-                    } else if (k == 'enum' || k == 'class' || k == 'struct' || k == 'union') {
-                        elem.classList.add("type");
-                    }
-
+                    this.#addCssClassesBasedOnSymbolKind(elem, symbol);
                     elem.setAttribute("sym-id", symbol.id);
                 }
 
@@ -355,27 +387,7 @@ class SyntaxHighlighter {
             if (primary_ref) {
                 let symbol = symrefs.symbols[primary_ref.symbolId];
                 if (symbol) {
-                    let k = symbolKinds.names[symbol.kind];
-                    if (k == 'namespace') {
-                        span.classList.add("namespace");
-                    } else if (k == 'enum-constant') {
-                        span.classList.add("enumconstant");
-                    } else if (k == 'field') {
-                        span.classList.add("field");
-                    } else if (k == 'function') {
-                        span.classList.add("fn");
-                    } else if (k == 'method') {
-                        span.classList.add("memfn");
-                    } else if (k == 'static-method') {
-                        span.classList.add("staticfn");
-                    } else if (k == 'constructor') {
-                        span.classList.add("constructor");
-                    } else if (k == 'destructor') {
-                        span.classList.add("destructor");
-                    } else if (k == 'enum' || k == 'class' || k == 'struct' || k == 'union') {
-                        span.classList.add("type");
-                    }
-
+                    this.#addCssClassesBasedOnSymbolKind(span, symbol);
                     span.setAttribute("sym-id", symbol.id);
                 }
 
@@ -422,6 +434,7 @@ class SyntaxHighlighter {
         let token_iterator = new ArrayIterator(tokens);
 
         this.symrefs_consumer = new SymbolReferencesConsumer(sema);
+        this.argumentsPassedByRef = new AnnotationIterator(this.sema.annotations?.refargs ?? []);
 
         let emit = (text, offset, classes) => {
             this.#emit(text, offset, classes);
@@ -526,11 +539,15 @@ export class CodeViewer {
         this.linksGenerator = linksGenerator;
     }
 
-    setSema(fileInfo, sema) {
-        this.fileInfo = fileInfo;
-        this.sema = sema;
+    #linecolToOffset(l, c) {
+        return this.#tds[l - 1].offset + (c - 1);
+    }
 
-        // Perform some preprocessing...
+    #sortByOffset(array) {
+        array.sort((a, b) => { return a.offset - b.offset; });
+    }
+
+    #preprocessSema(sema) {
         {
             let symrefs = sema.symrefs;
 
@@ -540,6 +557,23 @@ export class CodeViewer {
 
             symrefs.references.sort((a, b) => { return a.offset - b.offset; });
         }
+
+        if (sema.annotations?.refargs)
+        {
+            let refargs = sema.annotations.refargs;
+            refargs.forEach(e => { 
+                e.offset = this.#linecolToOffset(e.line, e.column);
+            });
+            this.#sortByOffset(refargs);
+            console.log(refargs);
+        }
+    }
+
+    setSema(fileInfo, sema) {
+        this.fileInfo = fileInfo;
+        this.sema = sema;
+
+        this.#preprocessSema(sema);
 
         let highlighter = new SyntaxHighlighter(this.lines, this.toPlainText(), this.#tds, this.linksGenerator);
         highlighter.run(this.fileInfo, this.sema);
