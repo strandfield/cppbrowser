@@ -774,6 +774,38 @@ class ProjectRevision
         return definitions;
     }
 
+    listSymbolDeclarations(symbolId) {
+        symbolId = ProjectRevision.#convertSymbolIdFromHex(symbolId);
+        let query = `SELECT file_id, 
+                            startPositionLine as startLine, startPositionColumn as startCol,
+                            endPositionLine as endLine, endPositionColumn as endCol,
+                            isDefinition
+                            FROM symbolDeclaration WHERE symbol_id = ?
+          ORDER BY file_id, startLine ASC`;
+        let stmt = this.db.prepare(query);
+        stmt.safeIntegers();
+        let rows = stmt.all(symbolId);
+
+        let result = [];
+        for (const row of rows) {
+            result.push({
+                fileId: Number(row.file_id),
+                sourceRange: {
+                    begin: {
+                        line: Number(row.startLine),
+                        col: Number(row.startCol),
+                    },
+                    end: {
+                        line: Number(row.endLine),
+                        col: Number(row.endCol)
+                    }
+                },
+                isDef: Number(row.isDefinition) == 1,
+            });
+        }
+        return result;
+    }
+
     getArgumentsPassedByReference(fileId) {
         if (!this.hasArgumentsPassedByReference) {
             return null;

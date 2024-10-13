@@ -166,7 +166,7 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
   let defs = [];
   for (const refsInFile of symbol.references) {
     for (const symref of refsInFile.references) {
-      if (symref.flags & 2) {
+      if (symref.flags & 2) { // TODO: what is this 2 ?
         let e = {
           completeFilePath: refsInFile.file, // TODO: remove me ?
           filePath: refsInFile.file.substring(revision.homeDir.length + 1)
@@ -178,6 +178,12 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
   }
 
   symbol.definitions = defs;
+
+  symbol.declarations = revision.listSymbolDeclarations(symbol.id);
+  for (let decl of symbol.declarations) {
+    decl.filePath = revision.getFilePath(decl.fileId);
+    delete decl.fileId;
+  }
 
   return symbol;
 }
