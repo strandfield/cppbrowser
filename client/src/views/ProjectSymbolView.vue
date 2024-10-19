@@ -20,6 +20,7 @@ const symbol = ref(null);
 
 const isClass = computed(() => symbol.value?.kind == 'class' || symbol.value?.kind == 'struct');
 const isNamespace = computed(() => symbol.value?.kind == 'namespace');
+const listChildren = computed(() => isNamespace.value);
 
 
 function postProcessSymbolInfo(syminfo) {
@@ -127,7 +128,7 @@ function getHashForRef(def) {
             :startLine="decl.sourceRange.begin.line" :endLine="decl.sourceRange.end.line"></CodeViewerElement>
         </template>
 
-        <template v-if="isClass">
+        <template v-if="false && isClass">
           <p v-if="symbol.baseClasses && symbol.baseClasses.length > 0">
             Base classes:
             <template v-for="(base, index) in symbol.baseClasses" :key="index">
@@ -161,7 +162,7 @@ function getHashForRef(def) {
           </table>
         </template>
 
-        <template v-if="symbol.enums && symbol.enums.length > 0">
+        <template v-if="listChildren && symbol.enums && symbol.enums.length > 0">
           <h3>Enumerations</h3>
           <table>
             <tbody>
@@ -176,7 +177,7 @@ function getHashForRef(def) {
           </table>
         </template>
 
-        <template v-if="symbol.enumConstants && symbol.enumConstants.length > 0">
+        <template v-if="false && symbol.enumConstants && symbol.enumConstants.length > 0">
           <h3>Values</h3>
           <table>
             <tbody>
@@ -191,7 +192,7 @@ function getHashForRef(def) {
           </table>
         </template>
 
-        <template v-if="symbol.records && symbol.records.length > 0">
+        <template v-if="listChildren && symbol.records && symbol.records.length > 0">
           <h3>Records</h3>
           <table>
             <tbody>
@@ -206,7 +207,7 @@ function getHashForRef(def) {
           </table>
         </template>
 
-        <template v-if="symbol.functions.length > 0">
+        <template v-if="listChildren && symbol.functions.length > 0">
           <h3>Functions</h3>
           <table>
             <tbody>
@@ -224,7 +225,7 @@ function getHashForRef(def) {
           </table>
         </template>
 
-        <template v-if="symbol.fields && symbol.fields.length > 0">
+        <template v-if="listChildren && symbol.fields && symbol.fields.length > 0">
           <h3>Fields</h3>
           <table>
             <tbody>
@@ -243,7 +244,7 @@ function getHashForRef(def) {
         </template>
 
         <template
-          v-if="(symbol.constructors && symbol.constructors.length > 0) || symbol.methods.length > 0">
+          v-if="listChildren && ((symbol.constructors && symbol.constructors.length > 0) || symbol.methods.length > 0)">
           <h3>Functions</h3>
           <table>
             <tbody>
@@ -278,7 +279,7 @@ function getHashForRef(def) {
         </template>
 
         <template
-          v-if="symbol.staticMethods.length > 0">
+          v-if="listChildren && symbol.staticMethods.length > 0">
           <h3>Static methods</h3>
           <table>
             <tbody>
