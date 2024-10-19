@@ -2,6 +2,7 @@
 
 
 import SnapshotSidebarSymbolTab from '@/components/SnapshotSidebarSymbolTab.vue'
+import CodeViewerElement from '@/components/CodeViewerElement.vue';
 
 import { ref, onMounted, watch, computed, provide, toRef } from 'vue'
 
@@ -95,6 +96,12 @@ function getHashForRef(def) {
         <p>
           <b>Symbol ID: #{{ symbolId }}</b>
         </p>
+
+        <template v-for="decl in symbol.declarations">
+          <p>Declared in {{ decl.filePath }} @ line {{ decl.sourceRange.begin.line }}</p>
+          <CodeViewerElement :projectName="projectName" :projectRevision="projectRevision" :pathParts="getPathParts(decl.filePath)" 
+            :startLine="decl.sourceRange.begin.line" :endLine="decl.sourceRange.end.line"></CodeViewerElement>
+        </template>
 
         <p>
           <template v-if="symbol.parent">

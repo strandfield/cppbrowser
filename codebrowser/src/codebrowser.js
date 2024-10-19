@@ -482,6 +482,7 @@ export class CodeViewer {
     #tds = [];
     sema = null;
     #highlightedSymbolId = "";
+    #lineRange = null;
 
     constructor(containerElement, tooltip = null) {
         console.assert(containerElement != null);
@@ -535,6 +536,36 @@ export class CodeViewer {
         return this.lines.join("\n");
     }
 
+    numberOfLines() {
+        return this.lines.length;
+    }
+
+    getFirstLine() {
+        return this.#lineRange ? this.#lineRange.first : 1;
+    }
+
+    getLastLine() {
+        return this.#lineRange ? this.#lineRange.last : this.numberOfLines();
+    }
+
+    setLineRange(first, last) {
+        this.#lineRange = {
+            first: first,
+            last: last < 0 ? this.numberOfLines() : last
+        };
+
+        for (const i in this.lines) {
+            const linenum = Number(i)+1;
+            const td = this.#tds[i];
+
+            if (linenum < first || linenum > last) {
+                td.parentElement.style.display = "none";
+            } else {
+                td.parentElement.style.display = "table-row";
+            }
+        }
+    }
+
     setLinksGenerator(linksGenerator) {
         this.linksGenerator = linksGenerator;
     }
@@ -565,7 +596,6 @@ export class CodeViewer {
                 e.offset = this.#linecolToOffset(e.line, e.column);
             });
             this.#sortByOffset(refargs);
-            console.log(refargs);
         }
     }
 
