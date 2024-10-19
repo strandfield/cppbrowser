@@ -61,7 +61,6 @@ function getSnapshotSymbolInfoLegacy(inputSymbol, revision) {
       for (const symref of refsInFile.references) {
         if (symref.flags & 2) {
           let e = {
-            completeFilePath: refsInFile.file, // TODO: remove me ?
             filePath: refsInFile.file.substring(revision.homeDir.length + 1)
           };
           Object.assign(e, symref);
@@ -169,7 +168,6 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
       for (const symref of refsInFile.references) {
         if (symref.flags & 2) { // TODO: what is this 2 ?
           let e = {
-            completeFilePath: refsInFile.file, // TODO: remove me ?
             filePath: refsInFile.file.substring(revision.homeDir.length + 1)
           };
           Object.assign(e, symref);
