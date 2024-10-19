@@ -97,12 +97,6 @@ function getHashForRef(def) {
           <b>Symbol ID: #{{ symbolId }}</b>
         </p>
 
-        <template v-for="decl in symbol.declarations">
-          <p>Declared in {{ decl.filePath }} @ line {{ decl.sourceRange.begin.line }}</p>
-          <CodeViewerElement :projectName="projectName" :projectRevision="projectRevision" :pathParts="getPathParts(decl.filePath)" 
-            :startLine="decl.sourceRange.begin.line" :endLine="decl.sourceRange.end.line"></CodeViewerElement>
-        </template>
-
         <p>
           <template v-if="symbol.parent">
             <template v-if="symbol.parent.kind == 'namespace'">
@@ -126,6 +120,12 @@ function getHashForRef(def) {
             </template>
           </template>
         </p>
+
+        <template v-for="decl in symbol.declarations">
+          <p>Declared in {{ decl.filePath }} @ line {{ decl.sourceRange.begin.line }}</p>
+          <CodeViewerElement :projectName="projectName" :projectRevision="projectRevision" :pathParts="getPathParts(decl.filePath)" 
+            :startLine="decl.sourceRange.begin.line" :endLine="decl.sourceRange.end.line"></CodeViewerElement>
+        </template>
 
         <template v-if="isClass">
           <p v-if="symbol.baseClasses && symbol.baseClasses.length > 0">

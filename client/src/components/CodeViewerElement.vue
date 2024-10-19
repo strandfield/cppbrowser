@@ -2,7 +2,7 @@
 
 import { CodeViewer } from '@cppbrowser/codebrowser'
 
-import { ref, onMounted, watch, inject } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import $ from 'jquery'
@@ -41,13 +41,12 @@ function scrollToElement(hash) {
 let linksGenerator = {
   createLinkToSymbolDefinition(path, symbolId) {
     let routing_options = {
-      name: 'file',
+      name: 'symbol',
       params: {
         projectName: props.projectName,
         projectRevision: props.projectRevision,
-        pathParts: path.split("/")
-      },
-      hash: `#${symbolId}`
+        symbolId: symbolId
+      }
     };
 
     let link = router.resolve(routing_options);
@@ -56,10 +55,6 @@ let linksGenerator = {
       href: link.href,
       onclick: () => {
         router.push(routing_options);
-        if (path == props.pathParts.join("/")) { // if within same file...
-          // ...just scroll to target element
-          scrollToElement(`#${symbolId}`);
-        }
         return false; // ignore the 'href' when clicking
       }
     };
@@ -85,26 +80,8 @@ let linksGenerator = {
     };
 
   },
-  createTooltipMoreLink(symbolId) {
-    let routing_options = {
-      name: 'symbol',
-      params: {
-        projectName: props.projectName,
-        projectRevision: props.projectRevision,
-        symbolId: symbolId
-      }
-    };
-
-    let link = router.resolve(routing_options);
-
-    return {
-      href: link.href,
-      onclick: () => {
-        codeviewer.tooltip.hide();
-        router.push(routing_options);
-        return false; // ignore the 'href' when clicking
-      }
-    };
+  createTooltipMoreLink(/* symbolId */) {
+    return null;
   }
 };
 
@@ -117,6 +94,8 @@ onMounted(() => {
 });
 
 watch(() => props.projectName + "/" + props.projectRevision + "/" + props.pathParts.join("/"), fetchFileContent, { immediate: false });
+
+watch(() => ({startLine: props.startLine, endLine: props.endLine}), updateLineRange);
 
 function setFileContent(data) {
   sourceCode.value = data;
@@ -155,6 +134,13 @@ function fetchSema() {
             scrollToElement(location.hash);
         }      
     });
+}
+
+function updateLineRange(range)
+{
+  if (codeviewer) {
+    codeviewer.setLineRange(range.startLine, range.endLine);
+  }
 }
 
 </script>
