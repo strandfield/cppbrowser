@@ -26,7 +26,7 @@ const props = defineProps({
 
 const router = useRouter();
 
-const navtooltip = inject('navtooltip');
+//const navtooltip = inject('navtooltip');
 
 const sourceCode = ref("");
 
@@ -110,7 +110,9 @@ let linksGenerator = {
 
 onMounted(() => {
   console.log(`filesystemview is now mounted.`);
-  codeviewer = new CodeViewer(srccodecontainer.value, navtooltip.value);
+  const tooltipElement = null;
+  codeviewer = new CodeViewer(srccodecontainer.value, tooltipElement);
+  codeviewer.documentMode = false;
   fetchFileContent();
 });
 
