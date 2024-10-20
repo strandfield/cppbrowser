@@ -123,7 +123,7 @@ function getHashForRef(def) {
         </p>
 
         <template v-for="decl in symbol.declarations">
-          <p>Declared in {{ decl.filePath }} @ line {{ decl.sourceRange.begin.line }}</p>
+          <p>{{ decl.isDef ? "Defined" : "Declared" }} in {{ decl.filePath }} @ line {{ decl.sourceRange.begin.line }}</p>
           <CodeViewerElement :projectName="projectName" :projectRevision="projectRevision" :pathParts="getPathParts(decl.filePath)" 
             :startLine="decl.sourceRange.begin.line" :endLine="decl.sourceRange.end.line"></CodeViewerElement>
         </template>
