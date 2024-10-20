@@ -106,8 +106,14 @@ function getHashForRef(def) {
                 :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: symbol.parent.id } }">
                 {{ symbol.parent.name }}</RouterLink>.
             </template>
-            <template v-if="symbol.parent.kind == 'class'">
+            <template v-else-if="symbol.parent.kind == 'class'">
               Defined in class
+              <RouterLink
+                :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: symbol.parent.id } }">
+                {{ symbol.parent.name }}</RouterLink>.
+            </template>
+            <template v-else>
+              Defined in
               <RouterLink
                 :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: symbol.parent.id } }">
                 {{ symbol.parent.name }}</RouterLink>.
