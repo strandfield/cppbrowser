@@ -412,13 +412,69 @@ class SyntaxHighlighter {
         this.currentTD.appendChild(node);
     }
 
+    #getNodeType(name) {
+        for (const elem of lezerCxxParser.nodeSet.types) {
+            if (elem.name == name) {
+                return elem.id;
+            }
+        }
+        return null;
+    }
+
+    // TODO: move to codeviewer & add an extendDisplayRangeOverComments() function
+    listCommentLines(ast) {
+        const linecomment = this.#getNodeType("LineComment");
+        const blockcomment = this.#getNodeType("BlockComment");
+        console.log(`linecomment= ${linecomment}, blockcomment = ${blockcomment}`);
+        let cursor = ast.cursor();
+
+        let comments = [];
+        
+        cursor.iterate((node)=>{
+            if (node.type.id == linecomment || node.type.id == blockcomment) {
+                comments.push({
+                    from: node.from,
+                    to: node.to
+                });
+            }
+        });
+
+        console.log(comments);
+
+        let i = 0;
+        let j = 0;
+
+        while (i < this.tds.length && j < comments.length)
+        {
+            let td = this.tds[i];
+            let line = this.lines[i];
+            let comment = comments[j];
+
+            if (td.offset > comment.to) {
+                ++j;
+                continue;
+            } else if (td.offset + line.length < comment.from) {
+                ++i;
+                continue;
+            }
+
+            let tr = td.parentElement;
+            console.log(`line ${i} has comment`);
+            tr.classList.add("line-with-comment");
+            ++i;
+        }
+    }
+
     run(fileInfo, sema) {
         this.fileInfo = fileInfo;
         this.sema = sema;
         this.currentLineIndex = -1;
         this.currentTD = null;
 
+        // TODO: parse ast outside of this function
         let ast = lezerCxxParser.parse(this.text);
+
+        this.listCommentLines(ast);
 
         let styles = [];
         let putStyle = function (from, to, classes) {
@@ -484,6 +540,7 @@ export class CodeViewer {
     #highlightedSymbolId = "";
     #lineRange = null;
     documentMode = true;
+    lineHasComment = [];
 
     constructor(containerElement, tooltip = null) {
         console.assert(containerElement != null);
