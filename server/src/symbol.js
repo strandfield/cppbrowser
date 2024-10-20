@@ -61,7 +61,6 @@ function getSnapshotSymbolInfoLegacy(inputSymbol, revision) {
       for (const symref of refsInFile.references) {
         if (symref.flags & 2) {
           let e = {
-            completeFilePath: refsInFile.file, // TODO: remove me ?
             filePath: refsInFile.file.substring(revision.homeDir.length + 1)
           };
           Object.assign(e, symref);
@@ -161,23 +160,30 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
     }
   }
 
-  symbol.references = revision.listSymbolReferencesByFile(symbol.id);
+  if (symbol.kind != 'namespace') { // too many references for namespaces, and not that useful
+    symbol.references = revision.listSymbolReferencesByFile(symbol.id);
 
-  let defs = [];
-  for (const refsInFile of symbol.references) {
-    for (const symref of refsInFile.references) {
-      if (symref.flags & 2) {
-        let e = {
-          completeFilePath: refsInFile.file, // TODO: remove me ?
-          filePath: refsInFile.file.substring(revision.homeDir.length + 1)
-        };
-        Object.assign(e, symref);
-        defs.push(e);
+    let defs = [];
+    for (const refsInFile of symbol.references) {
+      for (const symref of refsInFile.references) {
+        if (symref.flags & 2) { // TODO: what is this 2 ?
+          let e = {
+            filePath: refsInFile.file.substring(revision.homeDir.length + 1)
+          };
+          Object.assign(e, symref);
+          defs.push(e);
+        }
       }
     }
-  }
 
-  symbol.definitions = defs;
+    symbol.definitions = defs;
+
+    symbol.declarations = revision.listSymbolDeclarations(symbol.id);
+    for (let decl of symbol.declarations) {
+      decl.filePath = revision.getFilePath(decl.fileId);
+      delete decl.fileId;
+    }
+  }
 
   return symbol;
 }

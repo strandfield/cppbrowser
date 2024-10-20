@@ -482,6 +482,8 @@ export class CodeViewer {
     #tds = [];
     sema = null;
     #highlightedSymbolId = "";
+    #lineRange = null;
+    documentMode = true;
 
     constructor(containerElement, tooltip = null) {
         console.assert(containerElement != null);
@@ -506,7 +508,11 @@ export class CodeViewer {
             let tr = document.createElement('TR');
             let th = document.createElement('TH');
             th.innerText = (Number.parseInt(i) + 1);
-            th.setAttribute('id', "L" + th.innerText);
+            if (this.documentMode) {
+                th.setAttribute('id', "L" + th.innerText);
+            } else {
+                // TODO: generate link ?
+            }
             tr.appendChild(th);
             let td = document.createElement('TD');
             td.innerText = line;
@@ -533,6 +539,36 @@ export class CodeViewer {
 
     toPlainText() {
         return this.lines.join("\n");
+    }
+
+    numberOfLines() {
+        return this.lines.length;
+    }
+
+    getFirstLine() {
+        return this.#lineRange ? this.#lineRange.first : 1;
+    }
+
+    getLastLine() {
+        return this.#lineRange ? this.#lineRange.last : this.numberOfLines();
+    }
+
+    setLineRange(first, last) {
+        this.#lineRange = {
+            first: first,
+            last: last < 0 ? this.numberOfLines() : last
+        };
+
+        for (const i in this.lines) {
+            const linenum = Number(i)+1;
+            const td = this.#tds[i];
+
+            if (linenum < first || linenum > last) {
+                td.parentElement.style.display = "none";
+            } else {
+                td.parentElement.style.display = "table-row";
+            }
+        }
     }
 
     setLinksGenerator(linksGenerator) {
@@ -565,7 +601,6 @@ export class CodeViewer {
                 e.offset = this.#linecolToOffset(e.line, e.column);
             });
             this.#sortByOffset(refargs);
-            console.log(refargs);
         }
     }
 
@@ -580,11 +615,7 @@ export class CodeViewer {
 
         for (const include of sema.includes) {
             let line = include.line;
-            let th = document.getElementById("L" + line);
-            if (!th) {
-                continue;
-            }
-            let td = th.nextElementSibling;
+            let td = this.#getLineTdByNumber(line);
             let span = td.querySelector('.tok-string, .tok-string2');
             if (!span) {
                 continue;
@@ -610,7 +641,7 @@ export class CodeViewer {
             }
 
             let line = diagnostic.line;
-            let th = document.getElementById("L" + line);
+            let th = this.#getLineThByNumber(line);
             if (!th) {
                 continue;
             }
@@ -641,6 +672,14 @@ export class CodeViewer {
         this.#highlightedSymbolId = symbolId;
     }
 
+    #getLineTdByNumber(n) {
+        return this.#tds[n-1];
+    }
+
+    #getLineThByNumber(n) {
+        return this.#getLineTdByNumber(n)?.previousElementSibling;
+    }
+
     #getParentTD(elem) {
         if (elem.tagName == 'TD') return elem;
         else return this.#getParentTD(elem.parentElement);
@@ -652,8 +691,7 @@ export class CodeViewer {
 
     #fillTooltip(symid) {
         let symbol = this.sema.symrefs.symbols[symid];
-        let references = document.querySelectorAll('[sym-id="' + symid + '"]');
-
+        
         let content_element = document.createElement('DIV');
 
         let bold = function(txt) {
@@ -687,7 +725,9 @@ export class CodeViewer {
             br();
         }
 
+        if (this.documentMode)
         {
+            let references = document.querySelectorAll('[sym-id="' + symid + '"]');
             text(`${references.length} reference(s) in this document:`);
             br();
             references.forEach(ref => {

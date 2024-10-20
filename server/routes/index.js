@@ -1,6 +1,6 @@
 
 const { ProjectRevision } = require("../src/project.js");
-const { getSnapshotSymbolInfo } = require("../src/symbol.js");
+const { getSnapshotSymbolInfoLegacy } = require("../src/symbol.js");
 let ProjectManager = require("../src/projectmanager.js");
 
 const Database = require('better-sqlite3');
