@@ -128,12 +128,16 @@ function getHashForRef(def) {
           </template>
         </p>
 
-        <template v-for="decl in symbol.declarations">
-          <p>{{ decl.isDef ? "Defined" : "Declared" }} in {{ decl.filePath }} @ line {{ decl.sourceRange.begin.line }}</p>
-          <CodeViewerElement :projectName="projectName" :projectRevision="projectRevision" :pathParts="getPathParts(decl.filePath)" 
-            :startLine="decl.sourceRange.begin.line" :endLine="decl.sourceRange.end.line"></CodeViewerElement>
-        </template>
 
+        <template v-if="symbol.declarations && symbol.declarations.length > 0">
+          <h2>Declarations</h2>
+          <template v-for="decl in symbol.declarations">
+            <p>{{ decl.isDef ? "Defined" : "Declared" }} in {{ decl.filePath }} @ line {{ decl.sourceRange.begin.line }}</p>
+            <CodeViewerElement :projectName="projectName" :projectRevision="projectRevision" :pathParts="getPathParts(decl.filePath)" 
+              :startLine="decl.sourceRange.begin.line" :endLine="decl.sourceRange.end.line"></CodeViewerElement>
+          </template>
+        </template>
+        
         <template v-if="false && isClass">
           <p v-if="symbol.baseClasses && symbol.baseClasses.length > 0">
             Base classes:
@@ -304,7 +308,7 @@ function getHashForRef(def) {
         </template>
 
         <template v-if="symbol.references && symbol.references.length > 0">
-          <h3>References</h3>
+          <h2>References</h2>
           <p v-for="refsInFile in symbol.references" :key="refsInFile.filePath">
             <b>{{ refsInFile.filePath }} ({{ refsInFile.references.length }} References): </b>
             <template v-for="(refinfo, index) in refsInFile.references" :key="index">
