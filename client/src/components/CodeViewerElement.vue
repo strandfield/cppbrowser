@@ -175,9 +175,4 @@ function updateLineRange(range)
 
 <style scoped>
 
-.srccodecontainer {
-  margin-top: 1em;
-  border: 1px solid lightgrey;
-}
-
 </style>
