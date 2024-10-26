@@ -1,6 +1,6 @@
 
 
-const { symbolKinds } = require('@cppbrowser/snapshot-tools');
+const { symbolKinds, symbolReference_isDef } = require('@cppbrowser/snapshot-tools');
 
 function getSnapshotSymbolInfoLegacy(inputSymbol, revision) {
     let symbol = {
@@ -166,7 +166,7 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
     let defs = [];
     for (const refsInFile of references) {
       for (const symref of refsInFile.references) {
-        if (symref.flags & 2) { // TODO: what is this 2 ?
+        if (symbolReference_isDef(symref)) { 
           let e = {
             filePath: refsInFile.file.substring(revision.homeDir.length + 1)
           };
