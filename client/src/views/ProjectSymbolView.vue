@@ -1,8 +1,8 @@
 <script setup>
 
-
 import SnapshotSidebarSymbolTab from '@/components/SnapshotSidebarSymbolTab.vue'
 import DeclarationViewerElement from '@/components/DeclarationViewerElement.vue';
+import SymbolReferencesListView from '@/components/SymbolReferencesListView.vue';
 
 import { ref, onMounted, watch, computed, provide, toRef } from 'vue'
 
@@ -63,10 +63,6 @@ onMounted(() => {
   console.log(`symbolview is now mounted.`);
   fetchSymbolInfo();
 });
-
-function getPathParts(path) {
-  return path.split("/");
-}
 
 function getPathPartsForDef(def) {
   return def.filePath.split("/");
@@ -304,16 +300,9 @@ function getHashForRef(def) {
           </table>
         </template>
 
-        <template v-if="symbol.references && symbol.references.length > 0">
+        <template v-if="symbol.kind != 'namespace'">
           <h2>References</h2>
-          <p v-for="refsInFile in symbol.references" :key="refsInFile.filePath">
-            <b>{{ refsInFile.filePath }} ({{ refsInFile.references.length }} References): </b>
-            <template v-for="(refinfo, index) in refsInFile.references" :key="index">
-              <RouterLink
-                :to="{ name: 'file', params: { projectName: projectName, projectRevision: projectRevision, pathParts: getPathParts(refsInFile.filePath) }, hash: getHashForRef(refinfo) }">
-                {{ refinfo.line }}</RouterLink>{{ index == refsInFile.references.length - 1 ? "." : ", " }}
-            </template>
-          </p>
+          <SymbolReferencesListView :projectName="projectName" :projectVersion="projectRevision" :symbolId="symbolId"></SymbolReferencesListView>
         </template>
       </div>
     </main>

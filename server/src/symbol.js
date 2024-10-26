@@ -161,10 +161,10 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
   }
 
   if (symbol.kind != 'namespace') { // too many references for namespaces, and not that useful
-    symbol.references = revision.listSymbolReferencesByFile(symbol.id);
+    let references = revision.listSymbolReferencesByFile(symbol.id);
 
     let defs = [];
-    for (const refsInFile of symbol.references) {
+    for (const refsInFile of references) {
       for (const symref of refsInFile.references) {
         if (symref.flags & 2) { // TODO: what is this 2 ?
           let e = {
