@@ -21,6 +21,10 @@ const props = defineProps({
   endLine: {
     type: Number,
     default: -1
+  },
+  extendRangeToComments: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -100,7 +104,7 @@ watch(() => ({startLine: props.startLine, endLine: props.endLine}), updateLineRa
 function setFileContent(data) {
   sourceCode.value = data;
   codeviewer.setPlainText(data);
-  codeviewer.setLineRange(props.startLine, props.endLine);
+  updateLineRange();
 }
 
 function fetchFileContent() {
@@ -138,9 +142,27 @@ function fetchSema() {
 
 function updateLineRange(range)
 {
-  if (codeviewer) {
-    codeviewer.setLineRange(range.startLine, range.endLine);
+  if (!range) {
+    updateLineRange({
+      startLine: props.startLine,
+      endLine: props.endLine
+    });
+    return;
   }
+
+  if (!codeviewer) {
+    return;
+  }
+
+  let effective_start = range.startLine;
+
+  if (props.extendRangeToComments && codeviewer.textDocument.hasCommentInformation()) {
+    while (effective_start > 1 && codeviewer.textDocument.getHasCommentByLineNumber(effective_start - 1)) {
+      effective_start -= 1;
+    }
+  }
+
+  codeviewer.setLineRange(effective_start, range.endLine);
 }
 
 </script>
@@ -152,10 +174,5 @@ function updateLineRange(range)
 </template>
 
 <style scoped>
-
-.srccodecontainer {
-  margin-top: 1em;
-  border: 1px solid lightgrey;
-}
 
 </style>

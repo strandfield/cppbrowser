@@ -339,7 +339,8 @@ watch(() => searchEngineState.state, onSearchEngineStateChanged);
           <h1 id="filename">{{ fileName }}</h1>
         </div>
       </div>
-      <div v-show="!isFolder" id="srccodecontainer"></div>
+      <!-- TODO: use CodeViewerElement -->
+      <div v-show="!isFolder" id="srccodecontainer"></div> 
       <div>
         <div v-if="isFolder">
           <table v-if="snapshotFileTreeItem">

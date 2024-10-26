@@ -103,6 +103,153 @@ export class NavTooltip
     }
 };
 
+export class TextDocument {
+    lines = [];
+    ast = null;
+    sema = null;
+    #lineHasComment = [];
+    #commentLinesListed = false;
+    #lineOffsets = [];
+
+    constructor(text = null) {
+        if (text) {
+            this.setPlainText(text);
+        }
+    }
+
+    setPlainText(text) {
+        this.lines = text.split("\n");
+        this.#lineOffsets = [];
+        this.#lineHasComment = [];
+        this.#commentLinesListed = false;
+        this.clearAst();
+        this.clearSema();
+
+        let offset = 0;
+
+        for (const i in this.lines) {
+            let line = this.lines[i];
+            this.#lineOffsets.push(offset);
+            offset += line.length + 1;
+            this.#lineHasComment.push(false);
+        }
+    }
+
+    toPlainText() {
+        return this.lines.join("\n");
+    }
+
+    numberOfLines() {
+        return this.lines.length;
+    }
+
+    getLineOffset(index) {
+        return this.#lineOffsets[index];
+    }
+
+    getOffsetByLineNumber(lineNumber) {
+        return this.getLineOffset(lineNumber-1);
+    }
+
+    getSema() {
+        return this.sema;
+    }
+
+    setSema(sema) {
+        this.sema = sema;
+    }
+
+    clearSema() {
+        this.setSema(null);
+    }
+
+    getAst() {
+        return this.ast;
+    }
+
+    setAst(ast) {
+        this.ast = ast;
+    }
+
+    clearAst() {
+        this.setAst(null);
+    }
+
+    getOrCreateAst() {
+        if (!this.ast) {
+            const text = this.toPlainText();
+            this.ast = lezerCxxParser.parse(text);
+        }
+
+        return this.ast;
+    }
+
+
+    #getNodeType(name) {
+        for (const elem of lezerCxxParser.nodeSet.types) {
+            if (elem.name == name) {
+                return elem.id;
+            }
+        }
+        return null;
+    }
+
+    hasCommentInformation() {
+        return this.#commentLinesListed;
+    }
+
+    listCommentLines() {
+        if (this.#commentLinesListed) return;
+
+        const ast = this.getOrCreateAst();
+        const linecomment = this.#getNodeType("LineComment");
+        const blockcomment = this.#getNodeType("BlockComment");
+        let cursor = ast.cursor();
+
+        let comments = [];
+        
+        cursor.iterate((node)=>{
+            if (node.type.id == linecomment || node.type.id == blockcomment) {
+                comments.push({
+                    from: node.from,
+                    to: node.to
+                });
+            }
+        });
+
+        let i = 0;
+        let j = 0;
+
+        while (i < this.lines.length && j < comments.length)
+        {
+            const offset = this.getLineOffset(i);
+            const line = this.lines[i];
+            const comment = comments[j];
+
+            if (offset > comment.to) {
+                ++j;
+                continue;
+            } else if (offset + line.length < comment.from) {
+                ++i;
+                continue;
+            }
+
+            this.#lineHasComment[i] = true;
+            ++i;
+        }
+
+        this.#commentLinesListed = true;
+    }
+
+    lineHasComment(i) {
+        return this.#lineHasComment[i];
+    }
+
+    getHasCommentByLineNumber(lineNum) {
+        return this.lineHasComment(lineNum - 1);
+    }
+}
+
 class SemaHelper {
     sema = null;
 
@@ -213,7 +360,7 @@ class SymbolReferencesConsumer {
 }
 
 class SyntaxHighlighter {
-    lines = [];
+    textDocument = null;
     text = null;
     tds = null;
     linksGenerator = null;
@@ -221,14 +368,11 @@ class SyntaxHighlighter {
     currentLineIndex = -1;
     currentTD = null;
 
-
-    constructor(lines, text, tds, linksGenerator) {
-        this.lines = lines;
-        this.text = text;
+    constructor(textDocument, tds, linksGenerator) {
+        this.textDocument = textDocument;
         this.tds = tds;
         this.linksGenerator = linksGenerator;
     }
-
 
     #fetchNextLine() {
         this.currentLineIndex += 1;
@@ -242,7 +386,7 @@ class SyntaxHighlighter {
 
 
     #generateTokens(styles) {
-        let text = this.text;
+        const text = this.text;
         let tokens = [];
 
         for (const style of styles) {
@@ -299,8 +443,8 @@ class SyntaxHighlighter {
     }
 
     #emit(text, offset, classes) {
-        let symdefs = this.sema.symdefs;
-        let symrefs = this.sema.symrefs;
+        let symdefs = this.textDocument.getSema().symdefs;
+        let symrefs = this.textDocument.getSema().symrefs;
 
         let arg_passed_by_ref = this.argumentsPassedByRef.seek(offset);
         if (arg_passed_by_ref) {
@@ -412,13 +556,15 @@ class SyntaxHighlighter {
         this.currentTD.appendChild(node);
     }
 
-    run(fileInfo, sema) {
+    run(fileInfo) {
         this.fileInfo = fileInfo;
-        this.sema = sema;
         this.currentLineIndex = -1;
         this.currentTD = null;
 
-        let ast = lezerCxxParser.parse(this.text);
+        this.text = this.textDocument.toPlainText();
+        const sema = this.textDocument.getSema();
+
+        const ast = this.textDocument.getOrCreateAst();
 
         let styles = [];
         let putStyle = function (from, to, classes) {
@@ -434,7 +580,7 @@ class SyntaxHighlighter {
         let token_iterator = new ArrayIterator(tokens);
 
         this.symrefs_consumer = new SymbolReferencesConsumer(sema);
-        this.argumentsPassedByRef = new AnnotationIterator(this.sema.annotations?.refargs ?? []);
+        this.argumentsPassedByRef = new AnnotationIterator(sema.annotations?.refargs ?? []);
 
         let emit = (text, offset, classes) => {
             this.#emit(text, offset, classes);
@@ -447,8 +593,8 @@ class SyntaxHighlighter {
         this.#fetchNextLine();
 
         while (this.currentTD) {
-            let offset = this.currentTD.offset;
-            let endoffset = offset + this.lines[this.currentLineIndex].length;
+            let offset = this.textDocument.getLineOffset(this.currentLineIndex);
+            let endoffset = offset + this.textDocument.lines[this.currentLineIndex].length;
 
             while (!token_iterator.atEnd() && token_iterator.value().from < endoffset) {
                 let token = token_iterator.value();
@@ -471,6 +617,7 @@ class SyntaxHighlighter {
         }
 
         this.symrefs_consumer = null;
+        this.text = null;
     }
 }
 
@@ -478,9 +625,8 @@ export class CodeViewer {
     containerElement = null;
     tooltip = null;
     linksGenerator = null;
-    lines = [];
+    textDocument = null;
     #tds = [];
-    sema = null;
     #highlightedSymbolId = "";
     #lineRange = null;
     documentMode = true;
@@ -490,10 +636,13 @@ export class CodeViewer {
 
         this.containerElement = containerElement;
         this.tooltip = tooltip;
+        this.textDocument = new TextDocument();
     }
 
     setPlainText(text) {
-        this.lines = text.split("\n");
+        this.textDocument.setPlainText(text);
+        this.textDocument.listCommentLines();
+
 
         let table = document.createElement('TABLE');
         table.setAttribute('class', "code")
@@ -501,11 +650,17 @@ export class CodeViewer {
         table.appendChild(tbody);
 
         this.#tds = [];
-        let offset = 0;
 
-        for (const i in this.lines) {
-            let line = this.lines[i];
+        for (const i in this.textDocument.lines) {
+            const line = this.textDocument.lines[i];
+
             let tr = document.createElement('TR');
+
+            //// for debugging purpose
+            // if (this.textDocument.lineHasComment(i)) {
+            //     tr.classList.add("has-comment");
+            // }
+
             let th = document.createElement('TH');
             th.innerText = (Number.parseInt(i) + 1);
             if (this.documentMode) {
@@ -513,13 +668,12 @@ export class CodeViewer {
             } else {
                 // TODO: generate link ?
             }
+
             tr.appendChild(th);
             let td = document.createElement('TD');
             td.innerText = line;
             tr.appendChild(td);
 
-            td.offset = offset; // TODO: store line offsets in a dedicated array ?
-            offset += line.length + 1;
             this.#tds.push(td);
 
             tbody.appendChild(tr);
@@ -538,11 +692,11 @@ export class CodeViewer {
     }
 
     toPlainText() {
-        return this.lines.join("\n");
+        return this.textDocument.toPlainText();
     }
 
     numberOfLines() {
-        return this.lines.length;
+        return this.textDocument.numberOfLines();
     }
 
     getFirstLine() {
@@ -559,7 +713,7 @@ export class CodeViewer {
             last: last < 0 ? this.numberOfLines() : last
         };
 
-        for (const i in this.lines) {
+        for (const i in this.textDocument.lines) {
             const linenum = Number(i)+1;
             const td = this.#tds[i];
 
@@ -576,7 +730,7 @@ export class CodeViewer {
     }
 
     #linecolToOffset(l, c) {
-        return this.#tds[l - 1].offset + (c - 1);
+        return this.textDocument.getOffsetByLineNumber(l) + (c - 1);
     }
 
     #sortByOffset(array) {
@@ -588,7 +742,7 @@ export class CodeViewer {
             let symrefs = sema.symrefs;
 
             symrefs.references.forEach(ref => {
-                ref.offset = this.#tds[ref.line - 1].offset + (ref.col - 1);
+                ref.offset = this.textDocument.getOffsetByLineNumber(ref.line) + (ref.col - 1);
             });
 
             symrefs.references.sort((a, b) => { return a.offset - b.offset; });
@@ -606,12 +760,12 @@ export class CodeViewer {
 
     setSema(fileInfo, sema) {
         this.fileInfo = fileInfo;
-        this.sema = sema;
+        this.textDocument.setSema(sema);
 
         this.#preprocessSema(sema);
 
-        let highlighter = new SyntaxHighlighter(this.lines, this.toPlainText(), this.#tds, this.linksGenerator);
-        highlighter.run(this.fileInfo, this.sema);
+        let highlighter = new SyntaxHighlighter(this.textDocument, this.#tds, this.linksGenerator);
+        highlighter.run(this.fileInfo);
 
         for (const include of sema.includes) {
             let line = include.line;
@@ -690,7 +844,7 @@ export class CodeViewer {
     }
 
     #fillTooltip(symid) {
-        let symbol = this.sema.symrefs.symbols[symid];
+        let symbol = this.textDocument.getSema().symrefs.symbols[symid];
         
         let content_element = document.createElement('DIV');
 

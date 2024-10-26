@@ -88,6 +88,7 @@ function shouldDisplaySymbol(sym) {
         </tr>
       </tbody>
     </table>
+    <!--h2>TODO: diagnostics</h2-->
   </div>
 </template>
 
