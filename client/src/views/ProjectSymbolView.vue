@@ -124,6 +124,15 @@ function getHashForRef(def) {
           </template>
         </p>
 
+        <template v-if="symbol.definitions && symbol.definitions.length > 1">
+            <p v-for="def in symbol.definitions" :key="def.filePath + def.line">
+              Defined in {{ def.filePath }} on line 
+              <RouterLink
+                :to="{ name: 'file', params: { projectName: projectName, projectRevision: projectRevision, pathParts: getPathPartsForDef(def) }, hash: getHashForRef(def) }">
+                {{ def.line }}</RouterLink>.
+            </p>
+        </template>
+
 
         <template v-if="symbol.declarations && symbol.declarations.length > 0">
           <h2>Declarations</h2>
