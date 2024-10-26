@@ -161,18 +161,18 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
   }
 
   if (symbol.kind != 'namespace') { // too many references for namespaces, and not that useful
-    let references = revision.listSymbolReferencesByFile(symbol.id);
+    let references = revision.listSymbolReferencesByFile(symbol.id, ["isDefinition"]);
 
     let defs = [];
     for (const refsInFile of references) {
       for (const symref of refsInFile.references) {
-        if (symbolReference_isDef(symref)) { 
-          let e = {
-            filePath: refsInFile.file.substring(revision.homeDir.length + 1)
-          };
-          Object.assign(e, symref);
-          defs.push(e);
-        }
+        console.assert(symbolReference_isDef(symref));
+        let e = {
+          filePath: refsInFile.file.substring(revision.homeDir.length + 1)
+        };
+        Object.assign(e, symref);
+        delete e.flags;
+        defs.push(e);
       }
     }
 

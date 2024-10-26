@@ -670,10 +670,15 @@ class ProjectRevision
         return result;
     }
 
-    listSymbolReferencesByFile(symbolId) {
+    listSymbolReferencesByFile(symbolId, flags = []) {
         symbolId = ProjectRevision.#convertSymbolIdFromHex(symbolId);
-        let query = `SELECT file_id, line, col, parent_symbol_id, flags FROM symbolReference WHERE symbol_id = ?
-          ORDER BY file_id, line, col ASC`;
+        const flagsClause = flags.length == 0 ? "TRUE" : flags.map(e => e + " = 1").join("AND");
+        let query = `
+          SELECT file_id, line, col, parent_symbol_id, flags 
+          FROM symbolReference 
+          WHERE symbol_id = ? AND (${flagsClause})
+          ORDER BY file_id, line, col ASC
+        `;
         let stmt = this.db.prepare(query);
         stmt.safeIntegers();
         let rows = stmt.all(symbolId);

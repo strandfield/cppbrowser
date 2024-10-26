@@ -409,6 +409,7 @@ function GetSymbolByID(req, res, next) {
 
   children.sort((a,b) => a.name.localeCompare(b.name));
 
+  // TODO: too expensive, use subpages
   let references = symbol_index.listSymbolReferences(symbol.id);
 
   res.render("symbols/page", {
