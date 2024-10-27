@@ -26,6 +26,12 @@ const symbolDeclarations = ref([]);
 const loaded = ref(false);
 const loading = ref(false);
 
+defineExpose({
+  loaded, 
+  loading,
+  symbolDeclarations
+});
+
 function fetchData() {
   if (!props.projectName || !props.projectVersion) {
     return;
@@ -64,7 +70,6 @@ watch(() => props.projectVersion, fetchData);
   <DeclarationViewerElement v-for="decl in symbolDeclarations" :projectName="projectName" :projectRevision="projectVersion" :declarationObject="decl">
   </DeclarationViewerElement>
   <p v-if="loading">Loading...</p>
-  <p v-if="loaded && symbolDeclarations.length == 0">The symbol isn't declared in this version of {{ projectName }}.</p>
 </template>
 
 <style scoped>

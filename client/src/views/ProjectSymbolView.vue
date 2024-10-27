@@ -23,6 +23,7 @@ const isClass = computed(() => symbol.value?.kind == 'class' || symbol.value?.ki
 const isNamespace = computed(() => symbol.value?.kind == 'namespace');
 const listChildren = computed(() => isNamespace.value);
 
+const declsListView = ref(null);
 
 function postProcessSymbolInfo(syminfo) {
   if (syminfo.functions) {
@@ -134,18 +135,12 @@ function getHashForRef(def) {
             </p>
         </template>
 
-
-        <!--template v-if="symbol.declarations && symbol.declarations.length > 0">
-          <h2>Declarations</h2>
-          <DeclarationViewerElement v-for="decl in symbol.declarations" :projectName="projectName" :projectRevision="projectRevision" :declarationObject="decl">
-          </DeclarationViewerElement>
-        </template-->
-        <!-- TODO: il ne faut pas seulement filtrer sur namespace mais plutôt sur tous
-         les symbolKinds pour lesquels on ne collecte pas les declarations.
-         Ajouter une fonction dans genjs pour lister ces symbolkinds-->
+        <!-- TODO: the following v-if shouldn't consider only namespaces as there are other symbol kinds
+             for which declarations aren't collected.
+             We will need to add a function in cppscanner's genjs to list such symbolkinds -->
         <template v-if="symbol.kind != 'namespace'">
-          <h2>Declarations</h2>
-          <SymbolDeclarationsListView :projectName="projectName" :projectVersion="projectRevision" :symbolId="symbolId"></SymbolDeclarationsListView>
+          <h2 v-if="declsListView?.loaded && declsListView?.symbolDeclarations.length > 0">Declarations</h2>
+          <SymbolDeclarationsListView :projectName="projectName" :projectVersion="projectRevision" :symbolId="symbolId" ref="declsListView"></SymbolDeclarationsListView>
         </template>
         
         <template v-if="false && isClass">
