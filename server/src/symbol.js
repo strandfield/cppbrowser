@@ -59,9 +59,9 @@ function getSnapshotSymbolInfoLegacy(inputSymbol, revision) {
     let defs = [];
     for (const refsInFile of symbol.references) {
       for (const symref of refsInFile.references) {
-        if (symref.flags & 2) {
+        if (symbolReference_isDef(symref.flags)) {
           let e = {
-            filePath: refsInFile.file.substring(revision.homeDir.length + 1)
+            filePath: refsInFile.filePath
           };
           Object.assign(e, symref);
           defs.push(e);
@@ -161,6 +161,7 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
   }
 
   if (symbol.kind != 'namespace') { // too many references for namespaces, and not that useful
+
     let references = revision.listSymbolReferencesByFile(symbol.id, ["isDefinition"]);
 
     let defs = [];
@@ -168,7 +169,7 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
       for (const symref of refsInFile.references) {
         console.assert(symbolReference_isDef(symref));
         let e = {
-          filePath: refsInFile.file.substring(revision.homeDir.length + 1)
+          filePath: refsInFile.filePath
         };
         Object.assign(e, symref);
         delete e.flags;
@@ -176,7 +177,8 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
       }
     }
 
-    symbol.definitions = defs;
+    symbol.definitions = defs;  // TODO: remove me when symbol definition can easily be filtered 
+                                // from the full list of references
 
     // TODO: do not list declarations here?
     // ça reste quand même moins coûteux que de lister les définitions via listSymbolReferencesByFile()

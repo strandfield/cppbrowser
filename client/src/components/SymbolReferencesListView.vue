@@ -2,7 +2,7 @@
 
 import SymbolReferencesListViewItem from './SymbolReferencesListViewItem.vue';
 
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, provide } from 'vue'
 
 import $ from 'jquery'
 
@@ -22,6 +22,9 @@ const props = defineProps({
 });
 
 const symbolReferencesByFile = ref([]);
+const symbolReferencesContext = ref(null);
+
+provide('symbolReferencesContext', symbolReferencesContext);
 
 const loaded = ref(false);
 const loading = ref(false);
@@ -31,22 +34,41 @@ function fetchData() {
     return;
   }
 
-  $.get(`/api/symbols/${props.symbolId}/references?project=${props.projectName}&version=${props.projectVersion}`, (data) => {
+  //const url = `/api/symbols/${props.symbolId}/references?project=${props.projectName}&version=${props.projectVersion}`;
+  // $.get(url, (data) => {
+  //           if (data.success) {
+  //             if (data.result[0].project == props.projectName && data.result[0].versions[0].version == props.projectVersion) {
+  //               let list =  data.result[0].versions[0].result;
+  //               // TODO: rework sorting function so that header file (".h") appear before
+  //               // the associated source file (".cpp").
+  //               list.sort((a,b)=> a.filePath.localeCompare(b.filePath));
+  //               symbolReferencesByFile.value = list;
+  //             }
+  //           }
+
+  //           loading.value = false;
+  //           loaded.value = true;
+  //       });
+
+  const url = `/api/snapshots/${props.projectName}/${props.projectVersion}/symbols/${props.symbolId}/references`;
+  $.get(url, (data) => {
             if (data.success) {
-              if (data.result[0].project == props.projectName && data.result[0].versions[0].version == props.projectVersion) {
-                let list =  data.result[0].versions[0].result;
+              symbolReferencesContext.value = data.context;
+              // TODO: check that the data matches with current props.projectVersion & props.projectName
+              let list =  data.references;
                 // TODO: rework sorting function so that header file (".h") appear before
                 // the associated source file (".cpp").
                 list.sort((a,b)=> a.filePath.localeCompare(b.filePath));
                 symbolReferencesByFile.value = list;
-              }
             }
 
             loading.value = false;
             loaded.value = true;
         });
+
   
   symbolReferencesByFile.value = [];
+  symbolReferencesContext.value = {};
   loading.value = true;
 }
 

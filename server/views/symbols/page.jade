@@ -27,15 +27,14 @@ block content
       - let projectRevision = refsInProjectRevision.projectRevision;
       h4 #{projectRevision.projectName} v#{projectRevision.name}
       each refsInFile in refsInProjectRevision.references
-        if projectRevision.homeDir.length > 0 && refsInFile.file.startsWith(projectRevision.homeDir)
-          - let relpath = refsInFile.file.substring(projectRevision.homeDir.length + 1);
-          - let filename = relpath.substring(relpath.lastIndexOf("/")+1);
-          - let tag = "#L";
-          p 
-            | #{filename} (#{refsInFile.references.length} reference(s)): 
-            each refinfo, index in refsInFile.references
-              a(href="#{site.baseUrl}/#{projectRevision.projectName}/#{projectRevision.name}/#{relpath}#{tag}#{refinfo.line}") #{refinfo.line}
-              = index == refsInFile.references.length - 1 ? "." : ", "
+        - let relpath = refsInFile.filePath;
+        - let filename = relpath.substring(relpath.lastIndexOf("/")+1);
+        - let tag = "#L";
+        p 
+          | #{filename} (#{refsInFile.references.length} reference(s)): 
+          each refinfo, index in refsInFile.references
+            a(href="#{site.baseUrl}/#{projectRevision.projectName}/#{projectRevision.name}/#{relpath}#{tag}#{refinfo.line}") #{refinfo.line}
+            = index == refsInFile.references.length - 1 ? "." : ", "
 
   if children && children.length > 0
     h3 All children
