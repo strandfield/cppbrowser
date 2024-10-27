@@ -1,8 +1,9 @@
 <script setup>
 
 import SnapshotSidebarSymbolTab from '@/components/SnapshotSidebarSymbolTab.vue'
-import DeclarationViewerElement from '@/components/DeclarationViewerElement.vue';
+//import DeclarationViewerElement from '@/components/DeclarationViewerElement.vue';
 import SymbolReferencesListView from '@/components/SymbolReferencesListView.vue';
+import SymbolDeclarationsListView from '@/components/SymbolDeclarationsListView.vue';
 
 import { ref, onMounted, watch, computed, provide, toRef } from 'vue'
 
@@ -134,10 +135,17 @@ function getHashForRef(def) {
         </template>
 
 
-        <template v-if="symbol.declarations && symbol.declarations.length > 0">
+        <!--template v-if="symbol.declarations && symbol.declarations.length > 0">
           <h2>Declarations</h2>
           <DeclarationViewerElement v-for="decl in symbol.declarations" :projectName="projectName" :projectRevision="projectRevision" :declarationObject="decl">
           </DeclarationViewerElement>
+        </template-->
+        <!-- TODO: il ne faut pas seulement filtrer sur namespace mais plutôt sur tous
+         les symbolKinds pour lesquels on ne collecte pas les declarations.
+         Ajouter une fonction dans genjs pour lister ces symbolkinds-->
+        <template v-if="symbol.kind != 'namespace'">
+          <h2>Declarations</h2>
+          <SymbolDeclarationsListView :projectName="projectName" :projectVersion="projectRevision" :symbolId="symbolId"></SymbolDeclarationsListView>
         </template>
         
         <template v-if="false && isClass">
@@ -311,6 +319,7 @@ function getHashForRef(def) {
 
         <template v-if="symbol.kind != 'namespace'">
           <h2>References</h2>
+          <!-- TODO: ce qui suit ne marche pas si le symbol n'est pas dans l'index... bad -->
           <SymbolReferencesListView :projectName="projectName" :projectVersion="projectRevision" :symbolId="symbolId"></SymbolReferencesListView>
         </template>
       </div>

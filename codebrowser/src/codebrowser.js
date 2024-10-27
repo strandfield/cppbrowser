@@ -516,6 +516,8 @@ class SyntaxHighlighter {
                     let path = symdefs.files[symdef.fileid];
                     link_object = this.linksGenerator?.createLinkToSymbolDefinition(path, primary_ref.symbolId);
                 } else {
+                    // TODO: si on est pas en mode "document", on voudrait quand même potentiellement créer un lien
+                    // même si on est au niveau de la définition (sauf si on est sur la page de l'élément).
                     if (isatdef) {
                         elemid = primary_ref.symbolId;
                     }

@@ -178,6 +178,16 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
 
     symbol.definitions = defs;
 
+    // TODO: do not list declarations here?
+    // ça reste quand même moins coûteux que de lister les définitions via listSymbolReferencesByFile()
+    // a priori.
+    // peut-être devrait-on lister toutes les définitions (quel que soit le symbolkind)
+    // comme déclaration.
+    // et dans ce cas on ne liste que les vraies références dans la table symbolReference ?
+    // il faudrait voir si on peut avoir une decl/def avec le flag dynamic.
+    // le flag dynmaic pourrait être un flag de symbolDeclaration.
+    // edit: oui on peut avoir le flag dynamic sur une ref de type dec/def. mais on sait 
+    // par ailleurs que la fonction est virtuelle, donc bon...
     symbol.declarations = revision.listSymbolDeclarations(symbol.id);
     for (let decl of symbol.declarations) {
       decl.filePath = revision.getFilePath(decl.fileId);
