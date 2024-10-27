@@ -34,7 +34,11 @@ function fetchData() {
   $.get(`/api/symbols/${props.symbolId}/references?project=${props.projectName}&version=${props.projectVersion}`, (data) => {
             if (data.success) {
               if (data.result[0].project == props.projectName && data.result[0].versions[0].version == props.projectVersion) {
-                symbolReferencesByFile.value = data.result[0].versions[0].result;
+                let list =  data.result[0].versions[0].result;
+                // TODO: rework sorting function so that header file (".h") appear before
+                // the associated source file (".cpp").
+                list.sort((a,b)=> a.filePath.localeCompare(b.filePath));
+                symbolReferencesByFile.value = list;
               }
             }
 
