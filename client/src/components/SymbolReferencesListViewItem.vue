@@ -13,11 +13,14 @@ const props = defineProps({
   }
 });
 
+const symbolId = inject('symbolId');
 const projectName = inject('projectName');
 const projectVersion = inject('projectVersion');
 
 const symbolReferencesContext = inject('symbolReferencesContext');
 const listViewFilters = inject('listViewFilters');
+
+const symbol = computed(() => getSymbolById(symbolId));
 
 const lines = ref([]);
 const pathParts = computed(() => props.fileEntry.filePath.split("/"));
@@ -95,16 +98,18 @@ function escapeHtmlChars(text) {
 function formatLine(e) {
   let text = getLine(e.line);
 
-  const symbol = getSymbolById(props.symbolId);
+  if (text == "") {
+    return text;
+  }
 
-  if (!symbol || text == "") {
+  if (!symbol.value) {
     return escapeHtmlChars(text);
   }
 
   const i = e.col-1;
   let result = escapeHtmlChars(text.substring(0,i));
 
-  const name = getSymbolShortName(symbol);
+  const name = getSymbolShortName(symbol.value);
   text = text.substring(i);
   if (text.startsWith(name)) {
     result += `<span class="refhighlight">${name}</span>`;
