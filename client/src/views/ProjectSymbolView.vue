@@ -1,8 +1,9 @@
 <script setup>
 
-
 import SnapshotSidebarSymbolTab from '@/components/SnapshotSidebarSymbolTab.vue'
-import DeclarationViewerElement from '@/components/DeclarationViewerElement.vue';
+//import DeclarationViewerElement from '@/components/DeclarationViewerElement.vue';
+import SymbolReferencesListView from '@/components/SymbolReferencesListView.vue';
+import SymbolDeclarationsListView from '@/components/SymbolDeclarationsListView.vue';
 
 import { ref, onMounted, watch, computed, provide, toRef } from 'vue'
 
@@ -22,6 +23,7 @@ const isClass = computed(() => symbol.value?.kind == 'class' || symbol.value?.ki
 const isNamespace = computed(() => symbol.value?.kind == 'namespace');
 const listChildren = computed(() => isNamespace.value);
 
+const declsListView = ref(null);
 
 function postProcessSymbolInfo(syminfo) {
   if (syminfo.functions) {
@@ -63,10 +65,6 @@ onMounted(() => {
   console.log(`symbolview is now mounted.`);
   fetchSymbolInfo();
 });
-
-function getPathParts(path) {
-  return path.split("/");
-}
 
 function getPathPartsForDef(def) {
   return def.filePath.split("/");
@@ -128,11 +126,21 @@ function getHashForRef(def) {
           </template>
         </p>
 
+        <template v-if="symbol.definitions && symbol.definitions.length > 1">
+            <p v-for="def in symbol.definitions" :key="def.filePath + def.line">
+              Defined in {{ def.filePath }} on line 
+              <RouterLink
+                :to="{ name: 'file', params: { projectName: projectName, projectRevision: projectRevision, pathParts: getPathPartsForDef(def) }, hash: getHashForRef(def) }">
+                {{ def.line }}</RouterLink>.
+            </p>
+        </template>
 
-        <template v-if="symbol.declarations && symbol.declarations.length > 0">
-          <h2>Declarations</h2>
-          <DeclarationViewerElement v-for="decl in symbol.declarations" :projectName="projectName" :projectRevision="projectRevision" :declarationObject="decl">
-          </DeclarationViewerElement>
+        <!-- TODO: the following v-if shouldn't consider only namespaces as there are other symbol kinds
+             for which declarations aren't collected.
+             We will need to add a function in cppscanner's genjs to list such symbolkinds -->
+        <template v-if="symbol.kind != 'namespace'">
+          <h2 v-if="declsListView?.loaded && declsListView?.symbolDeclarations.length > 0">Declarations</h2>
+          <SymbolDeclarationsListView :projectName="projectName" :projectVersion="projectRevision" :symbolId="symbolId" ref="declsListView"></SymbolDeclarationsListView>
         </template>
         
         <template v-if="false && isClass">
@@ -304,16 +312,9 @@ function getHashForRef(def) {
           </table>
         </template>
 
-        <template v-if="symbol.references && symbol.references.length > 0">
+        <template v-if="symbol.kind != 'namespace'">
           <h2>References</h2>
-          <p v-for="refsInFile in symbol.references" :key="refsInFile.filePath">
-            <b>{{ refsInFile.filePath }} ({{ refsInFile.references.length }} References): </b>
-            <template v-for="(refinfo, index) in refsInFile.references" :key="index">
-              <RouterLink
-                :to="{ name: 'file', params: { projectName: projectName, projectRevision: projectRevision, pathParts: getPathParts(refsInFile.filePath) }, hash: getHashForRef(refinfo) }">
-                {{ refinfo.line }}</RouterLink>{{ index == refsInFile.references.length - 1 ? "." : ", " }}
-            </template>
-          </p>
+          <SymbolReferencesListView :projectName="projectName" :projectVersion="projectRevision" :symbolId="symbolId"></SymbolReferencesListView>
         </template>
       </div>
     </main>

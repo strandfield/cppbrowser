@@ -188,6 +188,9 @@ class SymbolIndex
         }
     }
 
+    // TODO: this is too expensive, remove it.
+    // replace by a function that can be used to list references of a symbol
+    // in a project@revision
     listSymbolReferences(symbolId) {
         let refsByProjectRev = [];
 

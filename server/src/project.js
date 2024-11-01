@@ -203,6 +203,10 @@ class ProjectRevision
         return home_path;
     }
 
+    getFileById(fileId) {
+        return this.files[fileId];
+    }
+
     getFileByPath(searchPath) {
         for (const [fileid, filepath] of Object.entries(this.files)) {
             if (filepath == searchPath) {
@@ -649,31 +653,35 @@ class ProjectRevision
         return result;
     }
 
-    listSymbolReferences(symbolId) {
-        symbolId = ProjectRevision.#convertSymbolIdFromHex(symbolId);
-        let query = `SELECT file_id, line, col, parent_symbol_id, flags FROM symbolReference WHERE symbol_id = ?
-          ORDER BY file_id, line, col ASC`;
-        let stmt = this.db.prepare(query);
-        stmt.safeIntegers();
-        let rows = stmt.all(symbolId);
+    // listSymbolReferences(symbolId) {
+    //     symbolId = ProjectRevision.#convertSymbolIdFromHex(symbolId);
+    //     let query = `SELECT file_id, line, col, parent_symbol_id, flags FROM symbolReference WHERE symbol_id = ?`;
+    //     let stmt = this.db.prepare(query);
+    //     stmt.safeIntegers();
+    //     let rows = stmt.all(symbolId);
 
-        let result = [];
-        for (const row of rows) {
-            result.push({
-                fileId: Number(row.file_id),
-                line: Number(row.line),
-                col: Number(row.col),
-                parent_symbol_id: row.parent_symbol_id ? ProjectRevision.#convertBigIntToHex(row.parent_symbol_id) : null,
-                flags: Number(row.flags)
-            });
-        }
-        return result;
-    }
+    //     let result = [];
+    //     for (const row of rows) {
+    //         result.push({
+    //             fileId: Number(row.file_id),
+    //             line: Number(row.line),
+    //             col: Number(row.col),
+    //             refbySymbolId: row.parent_symbol_id ? ProjectRevision.#convertBigIntToHex(row.parent_symbol_id) : null,
+    //             flags: Number(row.flags)
+    //         });
+    //     }
+    //     return result;
+    // }
 
-    listSymbolReferencesByFile(symbolId) {
+    listSymbolReferencesByFile(symbolId, flags = []) {
         symbolId = ProjectRevision.#convertSymbolIdFromHex(symbolId);
-        let query = `SELECT file_id, line, col, parent_symbol_id, flags FROM symbolReference WHERE symbol_id = ?
-          ORDER BY file_id, line, col ASC`;
+        const flagsClause = flags.length == 0 ? "TRUE" : flags.map(e => e + " = 1").join("AND");
+        let query = `
+          SELECT file_id, line, col, parent_symbol_id, flags 
+          FROM symbolReference 
+          WHERE symbol_id = ? AND (${flagsClause})
+          ORDER BY file_id, line, col ASC
+        `;
         let stmt = this.db.prepare(query);
         stmt.safeIntegers();
         let rows = stmt.all(symbolId);
@@ -685,7 +693,6 @@ class ProjectRevision
             if (Number(row.file_id) != curfile) {
                 if (curfilerefs.length > 0) {
                     result.push({
-                        file: this.files[curfile], // TODO: remove me
                         filePath: this.files[curfile].substring(this.homeDir.length + 1),
                         references: curfilerefs
                     });
@@ -698,13 +705,14 @@ class ProjectRevision
             curfilerefs.push({
                 line: Number(row.line),
                 col: Number(row.col),
-                flags: Number(row.flags)
+                flags: Number(row.flags),
+                flags: Number(row.flags),
+                refbySymbolId: row.parent_symbol_id ? ProjectRevision.#convertBigIntToHex(row.parent_symbol_id) : undefined,
             });
         }
 
         if (curfilerefs.length > 0) {
             result.push({
-                file: this.files[curfile],
                 filePath: this.files[curfile].substring(this.homeDir.length + 1),
                 references: curfilerefs
             });

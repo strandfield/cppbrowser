@@ -108,15 +108,14 @@ block content
     if symbol.references && symbol.references.length > 0
       h3 References 
       each refsInFile in symbol.references
-        if projectRevision.homeDir.length > 0 && refsInFile.file.startsWith(projectRevision.homeDir)
-          - let relpath = refsInFile.file.substring(projectRevision.homeDir.length + 1);
-          - let filename = relpath.substring(relpath.lastIndexOf("/")+1);
-          - let tag = "#L";
-          p 
-            b #{filename} (#{refsInFile.references.length} References): 
-            each refinfo, index in refsInFile.references
-              a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/#{relpath}#{tag}#{refinfo.line}") #{refinfo.line}
-              = index == refsInFile.references.length - 1 ? "." : ", "
+        - let relpath = refsInFile.filePath
+        - let filename = relpath.substring(relpath.lastIndexOf("/")+1);
+        - let tag = "#L";
+        p 
+          b #{filename} (#{refsInFile.references.length} References): 
+          each refinfo, index in refsInFile.references
+            a(href="#{site.baseUrl}/#{project.name}/#{projectRevision.name}/#{relpath}#{tag}#{refinfo.line}") #{refinfo.line}
+            = index == refsInFile.references.length - 1 ? "." : ", "
     if symbol.children && symbol.children.length > 0
       h3 All children
       table 

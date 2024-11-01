@@ -563,6 +563,69 @@ function GetSnapshotSymbol(req, res, next) {
   });
 }
 
+function GetSnapshotSymbolDeclarations(req, res, next) {
+  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
+  let revision = project?.getRevision(req.params.projectRevision);
+
+  if (!revision) {
+    res.status(404);
+    res.json({
+      success: false,
+      reason: "no such revision"
+    });
+    return;
+  }
+
+  let declarations = revision.listSymbolDeclarations(req.params.symbolId);
+  for (let decl of declarations) {
+    decl.filePath = revision.getFilePath(decl.fileId);
+    delete decl.fileId;
+  }
+  
+  res.json({
+    success: true,
+    symbolId: req.params.symbolId,
+    declarations: declarations
+  });
+}
+
+function GetSnapshotSymbolReferences(req, res, next) {
+  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
+  let revision = project?.getRevision(req.params.projectRevision);
+
+  if (!revision) {
+    res.status(404);
+    res.json({
+      success: false,
+      reason: "no such revision"
+    });
+    return;
+  }
+
+  let references_by_file = revision.listSymbolReferencesByFile(req.params.symbolId);
+
+  let symbols = {};
+  symbols[req.params.symbolId] = revision.getSymbolById(req.params.symbolId);
+  for (const file_entry of references_by_file) {
+    for (const r of file_entry.references) {
+      if (!r.refbySymbolId || symbols[r.refbySymbolId] != undefined) {
+        continue;
+      }
+  
+      symbols[r.refbySymbolId] = revision.getSymbolById(r.refbySymbolId);
+    }
+  }
+
+  res.json({
+    success: true,
+    symbolId: req.params.symbolId,
+    references: references_by_file,
+    context: {
+      symbols: symbols
+    }
+  });
+}
+
 ////////////////////////////
 /// Symbol Index methods ///
 ////////////////////////////
@@ -788,6 +851,8 @@ function createRouter(app) {
   router.get('/snapshots/:projectName/:projectRevision/symbols/dict/classes', GetSnapshotSymbolNameDictionaryClasses);
   router.get('/snapshots/:projectName/:projectRevision/symbols/dict/enums', GetSnapshotSymbolNameDictionaryEnums);
   router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId', GetSnapshotSymbol);
+  router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId/declarations', GetSnapshotSymbolDeclarations);
+  router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId/references', GetSnapshotSymbolReferences);
 
   // symbol index related routes
   router.get('/symbols/dict', GetSymbolIndexDictionary);

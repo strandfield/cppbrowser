@@ -1,6 +1,6 @@
 
 
-const { symbolKinds } = require('@cppbrowser/snapshot-tools');
+const { symbolKinds, symbolReference_isDef } = require('@cppbrowser/snapshot-tools');
 
 function getSnapshotSymbolInfoLegacy(inputSymbol, revision) {
     let symbol = {
@@ -59,9 +59,9 @@ function getSnapshotSymbolInfoLegacy(inputSymbol, revision) {
     let defs = [];
     for (const refsInFile of symbol.references) {
       for (const symref of refsInFile.references) {
-        if (symref.flags & 2) {
+        if (symbolReference_isDef(symref.flags)) {
           let e = {
-            filePath: refsInFile.file.substring(revision.homeDir.length + 1)
+            filePath: refsInFile.filePath
           };
           Object.assign(e, symref);
           defs.push(e);
@@ -161,23 +161,35 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
   }
 
   if (symbol.kind != 'namespace') { // too many references for namespaces, and not that useful
-    symbol.references = revision.listSymbolReferencesByFile(symbol.id);
+
+    let references = revision.listSymbolReferencesByFile(symbol.id, ["isDefinition"]);
 
     let defs = [];
-    for (const refsInFile of symbol.references) {
+    for (const refsInFile of references) {
       for (const symref of refsInFile.references) {
-        if (symref.flags & 2) { // TODO: what is this 2 ?
-          let e = {
-            filePath: refsInFile.file.substring(revision.homeDir.length + 1)
-          };
-          Object.assign(e, symref);
-          defs.push(e);
-        }
+        console.assert(symbolReference_isDef(symref));
+        let e = {
+          filePath: refsInFile.filePath
+        };
+        Object.assign(e, symref);
+        delete e.flags;
+        defs.push(e);
       }
     }
 
-    symbol.definitions = defs;
+    symbol.definitions = defs;  // TODO: remove me when symbol definition can easily be filtered 
+                                // from the full list of references
 
+    // TODO: do not list declarations here?
+    // ça reste quand même moins coûteux que de lister les définitions via listSymbolReferencesByFile()
+    // a priori.
+    // peut-être devrait-on lister toutes les définitions (quel que soit le symbolkind)
+    // comme déclaration.
+    // et dans ce cas on ne liste que les vraies références dans la table symbolReference ?
+    // il faudrait voir si on peut avoir une decl/def avec le flag dynamic.
+    // le flag dynmaic pourrait être un flag de symbolDeclaration.
+    // edit: oui on peut avoir le flag dynamic sur une ref de type dec/def. mais on sait 
+    // par ailleurs que la fonction est virtuelle, donc bon...
     symbol.declarations = revision.listSymbolDeclarations(symbol.id);
     for (let decl of symbol.declarations) {
       decl.filePath = revision.getFilePath(decl.fileId);
