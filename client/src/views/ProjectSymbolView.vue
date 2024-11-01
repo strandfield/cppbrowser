@@ -314,7 +314,6 @@ function getHashForRef(def) {
 
         <template v-if="symbol.kind != 'namespace'">
           <h2>References</h2>
-          <!-- TODO: ce qui suit ne marche pas si le symbol n'est pas dans l'index... bad -->
           <SymbolReferencesListView :projectName="projectName" :projectVersion="projectRevision" :symbolId="symbolId"></SymbolReferencesListView>
         </template>
       </div>

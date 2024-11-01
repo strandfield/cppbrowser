@@ -20,27 +20,32 @@ const props = defineProps({
     type: String,
     required: true
   },
-  filePath: {
-    type: String,
-    required: true
-  },
-  references: {
-    type: Array,
+  fileEntry: {
+    type: Object,
     required: true
   }
 });
 
 const symbolReferencesContext = inject('symbolReferencesContext');
+const listViewFilters = inject('listViewFilters');
 
 const lines = ref([]);
-const pathParts = computed(() => props.filePath.split("/"));
+const pathParts = computed(() => props.fileEntry.filePath.split("/"));
+
+const counter = computed( ()=> {
+  return (listViewFilters.read.checked ? props.fileEntry.counters.read : 0) +
+   (listViewFilters.write.checked ? props.fileEntry.counters.write : 0) +
+   (listViewFilters.call.checked ? props.fileEntry.counters.call : 0) +
+   (listViewFilters.addressOf.checked ? props.fileEntry.counters.addressOf : 0) +
+   (listViewFilters.other.checked ? props.fileEntry.counters.other : 0);
+});
 
 function setFileContent(data) {
   lines.value = data.split("\n");
 }
 
 function fetchFileContent() {
-  $.get(`/api/snapshots/${props.projectName}/${props.projectVersion}/files/${props.filePath}`, (data) => {
+  $.get(`/api/snapshots/${props.projectName}/${props.projectVersion}/files/${props.fileEntry.filePath}`, (data) => {
       setFileContent(data);
   });
 }
@@ -63,6 +68,25 @@ function getSymbolById(id) {
   }
   const dict = symbolReferencesContext.value;
   return dict?.symbols[id];
+}
+
+  
+function formattedRefCountMessage(n) {
+  return n > 1 ? `${n} references` : `1 reference`;
+}
+
+function shouldShowRef(r) {
+ if (symbolReference_isRead(r)) {
+  return listViewFilters.read.checked;
+ } else if (symbolReference_isWrite(r)) {
+  return listViewFilters.write.checked;
+ } else if (symbolReference_isCall(r)) {
+  return listViewFilters.call.checked;
+ } else if (symbolReference_isAddressOf(r)) {
+  return listViewFilters.addressOf.checked;
+ } else {
+  return listViewFilters.other.checked;
+ }
 }
 
 function getSymbolShortName(symbol) {
@@ -138,17 +162,20 @@ function formatRefby(e) {
 </script>
 
 <template>
+  <h4 v-show="counter > 0">{{ fileEntry.filePath }} ({{ formattedRefCountMessage(counter) }})</h4>
   <table>
     <tbody>
-      <tr v-for="refEntry in references" :key="refEntry.line + ':' + refEntry.col">
-        <td><RouterLink :to="{ name: 'file', params: { projectName: projectName, projectRevision: projectVersion, pathParts: pathParts }, hash: getUrlHashForLine(refEntry.line) }">{{ refEntry.line }}</RouterLink></td>
-        <td v-html="formatLine(refEntry)"></td>
-        <td>{{ formatRefFlags(refEntry) }}</td>
-        <td>
-          <span v-if="refEntry.refbySymbolId">by</span> <RouterLink v-if="refEntry.refbySymbolId"
-          :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectVersion, symbolId: refEntry.refbySymbolId } }">{{ formatRefby(refEntry) }}</RouterLink>
-          </td>
-      </tr>
+      <template v-for="refEntry in fileEntry.references" :key="refEntry.line + ':' + refEntry.col">
+        <tr v-show="shouldShowRef(refEntry)">
+          <td><RouterLink :to="{ name: 'file', params: { projectName: projectName, projectRevision: projectVersion, pathParts: pathParts }, hash: getUrlHashForLine(refEntry.line) }">{{ refEntry.line }}</RouterLink></td>
+          <td v-html="formatLine(refEntry)"></td>
+          <td>{{ formatRefFlags(refEntry) }}</td>
+          <td>
+            <span v-if="refEntry.refbySymbolId">by</span> <RouterLink v-if="refEntry.refbySymbolId"
+            :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectVersion, symbolId: refEntry.refbySymbolId } }">{{ formatRefby(refEntry) }}</RouterLink>
+            </td>
+        </tr>
+      </template>
     </tbody>
   </table>
 </template>
