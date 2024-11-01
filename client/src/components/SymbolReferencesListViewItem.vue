@@ -6,25 +6,15 @@ import { ref, onMounted, computed, inject } from 'vue'
 
 import $ from 'jquery'
 
-// TODO: use inject/provide for all props except filePath & references ?
 const props = defineProps({
-  symbolId: {
-    type: String,
-    required: true
-  },
-  projectName: {
-    type: String,
-    required: true
-  },
-  projectVersion: {
-    type: String,
-    required: true
-  },
   fileEntry: {
     type: Object,
     required: true
   }
 });
+
+const projectName = inject('projectName');
+const projectVersion = inject('projectVersion');
 
 const symbolReferencesContext = inject('symbolReferencesContext');
 const listViewFilters = inject('listViewFilters');
@@ -45,7 +35,7 @@ function setFileContent(data) {
 }
 
 function fetchFileContent() {
-  $.get(`/api/snapshots/${props.projectName}/${props.projectVersion}/files/${props.fileEntry.filePath}`, (data) => {
+  $.get(`/api/snapshots/${projectName}/${projectVersion}/files/${props.fileEntry.filePath}`, (data) => {
       setFileContent(data);
   });
 }
@@ -162,7 +152,7 @@ function formatRefby(e) {
 </script>
 
 <template>
-  <h4 v-show="counter > 0">{{ fileEntry.filePath }} ({{ formattedRefCountMessage(counter) }})</h4>
+  <h3 v-show="counter > 0">{{ fileEntry.filePath }} ({{ formattedRefCountMessage(counter) }})</h3>
   <table>
     <tbody>
       <template v-for="refEntry in fileEntry.references" :key="refEntry.line + ':' + refEntry.col">

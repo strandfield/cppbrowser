@@ -23,6 +23,10 @@ const props = defineProps({
   }
 });
 
+provide('symbolId', props.symbolId);
+provide('projectName', props.projectName);
+provide('projectVersion', props.projectVersion);
+
 const symbolReferencesByFile = ref([]);
 const symbolReferencesContext = ref(null);
 provide('symbolReferencesContext', symbolReferencesContext);
@@ -148,8 +152,7 @@ watch(() => props.projectVersion, fetchData);
     <div class="filterItem" v-show="filters.other.count > 0"><input type="checkbox" name="other" v-model="filters.other.checked"/><label for="other">Others ({{ filters.other.count }})</label></div>
   </div>
   <template v-for="fileEntry in symbolReferencesByFile" :key="fileEntry.filePath">
-    <SymbolReferencesListViewItem :symbolId="symbolId" :projectName="projectName" :projectVersion="projectVersion"
-      :fileEntry="fileEntry"></SymbolReferencesListViewItem>
+    <SymbolReferencesListViewItem :fileEntry="fileEntry"></SymbolReferencesListViewItem>
   </template>
   <p v-if="loading">Loading...</p>
   <p v-if="loaded && symbolReferencesByFile.length == 0">The symbol isn't referenced in this version of {{ projectName }}.</p>
