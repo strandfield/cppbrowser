@@ -88,3 +88,14 @@ th.highlight+td { background-color: #eee; }
     color: gray;
     content: "&";
 }
+
+/* maybe not the best place to put these... 
+used for highlighting references in the reference list view
+*/
+.refhighlight {
+    background-color: gold;
+  }
+  
+  .refmarker::before {
+    content: "\2380";
+  }

@@ -57,6 +57,52 @@ function getUrlHashForLine(n) {
   return "#L" + n;
 }
 
+function getSymbolById(id) {
+  if(!symbolReferencesContext) {
+    return null;
+  }
+  const dict = symbolReferencesContext.value;
+  return dict?.symbols[id];
+}
+
+function getSymbolShortName(symbol) {
+  let result = symbol.name;
+    let i = result.indexOf("(");
+    if (i!= -1) {
+      result = result.substring(0, i);
+    }
+    return result;
+}
+
+function escapeHtmlChars(text) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function formatLine(e) {
+  let text = getLine(e.line);
+
+  const symbol = getSymbolById(props.symbolId);
+
+  if (!symbol || text == "") {
+    return escapeHtmlChars(text);
+  }
+
+  const i = e.col-1;
+  let result = escapeHtmlChars(text.substring(0,i));
+
+  const name = getSymbolShortName(symbol);
+  text = text.substring(i);
+  if (text.startsWith(name)) {
+    result += `<span class="refhighlight">${name}</span>`;
+    result += escapeHtmlChars(text.substring(name.length));
+  } else {
+    result += `<span class="refmarker"></span>`;
+    result += escapeHtmlChars(text);
+  }
+
+  return result;
+}
+
 function formatRefFlags(e) {
   if (!e.flags) {
     return "";
@@ -80,21 +126,10 @@ function formatRefFlags(e) {
 }
 
 function formatRefby(e) {
-  if(!symbolReferencesContext) {
-    return e.refbySymbolId;
-  }
-
-  const dict = symbolReferencesContext.value;
-
-  const symbol = dict?.symbols[e.refbySymbolId];
+  const symbol = getSymbolById(e.refbySymbolId);
 
   if (symbol) {
-    let result = symbol.name;
-    let i = result.indexOf("(");
-    if (i!= -1) {
-      result = result.substring(0, i);
-    }
-    return result;
+    return getSymbolShortName(symbol);
   }
 
   return e.refbySymbolId;
@@ -107,7 +142,7 @@ function formatRefby(e) {
     <tbody>
       <tr v-for="refEntry in references" :key="refEntry.line + ':' + refEntry.col">
         <td><RouterLink :to="{ name: 'file', params: { projectName: projectName, projectRevision: projectVersion, pathParts: pathParts }, hash: getUrlHashForLine(refEntry.line) }">{{ refEntry.line }}</RouterLink></td>
-        <td>{{ getLine(refEntry.line) }}</td>
+        <td v-html="formatLine(refEntry)"></td>
         <td>{{ formatRefFlags(refEntry) }}</td>
         <td>
           <span v-if="refEntry.refbySymbolId">by</span> <RouterLink v-if="refEntry.refbySymbolId"

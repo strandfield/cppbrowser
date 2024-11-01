@@ -605,6 +605,7 @@ function GetSnapshotSymbolReferences(req, res, next) {
   let references_by_file = revision.listSymbolReferencesByFile(req.params.symbolId);
 
   let symbols = {};
+  symbols[req.params.symbolId] = revision.getSymbolById(req.params.symbolId);
   for (const file_entry of references_by_file) {
     for (const r of file_entry.references) {
       if (!r.refbySymbolId || symbols[r.refbySymbolId] != undefined) {
