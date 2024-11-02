@@ -423,123 +423,6 @@ function GetSnapshotSymbolNameDictionary(req, res, next) {
   });
 }
 
-function GetSnapshotSymbolNameDictionaryNs(req, res, next) {
-  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
-  let revision = project?.getRevision(req.params.projectRevision);
-
-  if (!revision) {
-    res.status(404);
-    res.json({
-      success: false,
-      reason: "could not find snapshot"
-    });
-    return;
-  }
-
-  let rows = revision.getProjectSymbolsEx({kinds: ['namespace', 'inline-namespace']});
-
-  let namespaces = {
-    id: [],
-    name: [],
-    parent: []
-  };
-
-  for (const row of rows) {
-    namespaces.id.push(row.id);
-    namespaces.name.push(row.name);
-    namespaces.parent.push(row.parentId);
-  }
-
-  res.json({
-    success: true,
-    symbols: {
-      namespace: namespaces
-    }
-  });
-}
-
-function GetSnapshotSymbolNameDictionaryClasses(req, res, next) {
-  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
-  let revision = project?.getRevision(req.params.projectRevision);
-
-  if (!revision) {
-    res.status(404);
-    res.json({
-      success: false,
-      reason: "could not find snapshot"
-    });
-    return;
-  }
-
-  let symbols = {
-
-  };
-
-  for (const key of ['class', 'union', 'struct']) {
-    let rows = revision.getProjectSymbolsEx({kind: key});
-
-    let entries = {
-      id: [],
-      name: [],
-      parent: []
-    };
-
-    for (const row of rows) {
-      entries.id.push(row.id);
-      entries.name.push(row.name);
-      entries.parent.push(row.parentId);
-    }
-
-    symbols[key] = entries;
-  }
-
-  res.json({
-    success: true,
-    symbols: symbols
-  });
-}
-
-function GetSnapshotSymbolNameDictionaryEnums(req, res, next) {
-  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
-  let revision = project?.getRevision(req.params.projectRevision);
-
-  if (!revision) {
-    res.status(404);
-    res.json({
-      success: false,
-      reason: "could not find snapshot"
-    });
-    return;
-  }
-
-  let symbols = {
-
-  };
-
-  for (const key of ['enum', 'enum-constant']) {
-    let rows = revision.getProjectSymbolsEx({kind: key});
-
-    let entries = {
-      id: [],
-      name: [],
-      parent: []
-    };
-
-    for (const row of rows) {
-      entries.id.push(row.id);
-      entries.name.push(row.name);
-      entries.parent.push(row.parentId);
-    }
-
-    symbols[key] = entries;
-  }
-
-  res.json({
-    success: true,
-    symbols: symbols
-  });
-}
-
 function GetSnapshotSymbol(req, res, next) {
   let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
   let revision = project?.getRevision(req.params.projectRevision);
@@ -857,10 +740,6 @@ function createRouter(app) {
   // symbol-related routes
   router.get('/snapshots/:projectName/:projectRevision/symbols/tree', GetSnapshotSymbolTreeItem);
   router.get('/snapshots/:projectName/:projectRevision/symbols/dict', GetSnapshotSymbolNameDictionary);
-  // TODO: check if the 3 following endpoints are still used 
-  router.get('/snapshots/:projectName/:projectRevision/symbols/dict/namespaces', GetSnapshotSymbolNameDictionaryNs);
-  router.get('/snapshots/:projectName/:projectRevision/symbols/dict/classes', GetSnapshotSymbolNameDictionaryClasses);
-  router.get('/snapshots/:projectName/:projectRevision/symbols/dict/enums', GetSnapshotSymbolNameDictionaryEnums);
   router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId', GetSnapshotSymbol);
   router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId/declarations', GetSnapshotSymbolDeclarations);
   router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId/references', GetSnapshotSymbolReferences);

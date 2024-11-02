@@ -258,7 +258,6 @@ class SemaHelper {
     }
 
     symbolIs(s, what) {
-        // TODO: review/redesign sema json, it has weird structure
         if (!s) {
             return false;
         } else if (s.kind) {
