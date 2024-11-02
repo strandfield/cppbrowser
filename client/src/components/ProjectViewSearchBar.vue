@@ -127,8 +127,6 @@ function resetSearchText() {
 
 function reconfigureSearchEngines() {
   if (symbolSearchEngine) {
-    console.log(`need to reconf search engine for version ${projectName.value}/${projectRevision.value}`);
-
     symbolSearchEngine.reconfigure({
       projectName: projectName.value,
       projectRevision: projectRevision.value

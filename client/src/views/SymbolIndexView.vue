@@ -33,7 +33,6 @@ function fetchSymbolTree() {
 }
 
 onMounted(() => {
-  console.log(`SymbolIndexView is now mounted.`);
   fetchSymbolIndexSources();
   fetchSymbolTree();
 });

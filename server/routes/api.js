@@ -39,7 +39,6 @@ function GetSnapshotNames(req, res, next) {
   res.json(snapshots);
 }
 
-// à tester
 function DeleteProjectSnapshots(req, res, next) {
   let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
 
@@ -127,7 +126,6 @@ function RemoveSnapshot(req, res, next) {
   });
 }
 
-// à tester
 function UploadSnapshot(req, res, next) {
 
   if (!CAN_UPLOAD_SNAPSHOT) {
@@ -300,12 +298,12 @@ function GetFileSema(req, res, next) {
   res.json({
     success: true,
     file: {
-      id: f.id,
+      id: Number(f.id),
       completePath: f.path,
       path: path
     },
     sema: {
-      diagnosticLevels: diagnostics.diagnosticLevels,
+      diagnosticLevels: diagnostics.diagnosticLevels, // TODO: do not provide these
       diagnostics: diagnostics.diagnostics,
       includes: includes,
       symrefs: symrefs,

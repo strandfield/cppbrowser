@@ -333,8 +333,8 @@ function UploadSnapshot(req, res, next) {
   let dbPath = req.file.destination + req.file.filename;
   let db = new Database(dbPath, dboptions);
 
-  console.log(req.file);
-  console.log(JSON.stringify(req.body));
+  //console.log(req.file);
+  //console.log(JSON.stringify(req.body));
 
   let projectname = req.body?.projectname;
 

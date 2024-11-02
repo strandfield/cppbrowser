@@ -50,7 +50,6 @@ function fetchSymbolInfo() {
 
   $.get(`/api/snapshots/${props.projectName}/${props.projectRevision}/symbols/${props.symbolId}`, (data) => {
       if (data.success) {
-        console.log(data);
         postProcessSymbolInfo(data.symbol);
         symbol.value = data.symbol;
       } else {

@@ -90,7 +90,6 @@ let linksGenerator = {
 };
 
 onMounted(() => {
-  console.log(`filesystemview is now mounted.`);
   const tooltipElement = null;
   codeviewer = new CodeViewer(srccodecontainer.value, tooltipElement);
   codeviewer.documentMode = false;
@@ -124,7 +123,6 @@ function fetchSema() {
 
     const url = `/api/snapshots/${props.projectName}/${props.projectRevision}/sema/${props.pathParts.join("/")}`;
     $.get(url, function (data) {
-        console.log(data);
         if (!data || !data.success) {
             console.log("error while fetching file's sema");
             // TODO: highlight code using heuristic only

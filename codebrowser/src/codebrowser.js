@@ -894,7 +894,6 @@ export class CodeViewer {
 
         if (!SemaHelper.isLocal(symbol)) {
             let link_object = this.linksGenerator?.createTooltipMoreLink(symid);
-            // TODO: refactor to be able to handle onclick
             if (link_object) {
                 let div = document.createElement('DIV');
                 div.setAttribute('style', "text-align: right;");
