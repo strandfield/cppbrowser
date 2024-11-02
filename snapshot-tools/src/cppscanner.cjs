@@ -120,19 +120,19 @@ function macro_isFunctionLike(sym) {
 function variable_isConst(sym) { 
   return (sym.flags & 32) != 0; 
 }
-function symbol_isConstexpr(sym) { 
+function variable_isConstexpr(sym) { 
   return (sym.flags & 64) != 0; 
 }
-function symbol_isStatic(sym) { 
+function variable_isStatic(sym) { 
   return (sym.flags & 128) != 0; 
 }
-function symbol_isMutable(sym) { 
+function variable_isMutable(sym) { 
   return (sym.flags & 256) != 0; 
 }
-function symbol_isThreadLocal(sym) { 
+function variable_isThreadLocal(sym) { 
   return (sym.flags & 512) != 0; 
 }
-function symbol_isInline(sym) { 
+function variable_isInline(sym) { 
   return (sym.flags & 1024) != 0; 
 }
 
@@ -208,6 +208,35 @@ function symbolReference_isRef(symRef) {
   return !symbolReference_isDef(symRef) && !symbolReference_isDecl(symRef);
 }
 
+const diagnosticLevels = {
+  names: [
+    "ignored",
+    "note",
+    "remark",
+    "warning",
+    "error",
+    "fatal"
+  ],
+  values: {
+    "ignored": 0,
+    "note": 1,
+    "remark": 2,
+    "warning": 3,
+    "error": 4,
+    "fatal": 5
+  }
+};
+
+function getDiagnosticLevelByName(name) {
+  return diagnosticLevels.values[name];
+}
+function getDiagnosticLevelValue(nameOrValue) {
+  return Number.isInteger(nameOrValue) ? nameOrValue : getDiagnosticLevelByName(nameOrValue);
+}
+function getDiagnosticLevelName(nameOrValue) {
+  return Number.isInteger(nameOrValue) ? diagnosticLevels.names[nameOrValue] : nameOrValue;
+}
+
 module.exports = {
   databaseSchemaVersion,
   symbolKinds,
@@ -224,11 +253,11 @@ module.exports = {
   macro_isUsedAsHeaderGuard,
   macro_isFunctionLike,
   variable_isConst,
-  symbol_isConstexpr,
-  symbol_isStatic,
-  symbol_isMutable,
-  symbol_isThreadLocal,
-  symbol_isInline,
+  variable_isConstexpr,
+  variable_isStatic,
+  variable_isMutable,
+  variable_isThreadLocal,
+  variable_isInline,
   function_isInline,
   function_isStatic,
   function_isConstexpr,
@@ -251,5 +280,9 @@ module.exports = {
   symbolReference_isDynamic,
   symbolReference_isAddressOf,
   symbolReference_isImplicit,
-  symbolReference_isRef
+  symbolReference_isRef,
+  diagnosticLevels,
+  getDiagnosticLevelByName,
+  getDiagnosticLevelValue,
+  getDiagnosticLevelName
 };

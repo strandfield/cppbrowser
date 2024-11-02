@@ -43,8 +43,8 @@ function deleteSnapshotsFromProject(projectName, revisions) {
 
 function deleteSelection() {
   console.log("requested selection delete for:");
-  console.log(selection.list);
-  console.log(selection.tree);
+  //console.log(selection.list);
+  //console.log(selection.tree);
   
   for (const projectName in selection.tree) {
     const project = selection.tree[projectName];

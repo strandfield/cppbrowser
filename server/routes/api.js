@@ -1,7 +1,7 @@
 
 const { getSnapshotSymbolInfo } = require("../src/symbol.js");
 let ProjectManager = require("../src/projectmanager.js");
-const { symbolKinds } = require("@cppbrowser/snapshot-tools"); 
+const { symbolKinds, diagnosticLevels } = require("@cppbrowser/snapshot-tools"); 
 
 const Database = require('better-sqlite3');
 
@@ -304,7 +304,6 @@ function GetFileSema(req, res, next) {
       path: path
     },
     sema: {
-      diagnosticLevels: diagnostics.diagnosticLevels, // TODO: do not provide these
       diagnostics: diagnostics.diagnostics,
       includes: includes,
       symrefs: symrefs,
@@ -818,6 +817,18 @@ function GetSymbolIndexSymbolReferences(req, res, next) {
   });
 }
 
+////////////////////////////
+/// misc methods         ///
+////////////////////////////
+
+function GetDiagnosticLevels(req, res, next) {
+  res.json(diagnosticLevels);
+}
+
+////////////////////////////
+/// createRouter()       ///
+////////////////////////////
+
 function createRouter(app) {
   SITE_BASE_URL = app.locals.site.baseUrl;
   CAN_DELETE_PROJECT = app?.conf?.features?.deleteProject ?? true;
@@ -861,6 +872,9 @@ function createRouter(app) {
   router.get('/symbols/tree/:symbolId', GetSymbolTreeItem);
   router.get('/symbols/:symbolId', GetSymbolIndexSymbol);
   router.get('/symbols/:symbolId/references', GetSymbolIndexSymbolReferences);
+
+  // misc
+  router.get('/meta/diagnosticLevels', GetDiagnosticLevels);
 
   return router;
 }

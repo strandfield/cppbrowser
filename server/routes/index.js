@@ -203,7 +203,6 @@ function GetFileOrDirectory(req, res, next) {
       path: f.path,
       relativePath: path, 
       content: content,
-      diagnosticLevels: diagnostics.diagnosticLevels,
       diagnostics: diagnostics.diagnostics,
       includes: includes,
       sema: symrefs,

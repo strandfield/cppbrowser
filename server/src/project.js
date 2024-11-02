@@ -131,9 +131,6 @@ class ProjectRevision
             this.maxfileid = Math.max(r.id, this.maxfileid);
         }
 
-        this.diagnosticLevels = this.#readDiagnosticLevels();
-        this.accessSpecifiers = this.#readAccessSpecifiers();
-
         this.hasArgumentsPassedByReference = checkTableExists(this.db, "argumentPassedByReference");
     }
 
@@ -382,7 +379,6 @@ class ProjectRevision
 
         return {
             fileId: fileid,
-            diagnosticLevels: this.diagnosticLevels,
             diagnostics: diagnostics
         };
     }
@@ -827,25 +823,6 @@ class ProjectRevision
         let query = `SELECT line, column FROM argumentPassedByReference WHERE file_id = ?`;
         let stmt = this.db.prepare(query);
         return stmt.all(fileId);
-    }
-
-    #readDiagnosticLevels() {
-        let rows = this.db.prepare('SELECT value, name FROM diagnosticLevel').all();
-        let dlvls = {};
-        for (let r of rows) {
-            dlvls[Number(r.value)] = r.name;
-        }
-        return dlvls;
-    }
-
-    #readAccessSpecifiers() {
-        let rows = this.db.prepare('SELECT value, name FROM accessSpecifier ORDER BY value ASC').all();
-        let kinds = [];
-        for (let r of rows) {
-            assert(Number(r.value) == kinds.length);
-            kinds.push(r.name);
-        }
-        return kinds;
     }
 };
 

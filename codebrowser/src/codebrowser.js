@@ -1,5 +1,5 @@
 
-import { symbolKinds, symbol_isLocal, symbolReference_isImplicit } from '@cppbrowser/snapshot-tools';
+import { symbolKinds, symbol_isLocal, symbolReference_isImplicit, getDiagnosticLevelName } from '@cppbrowser/snapshot-tools';
 
 import { parser as lezerCxxParser } from '@lezer/cpp';
 import { highlightTree as lezerHighlightTree, classHighlighter as lezerClassHighlighter } from '@lezer/highlight';
@@ -765,7 +765,6 @@ export class CodeViewer {
         this.textDocument.setSema(sema);
 
         this.#preprocessSema(sema);
-        console.log(sema);
 
         let highlighter = new SyntaxHighlighter(this.textDocument, this.#tds, this.linksGenerator);
         highlighter.run(this.fileInfo);
@@ -792,7 +791,7 @@ export class CodeViewer {
         }
 
         for (let diagnostic of sema.diagnostics) {
-            let level = sema.diagnosticLevels[diagnostic.level];
+            let level = getDiagnosticLevelName(diagnostic.level);
             if (level == 'ignored') {
                 continue;
             }
