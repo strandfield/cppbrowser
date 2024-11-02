@@ -264,9 +264,9 @@ class SemaHelper {
         } else if (s.kind) {
             return symbolKinds.names[s.kind] == what;
         } else if (s.symbolId) {
-            return this.symbolIs(this.sema.symrefs.symbols[s.symbolId], what);
+            return this.symbolIs(this.sema.context.symbols[s.symbolId], what);
         } else if (typeof(s) == 'string') {
-            return this.symbolIs(this.sema.symrefs.symbols[s], what);
+            return this.symbolIs(this.sema.context.symbols[s], what);
         } else {
             return false;
         }
@@ -321,7 +321,7 @@ class SymbolReferencesConsumer {
 
     constructor(sema) {
         this.sema = sema;
-        this.refs = sema?.symrefs?.references ?? [];
+        this.refs = sema?.symrefs ?? [];
         this.semaHelper = new SemaHelper(sema);
     }
 
@@ -350,9 +350,9 @@ class SymbolReferencesConsumer {
 
     getSymbol(q) {
         if (q.symbolId) {
-            return this.sema.symrefs.symbols[q.symbolId];
+            return this.sema.context.symbols[q.symbolId];
         } else if (typeof(q) == 'string') {
-            return this.sema.symrefs.symbols[q];
+            return this.sema.context.symbols[q];
         } else {
             return null;
         }
@@ -443,8 +443,8 @@ class SyntaxHighlighter {
     }
 
     #emit(text, offset, classes) {
-        let symdefs = this.textDocument.getSema().symdefs;
-        let symrefs = this.textDocument.getSema().symrefs;
+        const sema = this.textDocument.getSema();
+        const symdefs = sema.context.symdefs;
 
         let arg_passed_by_ref = this.argumentsPassedByRef.seek(offset);
         if (arg_passed_by_ref) {
@@ -467,9 +467,9 @@ class SyntaxHighlighter {
 
         for (const ref of secondary_refs) {         
             let link_object = null;
-            if (symdefs.definitions[ref.symbolId] && !Array.isArray(symdefs.definitions[ref.symbolId])) {
-                let symdef = symdefs.definitions[ref.symbolId];
-                let path = symdefs.files[symdef.fileid];
+            if (symdefs[ref.symbolId] && !Array.isArray(symdefs[ref.symbolId])) {
+                let symdef = symdefs[ref.symbolId];
+                let path = sema.context.files[symdef.fileid];
                 link_object = this.linksGenerator?.createLinkToSymbolDefinition(path, ref.symbolId);
             }
 
@@ -478,7 +478,7 @@ class SyntaxHighlighter {
             elem.classList.add("impref");
 
             {
-                let symbol = symrefs.symbols[ref.symbolId];
+                let symbol = sema.context.symbols[ref.symbolId];
                 if (symbol) {
                     this.#addCssClassesBasedOnSymbolKind(elem, symbol);
                     elem.setAttribute("sym-id", symbol.id);
@@ -508,12 +508,12 @@ class SyntaxHighlighter {
             let link_object = null;
             let elemid = null;
             // TODO: utiliser les flags de la ref pour savoir si on est au niveau de la definition ?
-            if (primary_ref && symdefs.definitions[primary_ref.symbolId] && !Array.isArray(symdefs.definitions[primary_ref.symbolId])) {
-                let symdef = symdefs.definitions[primary_ref.symbolId];
+            if (primary_ref && symdefs[primary_ref.symbolId] && !Array.isArray(symdefs[primary_ref.symbolId])) {
+                let symdef = symdefs[primary_ref.symbolId];
                 let isatdef = (symdef.fileid == this.fileInfo.id && symdef.line == this.currentLineIndex + 1);
-                let islocalsym = SemaHelper.isLocal(symrefs.symbols[primary_ref.symbolId]);
+                let islocalsym = SemaHelper.isLocal(sema.context.symbols[primary_ref.symbolId]);
                 if (!isatdef && !islocalsym) {
-                    let path = symdefs.files[symdef.fileid];
+                    let path = sema.context.files[symdef.fileid];
                     link_object = this.linksGenerator?.createLinkToSymbolDefinition(path, primary_ref.symbolId);
                 } else {
                     // TODO: si on est pas en mode "document", on voudrait quand même potentiellement créer un lien
@@ -531,7 +531,7 @@ class SyntaxHighlighter {
             }
 
             if (primary_ref) {
-                let symbol = symrefs.symbols[primary_ref.symbolId];
+                let symbol = sema.context.symbols[primary_ref.symbolId];
                 if (symbol) {
                     this.#addCssClassesBasedOnSymbolKind(span, symbol);
                     span.setAttribute("sym-id", symbol.id);
@@ -743,11 +743,11 @@ export class CodeViewer {
         {
             let symrefs = sema.symrefs;
 
-            symrefs.references.forEach(ref => {
+            symrefs.forEach(ref => {
                 ref.offset = this.textDocument.getOffsetByLineNumber(ref.line) + (ref.col - 1);
             });
 
-            symrefs.references.sort((a, b) => { return a.offset - b.offset; });
+            symrefs.sort((a, b) => { return a.offset - b.offset; });
         }
 
         if (sema.annotations?.refargs)
@@ -765,6 +765,7 @@ export class CodeViewer {
         this.textDocument.setSema(sema);
 
         this.#preprocessSema(sema);
+        console.log(sema);
 
         let highlighter = new SyntaxHighlighter(this.textDocument, this.#tds, this.linksGenerator);
         highlighter.run(this.fileInfo);
@@ -846,7 +847,7 @@ export class CodeViewer {
     }
 
     #fillTooltip(symid) {
-        let symbol = this.textDocument.getSema().symrefs.symbols[symid];
+        let symbol = this.textDocument.getSema().context.symbols[symid];
         
         let content_element = document.createElement('DIV');
 

@@ -184,7 +184,7 @@ function GetFileOrDirectory(req, res, next) {
     return;
   }
 
-  let symrefs = revision.listSymbolReferencesInFile(f.id);
+  let symrefs = revision.listSymbolReferencesInFileLegacy(f.id);
   let symdefs = revision.listDefinitionsOfSymbolsReferencedInFile(f.id);
   let symdeffiles = {};
   for (const [key, value] of Object.entries(symdefs)) {

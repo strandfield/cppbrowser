@@ -278,8 +278,9 @@ function GetFileSema(req, res, next) {
     return;
   }
 
-  let symrefs = revision.listSymbolReferencesInFile(f.id);
-  let symdefs = revision.listDefinitionsOfSymbolsReferencedInFile(f.id);
+  const symrefs = revision.listSymbolReferencesInFile(f.id);
+  const symbols = revision.listSymbolsReferencedInFile(f.id);
+  const symdefs = revision.listDefinitionsOfSymbolsReferencedInFile(f.id);
   let symdeffiles = {};
   for (const [key, value] of Object.entries(symdefs)) {
     if (Array.isArray(value)) {
@@ -291,9 +292,9 @@ function GetFileSema(req, res, next) {
     }
     
   }
-  let diagnostics = revision.getFileDiagnostics(f.id);
-  let includes = revision.getFileIncludes(f.id);
-  let arguments_passed_by_ref = revision.getArgumentsPassedByReference(f.id);
+  const diagnostics = revision.getFileDiagnostics(f.id);
+  const includes = revision.getFileIncludes(f.id);
+  const arguments_passed_by_ref = revision.getArgumentsPassedByReference(f.id);
 
   res.json({
     success: true,
@@ -307,9 +308,10 @@ function GetFileSema(req, res, next) {
       diagnostics: diagnostics.diagnostics,
       includes: includes,
       symrefs: symrefs,
-      symdefs: {
-        definitions: symdefs,
-        files: symdeffiles
+      context: {
+        symbols: symbols,
+        symdefs: symdefs,
+        files: symdeffiles,
       },
       annotations: {
         refargs: arguments_passed_by_ref

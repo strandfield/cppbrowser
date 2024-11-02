@@ -721,16 +721,18 @@ class ProjectRevision
         return result;
     }
 
-    listSymbolReferencesInFile(fileid) {
-        let query = `WITH referencedSymbols AS (SELECT DISTINCT symbol_id from symbolReference where file_id = ${fileid}) 
-            SELECT id, kind, parent, name, flags FROM symbol 
-            WHERE id IN referencedSymbols`;
+    listSymbolsReferencedInFile(fileId) {
+        let query = `WITH referencedSymbols AS (SELECT DISTINCT symbol_id from symbolReference where file_id = ${fileId}) 
+          SELECT id, kind, parent, name, flags FROM symbol 
+          WHERE id IN referencedSymbols`;
         let stmt = this.db.prepare(query);
         stmt.safeIntegers();
-        let referencedSymbols = this.#readSymbolsAsDict(stmt.all());
-  
-        query = `SELECT symbol_id, line, col, parent_symbol_id, flags FROM symbolReference WHERE file_id = ${fileid}`;
-        stmt = this.db.prepare(query);
+        return this.#readSymbolsAsDict(stmt.all());
+    }
+
+    listSymbolReferencesInFile(fileId) {  
+        const query = `SELECT symbol_id, line, col, flags FROM symbolReference WHERE file_id = ${fileId}`;
+        let stmt = this.db.prepare(query);
         stmt.safeIntegers();
 
         let references = [];
@@ -741,12 +743,15 @@ class ProjectRevision
                 symbolId: ProjectRevision.#convertBigIntToHex(row.symbol_id),
                 flags: Number(row.flags),
             };
-            if (row.parent_symbol_id) {
-                r.parentSymbolId = ProjectRevision.#convertBigIntToHex(row.parent_symbol_id);
-            }
             references.push(r);
         }
 
+        return references;
+    }
+
+    listSymbolReferencesInFileLegacy(fileid) {
+        const referencedSymbols = this.listSymbolsReferencedInFile(fileid);
+        const references = this.listSymbolReferencesInFile(fileid);
         return {
             references: references,
             symbols: referencedSymbols
