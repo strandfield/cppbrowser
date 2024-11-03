@@ -4,7 +4,7 @@ import SymbolReferencesListViewItem from './SymbolReferencesListViewItem.vue';
 
 import { symbolReference_isCall, symbolReference_isAddressOf, symbolReference_isRead, symbolReference_isWrite } from '@cppbrowser/snapshot-tools';
 
-import { ref, onMounted, watch, provide, reactive } from 'vue'
+import { ref, onMounted, watch, provide, reactive, toRef } from 'vue'
 
 import $ from 'jquery'
 
@@ -23,9 +23,9 @@ const props = defineProps({
   }
 });
 
-provide('symbolId', props.symbolId);
-provide('projectName', props.projectName);
-provide('projectVersion', props.projectVersion);
+provide('symbolId', toRef(props, 'symbolId'));
+provide('projectName', toRef(props, 'projectName'));
+provide('projectVersion', toRef(props, 'projectVersion'));
 
 const symbolReferencesByFile = ref([]);
 const symbolReferencesContext = ref(null);
@@ -129,7 +129,7 @@ function fetchData() {
 
   
   symbolReferencesByFile.value = [];
-  symbolReferencesContext.value = {};
+  symbolReferencesContext.value = null;
   loading.value = true;
 }
 

@@ -326,7 +326,9 @@ class SymbolReferencesConsumer {
 
     getRefsAtOffset(offset) {
         while (this.index < this.refs.length && this.refs[this.index].offset < offset) {
-            console.log(`@ ${offset} skipping ref #${this.index}: ${JSON.stringify(this.refs[this.index])}`);
+            // TODO: decide what to do with that...
+            // skipping refs may be legitimate, but it could also be a bug
+            //console.log(`@ ${offset} skipping ref #${this.index}: ${JSON.stringify(this.refs[this.index])}`);
             this.index++;
         }
 

@@ -20,7 +20,7 @@ const projectVersion = inject('projectVersion');
 const symbolReferencesContext = inject('symbolReferencesContext');
 const listViewFilters = inject('listViewFilters');
 
-const symbol = computed(() => getSymbolById(symbolId));
+const symbol = computed(() => getSymbolById(symbolId.value));
 
 const lines = ref([]);
 const pathParts = computed(() => props.fileEntry.filePath.split("/"));
@@ -38,7 +38,7 @@ function setFileContent(data) {
 }
 
 function fetchFileContent() {
-  $.get(`/api/snapshots/${projectName}/${projectVersion}/files/${props.fileEntry.filePath}`, (data) => {
+  $.get(`/api/snapshots/${projectName.value}/${projectVersion.value}/files/${props.fileEntry.filePath}`, (data) => {
       setFileContent(data);
   });
 }
@@ -95,21 +95,21 @@ function escapeHtmlChars(text) {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function formatLine(e) {
+function formatLine(e, symbol) {
   let text = getLine(e.line);
 
   if (text == "") {
     return text;
   }
 
-  if (!symbol.value) {
+  if (!symbol) {
     return escapeHtmlChars(text);
   }
 
   const i = e.col-1;
   let result = escapeHtmlChars(text.substring(0,i));
 
-  const name = getSymbolShortName(symbol.value);
+  const name = getSymbolShortName(symbol);
   text = text.substring(i);
   if (text.startsWith(name)) {
     result += `<span class="refhighlight">${name}</span>`;
@@ -163,7 +163,7 @@ function formatRefby(e) {
       <template v-for="refEntry in fileEntry.references" :key="refEntry.line + ':' + refEntry.col">
         <tr v-show="shouldShowRef(refEntry)">
           <td><RouterLink :to="{ name: 'file', params: { projectName: projectName, projectRevision: projectVersion, pathParts: pathParts }, hash: getUrlHashForLine(refEntry.line) }">{{ refEntry.line }}</RouterLink></td>
-          <td v-html="formatLine(refEntry)"></td>
+          <td v-html="formatLine(refEntry, symbol)"></td>
           <td>{{ formatRefFlags(refEntry) }}</td>
           <td>
             <span v-if="refEntry.refbySymbolId">by</span> <RouterLink v-if="refEntry.refbySymbolId"
