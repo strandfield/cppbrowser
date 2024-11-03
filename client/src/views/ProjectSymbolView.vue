@@ -1,7 +1,6 @@
 <script setup>
 
 import SnapshotSidebarSymbolTab from '@/components/SnapshotSidebarSymbolTab.vue'
-//import DeclarationViewerElement from '@/components/DeclarationViewerElement.vue';
 import SymbolReferencesListView from '@/components/SymbolReferencesListView.vue';
 import SymbolDeclarationsListView from '@/components/SymbolDeclarationsListView.vue';
 
@@ -46,22 +45,22 @@ function postProcessSymbolInfo(syminfo) {
 }
 
 function fetchSymbolInfo() {
-  console.log(`fetching symbol info for ${props.symbolId}`);
-
-  $.get(`/api/snapshots/${props.projectName}/${props.projectRevision}/symbols/${props.symbolId}`, (data) => {
-      if (data.success) {
+  const recv = function (data) {
+    if (data.success) {
         postProcessSymbolInfo(data.symbol);
         symbol.value = data.symbol;
+        document.title = `${data.symbol.name} - ${props.projectName}`;
       } else {
         console.error(data);
       }
-  });
+  }
+
+  $.get(`/api/snapshots/${props.projectName}/${props.projectRevision}/symbols/${props.symbolId}`, recv);
 }
 
 watch(() => props.projectName + "/" + props.projectRevision + "/" + props.symbolId, fetchSymbolInfo, { immediate: false });
 
 onMounted(() => {
-  console.log(`symbolview is now mounted.`);
   fetchSymbolInfo();
 });
 

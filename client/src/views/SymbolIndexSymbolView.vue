@@ -23,17 +23,20 @@ function fetchSymbolInfo(symbolId = null) {
     symbolId = props.symbolId;
   }
 
-  $.get(`/api/symbols/${props.symbolId}`, (data) => {
-            if (data.success) {
-              if (data.symbol.id == props.symbolId) {
-                symbol.value = data.symbol;
-              }
-            }
+  const recv = function (data) {
+    if (data.success) {
+      if (data.symbol.id == props.symbolId) {
+        symbol.value = data.symbol;
+      }
+    }
 
-            loading.value = false;
-            loaded.value = true;
-        });
-  
+    loading.value = false;
+    loaded.value = true;
+
+    document.title = `${data.symbol.name} - C++ Browser`;
+  }
+
+  $.get(`/api/symbols/${props.symbolId}`, recv);
   loading.value = true;
 }
 
