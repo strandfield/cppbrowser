@@ -18,6 +18,15 @@ const symbol = ref(null);
 const loaded = ref(false);
 const loading = ref(false);
 
+function postProcessSymbolInfo(symbol) {
+  const collator = new Intl.Collator();
+  const namecomp = (a,b) => collator.compare(a.name, b.name);
+
+  for (const key in symbol.children) {
+    symbol.children[key].sort(namecomp);
+  }
+}
+
 function fetchSymbolInfo(symbolId = null) {
   if (!symbolId) {
     symbolId = props.symbolId;
@@ -26,6 +35,7 @@ function fetchSymbolInfo(symbolId = null) {
   const recv = function (data) {
     if (data.success) {
       if (data.symbol.id == props.symbolId) {
+        postProcessSymbolInfo(data.symbol);
         symbol.value = data.symbol;
       }
     }
@@ -41,7 +51,6 @@ function fetchSymbolInfo(symbolId = null) {
 }
 
 onMounted(() => {
-  console.log(`SymbolIndexSymbolView is now mounted.`);
   fetchSymbolInfo();
 });
 
