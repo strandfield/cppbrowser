@@ -155,8 +155,10 @@ watch(() => props.symbolId, fetchSymbolInfo);
         </template>
       </template>
 
-      <h2>References</h2>
-      <SymbolIndexSymbolReferencesListView :symbolId="symbolId"></SymbolIndexSymbolReferencesListView>
+      <template v-if="symbol.kind != 'namespace'">
+        <h2>References</h2>
+        <SymbolIndexSymbolReferencesListView :symbolId="symbolId"></SymbolIndexSymbolReferencesListView>
+      </template>
     </div>
   </main>
 </template>
