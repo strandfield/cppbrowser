@@ -406,7 +406,7 @@ class ProjectRevision
             symbol.parentId = ProjectRevision.#convertBigIntToHex(row.parent);
         }
 
-        if (row.flags) {
+        if (row.flags != undefined) {
             symbol.flags = Number(row.flags);
         }
 
@@ -566,7 +566,7 @@ class ProjectRevision
             row.parent = undefined;
         }
 
-        if (row.flags) {
+        if (row.flags != undefined) {
             row.flags = Number(row.flags);
         }
     }
@@ -701,7 +701,6 @@ class ProjectRevision
             curfilerefs.push({
                 line: Number(row.line),
                 col: Number(row.col),
-                flags: Number(row.flags),
                 flags: Number(row.flags),
                 refbySymbolId: row.parent_symbol_id ? ProjectRevision.#convertBigIntToHex(row.parent_symbol_id) : undefined,
             });
