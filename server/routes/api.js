@@ -1,7 +1,7 @@
 
 const { getSnapshotSymbolInfo } = require("../src/symbol.js");
 let ProjectManager = require("../src/projectmanager.js");
-const { symbolKinds } = require("../src/symbol.js");
+const { symbolKinds, diagnosticLevels } = require("@cppbrowser/snapshot-tools"); 
 
 const Database = require('better-sqlite3');
 
@@ -39,7 +39,6 @@ function GetSnapshotNames(req, res, next) {
   res.json(snapshots);
 }
 
-// à tester
 function DeleteProjectSnapshots(req, res, next) {
   let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
 
@@ -127,7 +126,6 @@ function RemoveSnapshot(req, res, next) {
   });
 }
 
-// à tester
 function UploadSnapshot(req, res, next) {
 
   if (!CAN_UPLOAD_SNAPSHOT) {
@@ -280,35 +278,42 @@ function GetFileSema(req, res, next) {
     return;
   }
 
-  let symrefs = revision.listSymbolReferencesInFile(f.id);
-  if (symrefs) {
-    symrefs.symbolKinds = revision.symbolKinds;
-    symrefs.symbolFlags = revision.symbolFlags;
-    symrefs.refFlags = revision.symbolReferenceFlags;
-  }
-  let symdefs = revision.listDefinitionsOfSymbolsReferencedInFile(f.id);
+  const symrefs = revision.listSymbolReferencesInFile(f.id);
+  const symbols = revision.listSymbolsReferencedInFile(f.id);
+  const symdefs = revision.listDefinitionsOfSymbolsReferencedInFile(f.id);
   let symdeffiles = {};
   for (const [key, value] of Object.entries(symdefs)) {
-    symdeffiles[value.fileid] = revision.getFilePath(value.fileid);
+    if (Array.isArray(value)) {
+      for (e of value) {
+        symdeffiles[e.fileid] = revision.getFilePath(e.fileid);
+      }
+    } else {
+      symdeffiles[value.fileid] = revision.getFilePath(value.fileid);
+    }
+    
   }
-  let diagnostics = revision.getFileDiagnostics(f.id);
-  let includes = revision.getFileIncludes(f.id);
+  const diagnostics = revision.getFileDiagnostics(f.id);
+  const includes = revision.getFileIncludes(f.id);
+  const arguments_passed_by_ref = revision.getArgumentsPassedByReference(f.id);
 
   res.json({
     success: true,
     file: {
-      id: f.id,
+      id: Number(f.id),
       completePath: f.path,
       path: path
     },
     sema: {
-      diagnosticLevels: diagnostics.diagnosticLevels,
       diagnostics: diagnostics.diagnostics,
       includes: includes,
       symrefs: symrefs,
-      symdefs: {
-        definitions: symdefs,
-        files: symdeffiles
+      context: {
+        symbols: symbols,
+        symdefs: symdefs,
+        files: symdeffiles,
+      },
+      annotations: {
+        refargs: arguments_passed_by_ref
       }
     }
   });
@@ -342,7 +347,7 @@ function GetSnapshotSymbolTreeItem(req, res, next) {
       return;
     }
 
-    let children = revision.getChildSymbolsEx(symbol.id);
+    let children = revision.getChildSymbols(symbol.id);
 
     children.forEach(child => {
       child.kind = symbolKinds.names[child.kind];
@@ -358,7 +363,7 @@ function GetSnapshotSymbolTreeItem(req, res, next) {
       children: children,
     });
   } else {
-    let symbols = revision.getTopLevelSymbols();
+    let symbols = revision.getProjectTopLevelSymbols();
 
     symbols.forEach(s => {
       s.kind = symbolKinds.names[s.kind];
@@ -390,16 +395,8 @@ function GetSnapshotSymbolNameDictionary(req, res, next) {
 
   };
 
-  let select = function(kind) {
-    if (kind == 'namespace') {
-      return revision.selectNamespaces();
-    } else {
-      return revision.selectClassesWithDefinition(kind);
-    }
-  }
-
   for (const key of filters) {
-    let rows = select(key);
+    let rows = revision.getProjectSymbolsEx({kind: key});
 
     let entries = {
       id: [],
@@ -410,7 +407,7 @@ function GetSnapshotSymbolNameDictionary(req, res, next) {
     for (const row of rows) {
       entries.id.push(row.id);
       entries.name.push(row.name);
-      entries.parent.push(row.parent);
+      entries.parent.push(row.parentId);
     }
 
     dict[key] = entries;
@@ -423,123 +420,6 @@ function GetSnapshotSymbolNameDictionary(req, res, next) {
       projectRevision: req.params.projectRevision
     },
     dict: dict
-  });
-}
-
-function GetSnapshotSymbolNameDictionaryNs(req, res, next) {
-  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
-  let revision = project?.getRevision(req.params.projectRevision);
-
-  if (!revision) {
-    res.status(404);
-    res.json({
-      success: false,
-      reason: "could not find snapshot"
-    });
-    return;
-  }
-
-  let rows = revision.selectNamespaces();
-
-  let namespaces = {
-    id: [],
-    name: [],
-    parent: []
-  };
-
-  for (const row of rows) {
-    namespaces.id.push(row.id);
-    namespaces.name.push(row.name);
-    namespaces.parent.push(row.parent);
-  }
-
-  res.json({
-    success: true,
-    symbols: {
-      namespace: namespaces
-    }
-  });
-}
-
-function GetSnapshotSymbolNameDictionaryClasses(req, res, next) {
-  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
-  let revision = project?.getRevision(req.params.projectRevision);
-
-  if (!revision) {
-    res.status(404);
-    res.json({
-      success: false,
-      reason: "could not find snapshot"
-    });
-    return;
-  }
-
-  let symbols = {
-
-  };
-
-  for (const key of ['class', 'union', 'struct']) {
-    let rows = revision.selectClassesWithDefinition(key);
-
-    let entries = {
-      id: [],
-      name: [],
-      parent: []
-    };
-
-    for (const row of rows) {
-      entries.id.push(row.id);
-      entries.name.push(row.name);
-      entries.parent.push(row.parent);
-    }
-
-    symbols[key] = entries;
-  }
-
-  res.json({
-    success: true,
-    symbols: symbols
-  });
-}
-
-function GetSnapshotSymbolNameDictionaryEnums(req, res, next) {
-  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
-  let revision = project?.getRevision(req.params.projectRevision);
-
-  if (!revision) {
-    res.status(404);
-    res.json({
-      success: false,
-      reason: "could not find snapshot"
-    });
-    return;
-  }
-
-  let symbols = {
-
-  };
-
-  for (const key of ['enum', 'enum-constant']) {
-    let rows = revision.selectClassesWithDefinition(key);
-
-    let entries = {
-      id: [],
-      name: [],
-      parent: []
-    };
-
-    for (const row of rows) {
-      entries.id.push(row.id);
-      entries.name.push(row.name);
-      entries.parent.push(row.parent);
-    }
-
-    symbols[key] = entries;
-  }
-
-  res.json({
-    success: true,
-    symbols: symbols
   });
 }
 
@@ -562,6 +442,69 @@ function GetSnapshotSymbol(req, res, next) {
   res.json({
     success: true,
     symbol: info
+  });
+}
+
+function GetSnapshotSymbolDeclarations(req, res, next) {
+  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
+  let revision = project?.getRevision(req.params.projectRevision);
+
+  if (!revision) {
+    res.status(404);
+    res.json({
+      success: false,
+      reason: "no such revision"
+    });
+    return;
+  }
+
+  let declarations = revision.listSymbolDeclarations(req.params.symbolId);
+  for (let decl of declarations) {
+    decl.filePath = revision.getFilePath(decl.fileId);
+    delete decl.fileId;
+  }
+  
+  res.json({
+    success: true,
+    symbolId: req.params.symbolId,
+    declarations: declarations
+  });
+}
+
+function GetSnapshotSymbolReferences(req, res, next) {
+  let project = ProjectManager.globalInstance.getProjectByName(req.params.projectName);
+  let revision = project?.getRevision(req.params.projectRevision);
+
+  if (!revision) {
+    res.status(404);
+    res.json({
+      success: false,
+      reason: "no such revision"
+    });
+    return;
+  }
+
+  let references_by_file = revision.listSymbolReferencesByFile(req.params.symbolId);
+
+  let symbols = {};
+  symbols[req.params.symbolId] = revision.getSymbolById(req.params.symbolId);
+  for (const file_entry of references_by_file) {
+    for (const r of file_entry.references) {
+      if (!r.refbySymbolId || symbols[r.refbySymbolId] != undefined) {
+        continue;
+      }
+  
+      symbols[r.refbySymbolId] = revision.getSymbolById(r.refbySymbolId);
+    }
+  }
+
+  res.json({
+    success: true,
+    symbolId: req.params.symbolId,
+    references: references_by_file,
+    context: {
+      symbols: symbols
+    }
   });
 }
 
@@ -628,8 +571,8 @@ function GetSymbolTreeRoot(req, res, next) {
     children.push({
       id: symbol.id,
       name: symbol.name,
-      displayName: symbol.displayName,
       kind: symbolKinds.names[symbol.kind],
+      flags: symbol.flags,
       childCount: symbol.childCount ?? 0
     });
   }
@@ -658,7 +601,6 @@ function GetSymbolTreeItem(req, res, next) {
     children.push({
       id: child.id,
       name: child.name,
-      displayName: child.displayName,
       kind: symbolKinds.names[child.kind],
       childCount: child.childCount ?? 0
     });
@@ -670,7 +612,6 @@ function GetSymbolTreeItem(req, res, next) {
       id: symbol.id,
       parentId: symbol.parentId,
       name: symbol.name,
-      displayName: symbol.displayName,
       kind: symbolKinds.names[symbol.kind]
     },
     children: children
@@ -759,6 +700,18 @@ function GetSymbolIndexSymbolReferences(req, res, next) {
   });
 }
 
+////////////////////////////
+/// misc methods         ///
+////////////////////////////
+
+function GetDiagnosticLevels(req, res, next) {
+  res.json(diagnosticLevels);
+}
+
+////////////////////////////
+/// createRouter()       ///
+////////////////////////////
+
 function createRouter(app) {
   SITE_BASE_URL = app.locals.site.baseUrl;
   CAN_DELETE_PROJECT = app?.conf?.features?.deleteProject ?? true;
@@ -787,10 +740,9 @@ function createRouter(app) {
   // symbol-related routes
   router.get('/snapshots/:projectName/:projectRevision/symbols/tree', GetSnapshotSymbolTreeItem);
   router.get('/snapshots/:projectName/:projectRevision/symbols/dict', GetSnapshotSymbolNameDictionary);
-  router.get('/snapshots/:projectName/:projectRevision/symbols/dict/namespaces', GetSnapshotSymbolNameDictionaryNs);
-  router.get('/snapshots/:projectName/:projectRevision/symbols/dict/classes', GetSnapshotSymbolNameDictionaryClasses);
-  router.get('/snapshots/:projectName/:projectRevision/symbols/dict/enums', GetSnapshotSymbolNameDictionaryEnums);
   router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId', GetSnapshotSymbol);
+  router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId/declarations', GetSnapshotSymbolDeclarations);
+  router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId/references', GetSnapshotSymbolReferences);
 
   // symbol index related routes
   router.get('/symbols/dict', GetSymbolIndexDictionary);
@@ -799,6 +751,9 @@ function createRouter(app) {
   router.get('/symbols/tree/:symbolId', GetSymbolTreeItem);
   router.get('/symbols/:symbolId', GetSymbolIndexSymbol);
   router.get('/symbols/:symbolId/references', GetSymbolIndexSymbolReferences);
+
+  // misc
+  router.get('/meta/diagnosticLevels', GetDiagnosticLevels);
 
   return router;
 }

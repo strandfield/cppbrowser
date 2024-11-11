@@ -1,6 +1,7 @@
 <script setup>
 
 import SnapshotFileSearchResultItem from '@/components/SnapshotFileSearchResultItem.vue';
+import SymbolIcon from './icons/SymbolIcon.vue';
 
 import { FileSearchEngine } from '@/lib/file-search.js';
 import { SymbolSearchEngine } from '@/lib/symbol-search.js';
@@ -126,8 +127,6 @@ function resetSearchText() {
 
 function reconfigureSearchEngines() {
   if (symbolSearchEngine) {
-    console.log(`need to reconf search engine for version ${projectName.value}/${projectRevision.value}`);
-
     symbolSearchEngine.reconfigure({
       projectName: projectName.value,
       projectRevision: projectRevision.value
@@ -181,6 +180,7 @@ watch(route, hidePopup);
         </p>
         <ul v-if="symbolSearchEngineState.results.length > 0">
           <li v-for="result in symbolSearchEngineState.results" :key="result.symbol.id">
+            <SymbolIcon :symbolKind="result.symbol.kind"></SymbolIcon>
             <RouterLink
               :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: result.symbol.id } }">
               {{ result.symbol.name }}</RouterLink>

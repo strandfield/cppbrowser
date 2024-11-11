@@ -29,7 +29,6 @@ function fetchSema() {
     // instead of using "api" routes ?
     const url = `/api/snapshots/${project.name}/${project.revision}/sema/${file.path}`;
     $.get(url, function (data) {
-        console.log(data);
         if (!data || !data.success) {
             console.log("error while fetching file's sema");
             // TODO: highlight code using heuristic only

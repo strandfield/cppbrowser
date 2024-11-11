@@ -11,6 +11,8 @@ var app = express();
 //console.log(process.env.APPDATA);
 //console.log(process.env.LOCALAPPDATA);
 
+console.log("cppbrowser version 0.2.0"); // TODO: do better
+
 function parseCommandLine(args = null) {
   if (!args) {
     args = process.argv.slice(2);

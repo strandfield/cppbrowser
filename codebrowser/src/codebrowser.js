@@ -1,4 +1,6 @@
 
+import { symbolKinds, symbol_isLocal, symbolReference_isImplicit, getDiagnosticLevelName } from '@cppbrowser/snapshot-tools';
+
 import { parser as lezerCxxParser } from '@lezer/cpp';
 import { highlightTree as lezerHighlightTree, classHighlighter as lezerClassHighlighter } from '@lezer/highlight';
 
@@ -101,6 +103,153 @@ export class NavTooltip
     }
 };
 
+export class TextDocument {
+    lines = [];
+    ast = null;
+    sema = null;
+    #lineHasComment = [];
+    #commentLinesListed = false;
+    #lineOffsets = [];
+
+    constructor(text = null) {
+        if (text) {
+            this.setPlainText(text);
+        }
+    }
+
+    setPlainText(text) {
+        this.lines = text.split("\n");
+        this.#lineOffsets = [];
+        this.#lineHasComment = [];
+        this.#commentLinesListed = false;
+        this.clearAst();
+        this.clearSema();
+
+        let offset = 0;
+
+        for (const i in this.lines) {
+            let line = this.lines[i];
+            this.#lineOffsets.push(offset);
+            offset += line.length + 1;
+            this.#lineHasComment.push(false);
+        }
+    }
+
+    toPlainText() {
+        return this.lines.join("\n");
+    }
+
+    numberOfLines() {
+        return this.lines.length;
+    }
+
+    getLineOffset(index) {
+        return this.#lineOffsets[index];
+    }
+
+    getOffsetByLineNumber(lineNumber) {
+        return this.getLineOffset(lineNumber-1);
+    }
+
+    getSema() {
+        return this.sema;
+    }
+
+    setSema(sema) {
+        this.sema = sema;
+    }
+
+    clearSema() {
+        this.setSema(null);
+    }
+
+    getAst() {
+        return this.ast;
+    }
+
+    setAst(ast) {
+        this.ast = ast;
+    }
+
+    clearAst() {
+        this.setAst(null);
+    }
+
+    getOrCreateAst() {
+        if (!this.ast) {
+            const text = this.toPlainText();
+            this.ast = lezerCxxParser.parse(text);
+        }
+
+        return this.ast;
+    }
+
+
+    #getNodeType(name) {
+        for (const elem of lezerCxxParser.nodeSet.types) {
+            if (elem.name == name) {
+                return elem.id;
+            }
+        }
+        return null;
+    }
+
+    hasCommentInformation() {
+        return this.#commentLinesListed;
+    }
+
+    listCommentLines() {
+        if (this.#commentLinesListed) return;
+
+        const ast = this.getOrCreateAst();
+        const linecomment = this.#getNodeType("LineComment");
+        const blockcomment = this.#getNodeType("BlockComment");
+        let cursor = ast.cursor();
+
+        let comments = [];
+        
+        cursor.iterate((node)=>{
+            if (node.type.id == linecomment || node.type.id == blockcomment) {
+                comments.push({
+                    from: node.from,
+                    to: node.to
+                });
+            }
+        });
+
+        let i = 0;
+        let j = 0;
+
+        while (i < this.lines.length && j < comments.length)
+        {
+            const offset = this.getLineOffset(i);
+            const line = this.lines[i];
+            const comment = comments[j];
+
+            if (offset > comment.to) {
+                ++j;
+                continue;
+            } else if (offset + line.length < comment.from) {
+                ++i;
+                continue;
+            }
+
+            this.#lineHasComment[i] = true;
+            ++i;
+        }
+
+        this.#commentLinesListed = true;
+    }
+
+    lineHasComment(i) {
+        return this.#lineHasComment[i];
+    }
+
+    getHasCommentByLineNumber(lineNum) {
+        return this.lineHasComment(lineNum - 1);
+    }
+}
+
 class SemaHelper {
     sema = null;
 
@@ -109,15 +258,14 @@ class SemaHelper {
     }
 
     symbolIs(s, what) {
-        // TODO: review/redesign sema json, it has weird structure
         if (!s) {
             return false;
         } else if (s.kind) {
-            return this.sema.symrefs.symbolKinds[s.kind] == what;
+            return symbolKinds.names[s.kind] == what;
         } else if (s.symbolId) {
-            return this.symbolIs(this.sema.symrefs.symbols[s.symbolId], what);
+            return this.symbolIs(this.sema.context.symbols[s.symbolId], what);
         } else if (typeof(s) == 'string') {
-            return this.symbolIs(this.sema.symrefs.symbols[s], what);
+            return this.symbolIs(this.sema.context.symbols[s], what);
         } else {
             return false;
         }
@@ -151,19 +299,36 @@ class ArrayIterator {
     }
 }
 
+class AnnotationIterator extends ArrayIterator {
+    
+    seek(offset) {
+        while (!this.atEnd() && this.value().offset < offset) {
+            this.next();
+        }
+
+        if (!this.atEnd() && this.value().offset == offset) {
+            return this.value();
+        } else {
+            return null;
+        }
+    }
+}
+
 class SymbolReferencesConsumer {
     refs = [];
     index = 0;
 
     constructor(sema) {
         this.sema = sema;
-        this.refs = sema?.symrefs?.references ?? [];
+        this.refs = sema?.symrefs ?? [];
         this.semaHelper = new SemaHelper(sema);
     }
 
     getRefsAtOffset(offset) {
         while (this.index < this.refs.length && this.refs[this.index].offset < offset) {
-            console.log(`@ ${offset} skipping ref #${this.index}: ${JSON.stringify(this.refs[this.index])}`);
+            // TODO: decide what to do with that...
+            // skipping refs may be legitimate, but it could also be a bug
+            //console.log(`@ ${offset} skipping ref #${this.index}: ${JSON.stringify(this.refs[this.index])}`);
             this.index++;
         }
 
@@ -186,49 +351,17 @@ class SymbolReferencesConsumer {
 
     getSymbol(q) {
         if (q.symbolId) {
-            return this.sema.symrefs.symbols[q.symbolId];
+            return this.sema.context.symbols[q.symbolId];
         } else if (typeof(q) == 'string') {
-            return this.sema.symrefs.symbols[q];
+            return this.sema.context.symbols[q];
         } else {
             return null;
         }
     }
-
-    // TODO: create a function that returns primary ref and secondary refs
-    selectRef(refs, text) {
-        if (!refs) {
-            return null;
-        } else if (!Array.isArray(refs)) {
-            return refs;
-        }
-
-        let goodname = refs.filter(e => this.getSymbol(e).name == text);
-        if (goodname.length == 1) {
-            return goodname[0];
-        }
-
-        if (goodname.length == 2) {
-            if (this.semaHelper.symbolIs(goodname[0], 'variable') && this.semaHelper.symbolIs(goodname[1], 'constructor')) {
-                return goodname[0];
-            } else if (this.semaHelper.symbolIs(goodname[1], 'variable') && this.semaHelper.symbolIs(goodname[0], 'constructor')) {
-                return goodname[1];
-            }
-
-            if (this.semaHelper.symbolIs(goodname[0], 'class') && this.semaHelper.symbolIs(goodname[1], 'constructor')) {
-                return goodname[1];
-            } else if (this.semaHelper.symbolIs(goodname[1], 'class') && this.semaHelper.symbolIs(goodname[0], 'constructor')) {
-                return goodname[0];
-            }
-        }
-
-        let reflist = refs.map(e => e.symbolId);
-        console.log(`Multiple refs @${refs[0].line}:${refs[0].col} near "${text}": ${JSON.stringify(reflist)}`);
-        return refs[0];
-    }
 }
 
 class SyntaxHighlighter {
-    lines = [];
+    textDocument = null;
     text = null;
     tds = null;
     linksGenerator = null;
@@ -236,14 +369,11 @@ class SyntaxHighlighter {
     currentLineIndex = -1;
     currentTD = null;
 
-
-    constructor(lines, text, tds, linksGenerator) {
-        this.lines = lines;
-        this.text = text;
+    constructor(textDocument, tds, linksGenerator) {
+        this.textDocument = textDocument;
         this.tds = tds;
         this.linksGenerator = linksGenerator;
     }
-
 
     #fetchNextLine() {
         this.currentLineIndex += 1;
@@ -257,7 +387,7 @@ class SyntaxHighlighter {
 
 
     #generateTokens(styles) {
-        let text = this.text;
+        const text = this.text;
         let tokens = [];
 
         for (const style of styles) {
@@ -284,69 +414,127 @@ class SyntaxHighlighter {
         return tokens;
     }
 
-    #emit(text, offset, classes) {
-        let symdefs = this.sema.symdefs;
-        let symrefs = this.sema.symrefs;
-        let references_at_offset = this.symrefs_consumer.getRefsAtOffset(offset);
-        let matching_ref = this.symrefs_consumer.selectRef(references_at_offset, text);
+    #addCssClassesBasedOnSymbolKind(element, symbol) {
+        let k = symbolKinds.names[symbol.kind];
+        if (k == 'namespace') {
+            element.classList.add("namespace");
+        } else if (k == 'enum-constant') {
+            element.classList.add("enumconstant");
+        } else if (k == 'field') {
+            element.classList.add("field");
+        } else if (k == 'function') {
+            element.classList.add("fn");
+        } else if (k == 'method') {
+            element.classList.add("memfn");
+        } else if (k == 'static-method') {
+            element.classList.add("staticfn");
+        } else if (k == 'constructor') {
+            element.classList.add("constructor");
+        } else if (k == 'destructor') {
+            element.classList.add("destructor");
+        } else if (k == 'enum' || k == 'class' || k == 'struct' || k == 'union') {
+            element.classList.add("type");
+        } else if (k == 'variable') {
+            element.classList.add("var");
 
-        let node = document.createTextNode(text);
-        if (classes || matching_ref) {
-            let tagname = "span";
-            let symdef = null;
+            if (symbol_isLocal(symbol)) {
+                element.classList.add("local");
+            }
+        }
+    }
+
+    #emit(text, offset, classes) {
+        const sema = this.textDocument.getSema();
+        const symdefs = sema.context.symdefs;
+
+        let arg_passed_by_ref = this.argumentsPassedByRef.seek(offset);
+        if (arg_passed_by_ref) {
+            let node = document.createElement("span");
+            node.classList.add("refarg");
+            node.setAttribute('title', "Argument passed by reference");
+            this.currentTD.appendChild(node);
+        }
+
+        let references_at_offset = this.symrefs_consumer.getRefsAtOffset(offset);
+        let primary_ref = null;
+        let secondary_refs = [];
+        if (Array.isArray(references_at_offset)) {
+            references_at_offset.sort((a,b) => symbolReference_isImplicit(a) - symbolReference_isImplicit(b));
+            primary_ref = references_at_offset[0];
+            secondary_refs = references_at_offset.slice(1);
+        } else {
+            primary_ref = references_at_offset;
+        }
+
+        for (const ref of secondary_refs) {         
             let link_object = null;
-            let tagid = null;
-            // TODO: utiliser les flags de la ref pour savoir si on est au niveau de la definition ?
-            if (matching_ref && symdefs.definitions[matching_ref.symbolId] && !Array.isArray(symdefs.definitions[matching_ref.symbolId])) {
-                symdef = symdefs.definitions[matching_ref.symbolId];
-                let isatdef = (symdef.fileid == this.fileInfo.id && symdef.line == this.currentLineIndex + 1);
-                let islocalsym = SemaHelper.isLocal(symrefs.symbols[matching_ref.symbolId]);
-                if (!isatdef && !islocalsym) {
-                    let symdefsfiles = symdefs.files;
-                    let path = symdefsfiles[symdef.fileid];
-                    link_object = this.linksGenerator?.createLinkToSymbolDefinition(path, matching_ref.symbolId);
-                    if (link_object) {
-                        tagname = "a";
+            if (symdefs[ref.symbolId] && !Array.isArray(symdefs[ref.symbolId])) {
+                let symdef = symdefs[ref.symbolId];
+                let path = sema.context.files[symdef.fileid];
+                link_object = this.linksGenerator?.createLinkToSymbolDefinition(path, ref.symbolId);
+            }
+
+            let elem = document.createElement(link_object ? "a" : "span");
+
+            elem.classList.add("impref");
+
+            {
+                let symbol = sema.context.symbols[ref.symbolId];
+                if (symbol) {
+                    this.#addCssClassesBasedOnSymbolKind(elem, symbol);
+                    elem.setAttribute("sym-id", symbol.id);
+                }
+
+                if (link_object) {
+                    elem.setAttribute('href', link_object.href);
+                    if (link_object.onclick) {
+                        elem.onclick = link_object.onclick;
                     }
-                } else {
-                    if (isatdef) {
-                        tagid = matching_ref.symbolId;
-                    }
-                    symdef = null;
                 }
             }
 
-            let span = document.createElement(tagname);
+            if (classes && elem.classList.length == 0) {
+                if (text == 'int' || text == 'bool') {
+                    elem.className = 'tok-keyword';
+                } else {
+                    elem.className = classes;
+                }
 
-            if (tagid) {
-                span.setAttribute('id', tagid);
+            }
+            this.currentTD.appendChild(elem);
+        }
+
+        let node = document.createTextNode(text);
+        if (classes || primary_ref) {
+            let link_object = null;
+            let elemid = null;
+            // TODO: utiliser les flags de la ref pour savoir si on est au niveau de la definition ?
+            if (primary_ref && symdefs[primary_ref.symbolId] && !Array.isArray(symdefs[primary_ref.symbolId])) {
+                let symdef = symdefs[primary_ref.symbolId];
+                let isatdef = (symdef.fileid == this.fileInfo.id && symdef.line == this.currentLineIndex + 1);
+                let islocalsym = SemaHelper.isLocal(sema.context.symbols[primary_ref.symbolId]);
+                if (!isatdef && !islocalsym) {
+                    let path = sema.context.files[symdef.fileid];
+                    link_object = this.linksGenerator?.createLinkToSymbolDefinition(path, primary_ref.symbolId);
+                } else {
+                    // TODO: si on est pas en mode "document", on voudrait quand même potentiellement créer un lien
+                    // même si on est au niveau de la définition (sauf si on est sur la page de l'élément).
+                    if (isatdef) {
+                        elemid = primary_ref.symbolId;
+                    }
+                }
             }
 
-            if (matching_ref) {
-                let symbol = symrefs.symbols[matching_ref.symbolId];
-                // TODO: regarder quand le nom du symbol diffère du 'text' à écrire
-                if (symbol) {
-                    let k = symrefs.symbolKinds[symbol.kind];
-                    if (k == 'namespace') {
-                        span.classList.add("namespace");
-                    } else if (k == 'enum-constant') {
-                        span.classList.add("enumconstant");
-                    } else if (k == 'field') {
-                        span.classList.add("field");
-                    } else if (k == 'function') {
-                        span.classList.add("fn");
-                    } else if (k == 'instance-method') {
-                        span.classList.add("memfn");
-                    } else if (k == 'static-method') {
-                        span.classList.add("staticfn");
-                    } else if (k == 'constructor') {
-                        span.classList.add("constructor");
-                    } else if (k == 'destructor') {
-                        span.classList.add("destructor");
-                    } else if (k == 'enum' || k == 'class' || k == 'struct' || k == 'union') {
-                        span.classList.add("type");
-                    }
+            let span = document.createElement(link_object ? "a" : "span");
 
+            if (elemid) {
+                span.setAttribute('id', elemid);
+            }
+
+            if (primary_ref) {
+                let symbol = sema.context.symbols[primary_ref.symbolId];
+                if (symbol) {
+                    this.#addCssClassesBasedOnSymbolKind(span, symbol);
                     span.setAttribute("sym-id", symbol.id);
                 }
 
@@ -371,13 +559,15 @@ class SyntaxHighlighter {
         this.currentTD.appendChild(node);
     }
 
-    run(fileInfo, sema) {
+    run(fileInfo) {
         this.fileInfo = fileInfo;
-        this.sema = sema;
         this.currentLineIndex = -1;
         this.currentTD = null;
 
-        let ast = lezerCxxParser.parse(this.text);
+        this.text = this.textDocument.toPlainText();
+        const sema = this.textDocument.getSema();
+
+        const ast = this.textDocument.getOrCreateAst();
 
         let styles = [];
         let putStyle = function (from, to, classes) {
@@ -393,6 +583,7 @@ class SyntaxHighlighter {
         let token_iterator = new ArrayIterator(tokens);
 
         this.symrefs_consumer = new SymbolReferencesConsumer(sema);
+        this.argumentsPassedByRef = new AnnotationIterator(sema.annotations?.refargs ?? []);
 
         let emit = (text, offset, classes) => {
             this.#emit(text, offset, classes);
@@ -405,8 +596,8 @@ class SyntaxHighlighter {
         this.#fetchNextLine();
 
         while (this.currentTD) {
-            let offset = this.currentTD.offset;
-            let endoffset = offset + this.lines[this.currentLineIndex].length;
+            let offset = this.textDocument.getLineOffset(this.currentLineIndex);
+            let endoffset = offset + this.textDocument.lines[this.currentLineIndex].length;
 
             while (!token_iterator.atEnd() && token_iterator.value().from < endoffset) {
                 let token = token_iterator.value();
@@ -429,6 +620,7 @@ class SyntaxHighlighter {
         }
 
         this.symrefs_consumer = null;
+        this.text = null;
     }
 }
 
@@ -436,20 +628,24 @@ export class CodeViewer {
     containerElement = null;
     tooltip = null;
     linksGenerator = null;
-    lines = [];
+    textDocument = null;
     #tds = [];
-    sema = null;
     #highlightedSymbolId = "";
+    #lineRange = null;
+    documentMode = true;
 
     constructor(containerElement, tooltip = null) {
         console.assert(containerElement != null);
 
         this.containerElement = containerElement;
         this.tooltip = tooltip;
+        this.textDocument = new TextDocument();
     }
 
     setPlainText(text) {
-        this.lines = text.split("\n");
+        this.textDocument.setPlainText(text);
+        this.textDocument.listCommentLines();
+
 
         let table = document.createElement('TABLE');
         table.setAttribute('class', "code")
@@ -457,21 +653,30 @@ export class CodeViewer {
         table.appendChild(tbody);
 
         this.#tds = [];
-        let offset = 0;
 
-        for (const i in this.lines) {
-            let line = this.lines[i];
+        for (const i in this.textDocument.lines) {
+            const line = this.textDocument.lines[i];
+
             let tr = document.createElement('TR');
+
+            //// for debugging purpose
+            // if (this.textDocument.lineHasComment(i)) {
+            //     tr.classList.add("has-comment");
+            // }
+
             let th = document.createElement('TH');
             th.innerText = (Number.parseInt(i) + 1);
-            th.setAttribute('id', "L" + th.innerText);
+            if (this.documentMode) {
+                th.setAttribute('id', "L" + th.innerText);
+            } else {
+                // TODO: generate link ?
+            }
+
             tr.appendChild(th);
             let td = document.createElement('TD');
             td.innerText = line;
             tr.appendChild(td);
 
-            td.offset = offset; // TODO: store line offsets in a dedicated array ?
-            offset += line.length + 1;
             this.#tds.push(td);
 
             tbody.appendChild(tr);
@@ -490,44 +695,84 @@ export class CodeViewer {
     }
 
     toPlainText() {
-        return this.lines.join("\n");
+        return this.textDocument.toPlainText();
+    }
+
+    numberOfLines() {
+        return this.textDocument.numberOfLines();
+    }
+
+    getFirstLine() {
+        return this.#lineRange ? this.#lineRange.first : 1;
+    }
+
+    getLastLine() {
+        return this.#lineRange ? this.#lineRange.last : this.numberOfLines();
+    }
+
+    setLineRange(first, last) {
+        this.#lineRange = {
+            first: first,
+            last: last < 0 ? this.numberOfLines() : last
+        };
+
+        for (const i in this.textDocument.lines) {
+            const linenum = Number(i)+1;
+            const td = this.#tds[i];
+
+            if (linenum < first || linenum > last) {
+                td.parentElement.style.display = "none";
+            } else {
+                td.parentElement.style.display = "table-row";
+            }
+        }
     }
 
     setLinksGenerator(linksGenerator) {
         this.linksGenerator = linksGenerator;
     }
 
-    setSema(fileInfo, sema) {
-        this.fileInfo = fileInfo;
-        this.sema = sema;
+    #linecolToOffset(l, c) {
+        return this.textDocument.getOffsetByLineNumber(l) + (c - 1);
+    }
 
-        // Perform some preprocessing...
+    #sortByOffset(array) {
+        array.sort((a, b) => { return a.offset - b.offset; });
+    }
+
+    #preprocessSema(sema) {
         {
             let symrefs = sema.symrefs;
-            let s = symrefs.references.length;
-            symrefs.references = symrefs.references.filter(ref => !(ref.flags & symrefs.refFlags.implicit));
-            if (symrefs.references.length < s) {
-                console.log(`Removed ${s - symrefs.references.length} implicit references`);
-            }
 
-            symrefs.references.forEach(ref => {
-                ref.offset = this.#tds[ref.line - 1].offset + (ref.col - 1);
+            symrefs.forEach(ref => {
+                ref.offset = this.textDocument.getOffsetByLineNumber(ref.line) + (ref.col - 1);
             });
 
-            symrefs.references.sort((a, b) => { return a.offset - b.offset; });
+            symrefs.sort((a, b) => { return a.offset - b.offset; });
         }
 
-        // TODO: create SyntaxHighlighter and the rest
-        let highlighter = new SyntaxHighlighter(this.lines, this.toPlainText(), this.#tds, this.linksGenerator);
-        highlighter.run(this.fileInfo, this.sema);
+        if (sema.annotations?.refargs)
+        {
+            let refargs = sema.annotations.refargs;
+            refargs.forEach(e => { 
+                e.offset = this.#linecolToOffset(e.line, e.column);
+            });
+            this.#sortByOffset(refargs);
+        }
+    }
+
+    setSema(fileInfo, sema) {
+        this.fileInfo = fileInfo;
+        this.textDocument.setSema(sema);
+
+        this.#preprocessSema(sema);
+
+        let highlighter = new SyntaxHighlighter(this.textDocument, this.#tds, this.linksGenerator);
+        highlighter.run(this.fileInfo);
 
         for (const include of sema.includes) {
             let line = include.line;
-            let th = document.getElementById("L" + line);
-            if (!th) {
-                continue;
-            }
-            let td = th.nextElementSibling;
+            let td = this.#getLineTdByNumber(line);
             let span = td.querySelector('.tok-string, .tok-string2');
             if (!span) {
                 continue;
@@ -547,13 +792,13 @@ export class CodeViewer {
         }
 
         for (let diagnostic of sema.diagnostics) {
-            let level = sema.diagnosticLevels[diagnostic.level];
+            let level = getDiagnosticLevelName(diagnostic.level);
             if (level == 'ignored') {
                 continue;
             }
 
             let line = diagnostic.line;
-            let th = document.getElementById("L" + line);
+            let th = this.#getLineThByNumber(line);
             if (!th) {
                 continue;
             }
@@ -584,6 +829,14 @@ export class CodeViewer {
         this.#highlightedSymbolId = symbolId;
     }
 
+    #getLineTdByNumber(n) {
+        return this.#tds[n-1];
+    }
+
+    #getLineThByNumber(n) {
+        return this.#getLineTdByNumber(n)?.previousElementSibling;
+    }
+
     #getParentTD(elem) {
         if (elem.tagName == 'TD') return elem;
         else return this.#getParentTD(elem.parentElement);
@@ -594,10 +847,8 @@ export class CodeViewer {
     }
 
     #fillTooltip(symid) {
-        let symbol = this.sema.symrefs.symbols[symid];
-        let name = symbol.displayName ?? symbol.name;
-        let references = document.querySelectorAll('[sym-id="' + symid + '"]');
-
+        let symbol = this.textDocument.getSema().context.symbols[symid];
+        
         let content_element = document.createElement('DIV');
 
         let bold = function(txt) {
@@ -615,21 +866,25 @@ export class CodeViewer {
         };
 
         {
-            bold(name);
+            bold(symbol.name);
             br();
         }
 
+        // TODO: broken, reimplement me
         if (symbol.type) {
             text(`Type: ${symbol.type}`);
             br();
         }
 
+        // TODO: broken, reimplement me
         if (symbol.value) {
             text(`Value: ${symbol.value}`);
             br();
         }
 
+        if (this.documentMode)
         {
+            let references = document.querySelectorAll('[sym-id="' + symid + '"]');
             text(`${references.length} reference(s) in this document:`);
             br();
             references.forEach(ref => {
@@ -640,7 +895,6 @@ export class CodeViewer {
 
         if (!SemaHelper.isLocal(symbol)) {
             let link_object = this.linksGenerator?.createTooltipMoreLink(symid);
-            // TODO: refactor to be able to handle onclick
             if (link_object) {
                 let div = document.createElement('DIV');
                 div.setAttribute('style', "text-align: right;");

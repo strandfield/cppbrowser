@@ -1,6 +1,6 @@
 
 const { ProjectRevision } = require("../src/project.js");
-const { getSnapshotSymbolInfo } = require("../src/symbol.js");
+const { getSnapshotSymbolInfoLegacy } = require("../src/symbol.js");
 let ProjectManager = require("../src/projectmanager.js");
 
 const Database = require('better-sqlite3');
@@ -10,6 +10,7 @@ var express = require('express');
 var createError = require('http-errors');
 
 var fs = require('fs');
+const { symbolKinds } = require("@cppbrowser/snapshot-tools");
 
 let SITE_BASE_URL = "";
 let CAN_DELETE_PROJECT = true;
@@ -185,12 +186,7 @@ function GetFileOrDirectory(req, res, next) {
     return;
   }
 
-  let symrefs = revision.listSymbolReferencesInFile(f.id);
-  if (symrefs) {
-    symrefs.symbolKinds = revision.symbolKinds;
-    symrefs.symbolFlags = revision.symbolFlags;
-    symrefs.refFlags = revision.symbolReferenceFlags;
-  }
+  let symrefs = revision.listSymbolReferencesInFileLegacy(f.id);
   let symdefs = revision.listDefinitionsOfSymbolsReferencedInFile(f.id);
   let symdeffiles = {};
   for (const [key, value] of Object.entries(symdefs)) {
@@ -209,7 +205,6 @@ function GetFileOrDirectory(req, res, next) {
       path: f.path,
       relativePath: path, 
       content: content,
-      diagnosticLevels: diagnostics.diagnosticLevels,
       diagnostics: diagnostics.diagnostics,
       includes: includes,
       sema: symrefs,
@@ -230,7 +225,7 @@ function GetProjectTopLevelSymbols(req, res, next) {
     return;
   }
 
-  let symbols = revision.getTopLevelSymbols();
+  let symbols = revision.getProjectTopLevelSymbols();
 
   res.render("symbol", {
     title: req.params.projectName,
@@ -252,7 +247,7 @@ function GetProjectSymbol(req, res, next) {
     return;
   }
 
-  symbol = getSnapshotSymbolInfo(symbol, revision);
+  symbol = getSnapshotSymbolInfoLegacy(symbol, revision);
 
   res.render("symbol", {
     title: req.params.projectName,
@@ -339,8 +334,8 @@ function UploadSnapshot(req, res, next) {
   let dbPath = req.file.destination + req.file.filename;
   let db = new Database(dbPath, dboptions);
 
-  console.log(req.file);
-  console.log(JSON.stringify(req.body));
+  //console.log(req.file);
+  //console.log(JSON.stringify(req.body));
 
   let projectname = req.body?.projectname;
 
@@ -415,17 +410,19 @@ function GetSymbolByID(req, res, next) {
 
   children.sort((a,b) => a.name.localeCompare(b.name));
 
+  // TODO: too expensive, use subpages
   let references = symbol_index.listSymbolReferences(symbol.id);
 
   res.render("symbols/page", {
-    title: symbol.displayName ?? symbol.name,
+    title: symbol.name,
     symbol: symbol,
     parent: parent,
     children: children,
     references: references,
-    SymbolKindNamespace: 2,
-    SymbolKindStruct: 6,
-    SymbolKindClass: 7
+    // TODO: do not use integer values here
+    SymbolKindNamespace: symbolKinds.values['namespace'],
+    SymbolKindStruct: symbolKinds.values['struct'],
+    SymbolKindClass: symbolKinds.values['class']
   });
 }
 

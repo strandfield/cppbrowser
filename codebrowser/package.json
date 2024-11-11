@@ -1,9 +1,10 @@
 {
   "name": "@cppbrowser/codebrowser",
-  "version": "0.0.0",
+  "version": "0.2.0",
   "private": true,
   "main": "./src/codebrowser.js",
   "dependencies": {
+    "@cppbrowser/snapshot-tools": "file:../snapshot-tools",
     "@lezer/cpp": "^1.1.2",
     "@lezer/lr": "^1.4.0"
   }

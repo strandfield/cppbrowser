@@ -25,5 +25,16 @@ export default defineConfig({
       "/api": "http://localhost:3000",
       "/download": "http://localhost:3000"
     },
-  }
+  },
+  // we use 'optimizeDeps' to support importing a commonjs module using esmodule syntax.
+  // see https://stackoverflow.com/questions/74845363/vue3-with-vite-cant-import-commonjs-module
+  optimizeDeps: {
+    include: ["@cppbrowser/snapshot-tools"],
+    force: true
+  },
+  // build: {
+  //   commonjsOptions: {
+  //     include: ["@cppbrowser/snapshot-tools"],
+  //   },
+  // },
 })

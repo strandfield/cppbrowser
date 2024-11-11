@@ -1,77 +1,14 @@
 
 
-const { ProjectRevision } = require('./project.js');
+const { symbolKinds, symbolReference_isDef } = require('@cppbrowser/snapshot-tools');
 
-
-const symbolKinds = {
-  names: [
-    "<unknown>",
-     "module",
-     "namespace",
-     "namespace-alias",
-     "macro",
-     "enum",
-     "struct",
-     "class",
-     "union",
-     "lambda",
-     "type-alias",
-     "function",
-     "variable",
-     "field",
-     "enum-constant",
-     "instance-method",
-     "class-method",
-     "static-method",
-     "static-property",
-     "constructor",
-     "destructor",
-     "conversion-function",
-     "parameter",
-     "using",
-     "template-type-parameter",
-     "template-template-parameter",
-     "non-type-template-parameter",
-     "concept"
-    ],
-  values: {
-    "module": 1,
-    "namespace": 2,
-    "namespace-alias": 3,
-    "macro": 4,
-    "enum": 5,
-    "struct": 6,
-    "class": 7,
-    "union": 8,
-    "lambda": 9,
-    "type-alias": 10,
-    "function": 11,
-    "variable": 12,
-    "field": 13,
-    "enum-constant": 14,
-    "instance-method": 15,
-    "class-method": 16,
-    "static-method": 17,
-    "static-property": 18,
-    "constructor": 19,
-    "destructor": 20,
-    "conversion-function": 21,
-    "parameter": 22,
-    "using": 23,
-    "template-type-parameter": 24,
-    "template-template-parameter": 25,
-    "non-type-template-parameter": 26,
-    "concept": 27,
-  }
-};
-
-function getSnapshotSymbolInfo(inputSymbol, revision) {
+function getSnapshotSymbolInfoLegacy(inputSymbol, revision) {
     let symbol = {
 
     };
     Object.assign(symbol, inputSymbol);
 
-    symbol.kind = revision.symbolKinds[symbol.kind];
+    symbol.kind = symbolKinds.names[symbol.kind];
 
     if (symbol.kind == 'class' || symbol.kind == 'struct') {
       symbol.baseClasses = revision.getBaseClasses(symbol.id);
@@ -80,31 +17,31 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
 
     let children = revision.getChildSymbols(symbol.id);
 
-    let namespacekind = revision.getSymbolKindValue('namespace');
+    let namespacekind = symbolKinds.values['namespace'];
     symbol.namespaces = children.filter(e => e.kind == namespacekind);
     symbol.namespaces.sort((a,b) => a.name.localeCompare(b.name));
 
-    let classkind = revision.getSymbolKindValue('class');
-    let structkind = revision.getSymbolKindValue('struct');
-    let unionkind = revision.getSymbolKindValue('union');
+    let classkind = symbolKinds.values['class'];
+    let structkind = symbolKinds.values['struct'];
+    let unionkind = symbolKinds.values['union'];
     symbol.records = children.filter(e => e.kind == classkind || e.kind == structkind || e.kind == unionkind);
     symbol.records.sort((a,b) => a.name.localeCompare(b.name));
 
-    let functionkind = revision.getSymbolKindValue('function');
+    let functionkind = symbolKinds.values['function'];
     symbol.functions = children.filter(e => e.kind == functionkind);
     symbol.functions.sort((a,b) => a.name.localeCompare(b.name));
 
-    let ctorkind = revision.getSymbolKindValue('constructor'); 
+    let ctorkind = symbolKinds.values['constructor']; 
     symbol.constructors = children.filter(e => e.kind == ctorkind);
 
-    let dtorkind = revision.getSymbolKindValue('destructor'); 
+    let dtorkind = symbolKinds.values['destructor']; 
     symbol.destructors = children.filter(e => e.kind == dtorkind);
 
-    let fieldkind = revision.getSymbolKindValue('field'); 
+    let fieldkind = symbolKinds.values['field']; 
     symbol.fields = children.filter(e => e.kind == fieldkind);
     symbol.fields.sort((a,b) => a.name.localeCompare(b.name));
 
-    let methodkind = revision.getSymbolKindValue('instance-method'); 
+    let methodkind = symbolKinds.values['method']; 
     symbol.methods = children.filter(e => e.kind == methodkind);
     symbol.methods.sort((a,b) => a.name.localeCompare(b.name));
 
@@ -113,7 +50,7 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
     if (symbol.parentId) {
       symbol.parent = revision.getSymbolById(symbol.parentId);
       if (symbol.parent) {
-        symbol.parent.kind = revision.symbolKinds[symbol.parent.kind];
+        symbol.parent.kind = symbolKinds.names[symbol.parent.kind];
       }
     }
 
@@ -122,10 +59,9 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
     let defs = [];
     for (const refsInFile of symbol.references) {
       for (const symref of refsInFile.references) {
-        if (symref.flags & 2) {
+        if (symbolReference_isDef(symref.flags)) {
           let e = {
-            completeFilePath: refsInFile.file, // TODO: remove me ?
-            filePath: refsInFile.file.substring(revision.homeDir.length + 1)
+            filePath: refsInFile.filePath
           };
           Object.assign(e, symref);
           defs.push(e);
@@ -138,7 +74,133 @@ function getSnapshotSymbolInfo(inputSymbol, revision) {
     return symbol;
 }
 
+function getSnapshotSymbolInfo(inputSymbol, revision) {
+  let symbol = {
+
+  };
+  Object.assign(symbol, inputSymbol);
+
+  symbol.kind = symbolKinds.names[symbol.kind];
+
+  if (symbol.kind == 'class' || symbol.kind == 'struct') {
+    symbol.baseClasses = revision.getBaseClasses(symbol.id);
+    symbol.derivedClasses = revision.getDerivedClasses(symbol.id);
+  }
+
+  let children = revision.getChildSymbols(symbol.id);
+
+  let namespacekind = symbolKinds.values['namespace'];
+  symbol.namespaces = children.filter(e => e.kind == namespacekind);
+  symbol.namespaces.sort((a,b) => a.name.localeCompare(b.name));
+
+  let classkind = symbolKinds.values['class'];
+  let structkind = symbolKinds.values['struct'];
+  let unionkind = symbolKinds.values['union'];
+  symbol.records = children.filter(e => e.kind == classkind || e.kind == structkind || e.kind == unionkind);
+  symbol.records.sort((a,b) => a.name.localeCompare(b.name));
+
+  {
+    symbol.enums = revision.getChildSymbolsEx(symbol.id, {
+      table: 'enumRecord',
+      kind: 'enum'
+    });
+  }
+
+  if (symbol.kind == 'enum')
+  {
+    symbol.enumConstants = revision.getChildSymbolsEx(symbol.id, {
+      table: 'enumConstantRecord',
+      kind: 'enum-constant'
+    });
+  }
+
+  if (symbol.kind == 'class' || symbol.kind == 'struct')
+  {
+    symbol.fields = revision.getChildSymbolsEx(symbol.id, {
+      table: 'variableRecord',
+      kind: 'field',
+      fields: ['type']
+    });
+
+    symbol.constructors = revision.getChildSymbolsEx(symbol.id,{
+      kind: 'constructor'
+    });
+
+    symbol.destructors = revision.getChildSymbolsEx(symbol.id,{
+      kind: 'destructor'
+    });
+
+    symbol.methods = revision.getChildSymbolsEx(symbol.id,{
+      table: 'functionRecord',
+      kind: 'method',
+      fields: ['returnType']
+    });
+
+    symbol.staticMethods = revision.getChildSymbolsEx(symbol.id,{
+      table: 'functionRecord',
+      kind: 'static-method',
+      fields: ['returnType']
+    });
+  }
+
+  if (symbol.kind == 'namespace' || symbol.kind == 'inline-namespace') {
+    symbol.functions = revision.getChildSymbolsEx(symbol.id,{
+      table: 'functionRecord',
+      kind: 'function',
+      fields: ['returnType']
+    });
+  }
+
+  symbol.children = children;
+
+  if (symbol.parentId) {
+    symbol.parent = revision.getSymbolById(symbol.parentId);
+    if (symbol.parent) {
+      symbol.parent.kind = symbolKinds.names[symbol.parent.kind];
+    }
+  }
+
+  if (symbol.kind != 'namespace') { // too many references for namespaces, and not that useful
+
+    let references = revision.listSymbolReferencesByFile(symbol.id, ["isDefinition"]);
+
+    let defs = [];
+    for (const refsInFile of references) {
+      for (const symref of refsInFile.references) {
+        console.assert(symbolReference_isDef(symref));
+        let e = {
+          filePath: refsInFile.filePath
+        };
+        Object.assign(e, symref);
+        delete e.flags;
+        defs.push(e);
+      }
+    }
+
+    symbol.definitions = defs;  // TODO: remove me when symbol definition can easily be filtered 
+                                // from the full list of references
+
+    // TODO: do not list declarations here?
+    // ça reste quand même moins coûteux que de lister les définitions via listSymbolReferencesByFile()
+    // a priori.
+    // peut-être devrait-on lister toutes les définitions (quel que soit le symbolkind)
+    // comme déclaration.
+    // et dans ce cas on ne liste que les vraies références dans la table symbolReference ?
+    // il faudrait voir si on peut avoir une decl/def avec le flag dynamic.
+    // le flag dynmaic pourrait être un flag de symbolDeclaration.
+    // edit: oui on peut avoir le flag dynamic sur une ref de type dec/def. mais on sait 
+    // par ailleurs que la fonction est virtuelle, donc bon...
+    symbol.declarations = revision.listSymbolDeclarations(symbol.id);
+    for (let decl of symbol.declarations) {
+      decl.filePath = revision.getFilePath(decl.fileId);
+      delete decl.fileId;
+    }
+  }
+
+  return symbol;
+}
+
 module.exports = {
-    symbolKinds,
-    getSnapshotSymbolInfo
+  getSnapshotSymbolInfoLegacy,
+  getSnapshotSymbolInfo
 };

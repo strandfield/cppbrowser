@@ -1,4 +1,4 @@
 {
     "name": "cppbrowser",
-    "workspaces": ["server", "client", "codebrowser"]
+    "workspaces": ["snapshot-tools", "server", "client", "codebrowser"]
 }

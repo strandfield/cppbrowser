@@ -1,7 +1,8 @@
 
+const { symbolKinds } = require("@cppbrowser/snapshot-tools");
+
 const { ProjectRevision, Project } = require('./project.js');
 const ProjectManager = require("./projectmanager.js");
-const { symbolKinds } = require("../src/symbol.js");
 
 
 class SymbolIndex
@@ -24,15 +25,7 @@ class SymbolIndex
         this.#projectManager = null;
     }
 
-    #collectSymbolsFromProjectRevision(rev) {
-        if (!rev) {
-            return;
-        }
-
-        this.#projectRevisions.push(rev);
-
-        let symbols = rev.selectNonLocalDefinedSymbols();
-        // TODO: attach project rev to symbol
+    #insertSymbols(symbols) {
         for (const sym of symbols) {
             if (this.#symbolsMap.has(sym.id)) {
                 continue;
@@ -40,6 +33,18 @@ class SymbolIndex
                 this.#symbolsMap.set(sym.id, sym);
             }
         }
+    }
+
+    #collectSymbolsFromProjectRevision(rev) {
+        if (!rev) {
+            return;
+        }
+
+        this.#projectRevisions.push(rev);
+
+        let symbols = rev.getProjectSymbols();
+        // TODO: attach project rev to symbol
+        this.#insertSymbols(symbols);
     }
 
     #collectSymbolsFromProject(project) {
@@ -183,6 +188,9 @@ class SymbolIndex
         }
     }
 
+    // TODO: this is too expensive, remove it.
+    // replace by a function that can be used to list references of a symbol
+    // in a project@revision
     listSymbolReferences(symbolId) {
         let refsByProjectRev = [];
 
@@ -211,8 +219,7 @@ class SymbolIndex
         let info = {
             id: symbol.id,
             kind: symbolKinds.names[symbol.kind],
-            name: symbol.name,
-            display: symbol.displayName
+            name: symbol.name
         };
 
         let get_info_children = function() {
@@ -266,8 +273,7 @@ class SymbolIndex
             get_info_children().constructors = ctors.map(e => {
                 return {
                     name: e.name,
-                    id: e.id,
-                    display: e.displayName
+                    id: e.id
                 };
             });
         }
@@ -279,21 +285,19 @@ class SymbolIndex
             get_info_children().destructors = dtors.map(e => {
                 return {
                     name: e.name,
-                    id: e.id,
-                    display: e.displayName
+                    id: e.id
                 };
             });
         }
     
         if (info.kind == 'class' || info.kind == 'struct') {
-            let k = symbolKinds.values['instance-method'];
+            let k = symbolKinds.values['method'];
             let methods = children.filter(e => e.kind == k);
 
             get_info_children().methods = methods.map(e => {
                 return {
                     name: e.name,
-                    id: e.id,
-                    display: e.displayName
+                    id: e.id
                 };
             });
         }
@@ -306,8 +310,7 @@ class SymbolIndex
             get_info_children().functions = functions.map(e => {
                 return {
                     name: e.name,
-                    id: e.id,
-                    display: e.displayName
+                    id: e.id
                 };
             });
         }
@@ -356,6 +359,7 @@ class SymbolIndex
     }
 
     getNamespaces() {
+        // TODO: take into account inline-namespaces ?
         // TODO: this can probably be optimized as namespace can only be child of other namespaces
         // leading back to the root node
         return this.getSymbolsByKind('namespace');

@@ -7,12 +7,10 @@
 .code .include { color: #008000 ; font-style:normal; font-weight: normal }
 .code i { color: #008000 ; font-style:normal; font-weight: normal }
 .code i a { color: #037; }
-.code var, .code u { color: #000080;  text-decoration: none; font-style:normal }
 
 .code .type, .code .namespace, .code .enumconstant  { color: #800080}
 .code .field, .code .member { color: #860d0d }
 .code .virtual { font-style: italic }
-.code .local { color: #092e64 }
 .code .fn, .code .memfn, .code .staticfn, .code .constructor, .code .destructor { color: #00677c }
 
 .highlight { background-color: #eee; border: 1px solid #B4B4B4; margin:-1px}
@@ -27,6 +25,7 @@ th.highlight+td { background-color: #eee; }
 .tok-comment { color: #008000 ; font-style:normal; font-weight: normal }
 .tok-comment a { color: #037; }
 .code var, .code u { color: #000080;  text-decoration: none; font-style:normal }
+.code .var { color: #000080;  text-decoration: none; font-style:normal }
 
 .tok-typeName, .tok-namespace  { color: #800080}
 .code .field, .code .member { color: #860d0d }
@@ -75,3 +74,28 @@ th.highlight+td { background-color: #eee; }
 .diagnostic-fatal::before {
     content: '☠️'
 }
+
+.impref::before {
+    content: "\2380";
+}
+
+.refarg::before {
+    display: inline-block;
+    position: relative;
+    bottom: 0.7em;
+    opacity: 0.8;
+    font-size: x-small;
+    color: gray;
+    content: "&";
+}
+
+/* maybe not the best place to put these... 
+used for highlighting references in the reference list view
+*/
+.refhighlight {
+    background-color: gold;
+  }
+  
+  .refmarker::before {
+    content: "\2380";
+  }

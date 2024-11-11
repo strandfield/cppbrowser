@@ -134,7 +134,7 @@ export const symbolFilters = {
     },
     'm': {
         description: "Functions",
-        value: ['function', 'instance-method', 'static-method', 'class-method']
+        value: ['function', 'method', 'static-method']
     },
     'e': {
         description: "Enums and enum constants",
@@ -155,7 +155,7 @@ export class SymbolSearchEngine {
     #batchSize = 100;
     #stepDuration = 5;
     #timer = null;
-    #defaultRangesToCheck = ['function', 'instance-method', 'static-method', 'class-method', 'class', 'struct', 'union', 'enum', 'enum-constant'];
+    #defaultRangesToCheck = ['function', 'method', 'static-method', 'class', 'struct', 'union', 'enum', 'enum-constant'];
     #rangesToCheck = [];
     #currentRangeIndex = 0;
     #currentIndexInRange = 0;
@@ -401,7 +401,7 @@ export class SymbolSearchEngine {
     }
 
     #fetchTier2() {
-        const url = this.#getFetchUrl(['function', 'instance-method', 'static-method', 'class-method']);
+        const url = this.#getFetchUrl(['function', 'method', 'static-method']);
         $.get(url, data => {
             if (data.success) {
                 if (!SymbolSearchEngine.isSame(data.params, this.projectInfo)) {

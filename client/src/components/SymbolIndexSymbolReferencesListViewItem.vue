@@ -43,7 +43,7 @@ onMounted(() => {
       <select v-model="projectVersion">
         <option v-for="v in projectVersions" :key="v" :value="v">{{ v }}</option>
       </select>
-      <span @click="toggle">{{ isOpen ? "-" : "+" }}</span>
+      <img @click="toggle" :src="isOpen ? '/chevron-down.svg' : '/chevron-left.svg'" class="toggle-image" />
     </div>
     <div v-show="isOpen" class="content">
       <SymbolReferencesListView v-if="isOpen" :symbolId="symbolId" :projectName="projectName" :projectVersion="projectVersion"></SymbolReferencesListView>
@@ -54,6 +54,10 @@ onMounted(() => {
 <style scoped>
 .references-in-project-item {
   margin-right: 1em;
+  margin-bottom: 1em;
+  border-radius: 4px;
+  padding: 0.5em;
+  background-color: beige;
 }
 
 .header {
@@ -66,4 +70,14 @@ onMounted(() => {
 .stretch {
   flex-grow: 1;
 }
+
+.toggle-image {
+  width: 22px;
+  height: 22px;
+}
+
+.content {
+  padding: 0.5em;
+}
+
 </style>

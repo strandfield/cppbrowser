@@ -18,27 +18,39 @@ const symbol = ref(null);
 const loaded = ref(false);
 const loading = ref(false);
 
+function postProcessSymbolInfo(symbol) {
+  const collator = new Intl.Collator();
+  const namecomp = (a,b) => collator.compare(a.name, b.name);
+
+  for (const key in symbol.children) {
+    symbol.children[key].sort(namecomp);
+  }
+}
+
 function fetchSymbolInfo(symbolId = null) {
   if (!symbolId) {
     symbolId = props.symbolId;
   }
 
-  $.get(`/api/symbols/${props.symbolId}`, (data) => {
-            if (data.success) {
-              if (data.symbol.id == props.symbolId) {
-                symbol.value = data.symbol;
-              }
-            }
+  const recv = function (data) {
+    if (data.success) {
+      if (data.symbol.id == props.symbolId) {
+        postProcessSymbolInfo(data.symbol);
+        symbol.value = data.symbol;
+      }
+    }
 
-            loading.value = false;
-            loaded.value = true;
-        });
-  
+    loading.value = false;
+    loaded.value = true;
+
+    document.title = `${data.symbol.name} - C++ Browser`;
+  }
+
+  $.get(`/api/symbols/${props.symbolId}`, recv);
   loading.value = true;
 }
 
 onMounted(() => {
-  console.log(`SymbolIndexSymbolView is now mounted.`);
   fetchSymbolInfo();
 });
 
@@ -53,7 +65,6 @@ watch(() => props.symbolId, fetchSymbolInfo);
     </div>
     <div v-if="loaded">
       <h2>{{ symbol.name }}</h2>
-      <h3 v-if="symbol.display">{{ symbol.display }}</h3>
       <p v-if="symbol.parent">
         Defined in {{ symbol.parent.kind }}
         <RouterLink :to="{ name: 'symbolIndexSymbol', params: { symbolId: symbol.parent.id } }">{{ symbol.parent.name }}
@@ -95,8 +106,7 @@ watch(() => props.symbolId, fetchSymbolInfo);
             <tbody>
               <tr v-for="child in symbol.children.functions" :key="child.id">
                 <td>
-                  <RouterLink :to="{ name: 'symbolIndexSymbol', params: { symbolId: child.id } }">{{ child.display ?
-                    child.display : child.name }}</RouterLink>
+                  <RouterLink :to="{ name: 'symbolIndexSymbol', params: { symbolId: child.id } }">{{ child.name }}</RouterLink>
                 </td>
               </tr>
             </tbody>
@@ -137,7 +147,7 @@ watch(() => props.symbolId, fetchSymbolInfo);
               <tr v-for="child in symbol.children.methods" :key="child.id">
                 <td>
                   <RouterLink :to="{ name: 'symbolIndexSymbol', params: { symbolId: child.id } }">
-                    {{ child.display ? child.display : child.name }}</RouterLink>
+                    {{ child.name }}</RouterLink>
                 </td>
               </tr>
             </tbody>
@@ -145,8 +155,10 @@ watch(() => props.symbolId, fetchSymbolInfo);
         </template>
       </template>
 
-      <h2>References</h2>
-      <SymbolIndexSymbolReferencesListView :symbolId="symbolId"></SymbolIndexSymbolReferencesListView>
+      <template v-if="symbol.kind != 'namespace'">
+        <h2>References</h2>
+        <SymbolIndexSymbolReferencesListView :symbolId="symbolId"></SymbolIndexSymbolReferencesListView>
+      </template>
     </div>
   </main>
 </template>

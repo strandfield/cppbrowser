@@ -1,6 +1,7 @@
 <script setup>
 
 import SnapshotSymbolTreeView from '@/components/SnapshotSymbolTreeView.vue';
+import SymbolIcon from './icons/SymbolIcon.vue';
 
 import { SymbolSearchEngine, symbolFilters } from '@/lib/symbol-search.js';
 
@@ -126,7 +127,8 @@ watch(() => searchEngineState.state, onSearchEngineStateChanged);
     </p>
     <ul v-if="searchEngineState.results.length > 0" class="search-results">
       <li v-for="result in searchEngineState.results" :key="result.symbol.id" class="search-result-item">
-        <RouterLink :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: result.symbol.id } }">{{ result.symbol.name }}</RouterLink>
+        <SymbolIcon :symbolKind="result.symbol.kind"></SymbolIcon>
+        <RouterLink :to="{ name: 'symbol', params: { projectName: projectName, projectRevision: projectRevision, symbolId: result.symbol.id } }" :title="result.symbol.name">{{ result.symbol.name }}</RouterLink>
       </li>
     </ul>
     <SnapshotSymbolTreeView v-show="show_symbol_treeview" :projectName="projectName" :projectRevision="projectRevision">
@@ -161,7 +163,6 @@ watch(() => searchEngineState.state, onSearchEngineStateChanged);
   display: inline-block;
   text-overflow: ellipsis;
   overflow: hidden;
-  direction: rtl;
   flex-shrink: 1;
 }
 </style>

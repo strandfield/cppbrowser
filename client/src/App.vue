@@ -17,8 +17,6 @@ onMounted(() => {
 
 <template>
   <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="16" height="16" />
-
     <div class="wrapper">
 
       <nav>
@@ -47,11 +45,6 @@ header {
   display: flex;
   place-items: center;
   font-size: 12px;
-}
-
-.logo {
-  display: block;
-  margin: 0 0.5rem 0 0;
 }
 
 nav {
@@ -85,11 +78,6 @@ nav a:first-of-type {
     font-size: 1rem;
   }
 
-  .logo {
-    width: 24px;
-    height: 24px;
-  }
-
   header .wrapper {
     display: flex;
     place-items: flex-start;
@@ -98,7 +86,6 @@ nav a:first-of-type {
 
   nav {
     text-align: left;
-    
   }
 }
 </style>

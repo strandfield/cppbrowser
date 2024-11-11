@@ -20,23 +20,27 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: HomeView
+      component: HomeView,
+      meta: { title: "C++ Browser" }
     },
     {
       path: "/snapshots",
       name: 'allSnapshots',
       component: SnapshotsView,
+      meta: { title: "Snapshots - C++ Browser" }
     },
     {
       path: "/upload",
       name: 'upload',
       component: UploadView,
+      meta: { title: "Upload - C++ Browser" }
     },
     {
       path: "/snapshots/:projectName",
       name: 'project', // TODO: rename me
       component: ProjectSnapshotsView,
-      props: true
+      props: true,
+      meta: { title: "Snapshots - %projectName%" }
     },
     {
       path: "/snapshots/:projectName/:projectRevision",
@@ -47,25 +51,29 @@ const router = createRouter({
           path: "",
           name: 'snapshot',
           component: ProjectHomeView,
-          props: true
+          props: true,
+          meta: { title: "%projectName% - C++ Browser" }
         },
         {
           path: "files/:pathParts+",
           name: 'file',
           component: ProjectFilesystemView,
-          props: true
+          props: true,
+          meta: { title: "%filename% - %projectName%" }
         },
         {
           path: "tree/:pathParts+",
           name: 'dir',
           component: ProjectFilesystemView,
-          props: true
+          props: true,
+          meta: { title: "%filename% - %projectName%" }
         },
         {
           path: "symbols/:symbolId",
           name: 'symbol',
           component: ProjectSymbolView,
-          props: true
+          props: true,
+          meta: { title: "%projectName% - C++ Browser" }
         }
       ],
     },
@@ -78,13 +86,15 @@ const router = createRouter({
           path: "",
           name: 'symbolIndex',
           component: SymbolIndexHomeView,
-          props: true
+          props: true,
+          meta: { title: "Symbols - C++ Browser" }
         },
         {
           path: ":symbolId",
           name: 'symbolIndexSymbol',
           component: SymbolIndexSymbolView,
-          props: true
+          props: true,
+          meta: { title: "Symbols - C++ Browser" }
         },
       ],
     },
@@ -99,6 +109,30 @@ const router = createRouter({
     //   component: () => import('../views/AboutView.vue')
     // }
   ]
-})
+});
+
+function formatTitle(pattern, params) {
+  for (const key in params) {
+    const p = params[key];
+    if (typeof p == 'string') {
+      pattern = pattern.replace(`%${key}%`, params[key]);
+    }
+  }
+
+  if ("pathParts" in params) {
+    pattern = pattern.replace("%filename%", params.pathParts[params.pathParts.length - 1]);
+  }
+
+  return pattern;
+}
+
+router.beforeEach((to, from, next) => {
+  if (to.meta?.title) {
+    document.title = formatTitle(to.meta.title, to.params);
+  } else {
+    document.title = "C++ Browser";
+  }
+  next();
+});
 
 export default router
