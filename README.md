@@ -17,4 +17,29 @@ Finally, the `codebrowser` folder contains code that is common between `server` 
 
 ## Getting started
 
-TODO
+### Working on the project
+
+With Visual Studio: 
+- run the `code` command in this folder
+- select the "server" configuration and run if (F5)
+- open a terminal, move to the "client" folder and run `npm run dev`
+- the server should now be reachable at "http://localhost:5173"
+
+### Deploying
+
+Move to the `client` folder and run the `npm run build` command.
+This will run `vite build` internally, which will: bundle the whole
+frontend as a single javascript file, create a `index.html` file 
+for the application and copy other resources into the `dist` folder.
+
+Copy the whole content of `client/dist` into `server/dist`.
+
+In `server`, start the server with:
+
+```
+export NODE_ENV=production
+node ./bin/www
+```
+
+By default, the server runs on port 3000.
+You may change the port number using the `PORT` environment variable.
