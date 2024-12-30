@@ -2,6 +2,8 @@
 
 import { NavTooltip } from '@cppbrowser/codebrowser';
 
+import { session, checkPermissions } from '@/state/session';
+
 import { ref, onMounted, provide } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
 
@@ -11,6 +13,9 @@ provide('navtooltip', navtooltip);
 onMounted(() => {
   console.log(`App is now mounted.`);
   navtooltip.value = new NavTooltip();
+  if (!session.permissions.hasCheckedPermissions) {
+    checkPermissions();
+  }
 });
 
 </script>
@@ -33,7 +38,7 @@ onMounted(() => {
     </div>
 
     <nav class="right-nav">
-      <RouterLink to="/upload">Upload</RouterLink>
+      <RouterLink v-if="session.permissions.uploadSnapshot" to="/upload">Upload</RouterLink>
     </nav>
   </header>
 

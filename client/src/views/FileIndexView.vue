@@ -133,7 +133,7 @@ function getPathParts(path) {
 <template>
   <main>
     <h1>Files</h1>
-    <input v-model="searchText" />
+    <input v-model="searchText" class="large-searchbar"/>
     <div class="search-progress-bar">
       <div v-if="show_progress_bar" class="search-progress-fill" :style="`width: ${searchEngineState.progress * 100}%`">
 
@@ -178,6 +178,12 @@ function getPathParts(path) {
 /* TODO: put that in a css */
 .item-icon {
   margin-right: 0.5em;
+}
+
+.large-searchbar {
+  width: 70%;
+  font-size: large;
+  padding: 1ex;
 }
 
 </style>

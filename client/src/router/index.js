@@ -135,7 +135,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta?.title) {
     document.title = formatTitle(to.meta.title, to.params);
   } else {
-    document.title = "C++ Browser";
+    document.title = "cppbrowser";
   }
   next();
 });
