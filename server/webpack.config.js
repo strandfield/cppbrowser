@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/codebrowser.js',
+  entry: './bundle/codebrowser.js',
   output: {
     path: path.resolve(__dirname, 'dist/ui/static'),
     filename: 'bundle.js',

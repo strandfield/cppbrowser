@@ -23,5 +23,5 @@ block content
       | var project = { name: "#{project.name}", revision: "#{projectRevision.name}" };
       | var file = { id: #{file.id}, path: "#{file.relativePath}" };
     script(type='text/javascript' src="#{site.baseUrl}/bundle.js")
-    script(type='text/javascript' src="#{site.baseUrl}/javascripts/codebrowser.js")
+    script(type='text/javascript' src="#{site.baseUrl}/javascripts/blob.js")
     p Filepath: #{file.path}
