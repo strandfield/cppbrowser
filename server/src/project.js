@@ -215,6 +215,14 @@ class ProjectRevision
         });
     }
 
+    getProjectName() {
+        return this.projectName;
+    }
+
+    getVersionObject() {
+        return this.projectVersion;
+    }
+
     // properties are available through the "properties" field so this function 
     // isn't that useful.
     readProperty(name, defaultValue = undefined) {
@@ -385,6 +393,14 @@ class ProjectRevision
         return result;
     }
 
+    getPathRelativeToHome(filePath) {
+        if (filePath.startsWith(this.homeDir)) {
+            return filePath.substring(this.homeDir.length + 1);
+        } else {
+            return filePath;
+        }
+    }
+
     getAllFilesWithContent() {
         let rows = this.db.prepare("SELECT id, path FROM file WHERE content IS NOT NULL").all();
 
@@ -400,6 +416,7 @@ class ProjectRevision
         return result;
     }
 
+    // TODO: fix this bad api
     getFilePath(id) {
         return this.files[id].substring(this.homeDir.length + 1);
     }

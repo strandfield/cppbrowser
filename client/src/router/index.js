@@ -1,4 +1,5 @@
 
+import FileIndexView from '@/views/FileIndexView.vue'
 import HomeView from '../views/HomeView.vue'
 import ProjectSnapshotsView from '../views/ProjectSnapshotsView.vue'
 import ProjectView from '@/views/ProjectView.vue'
@@ -76,6 +77,10 @@ const router = createRouter({
           meta: { title: "%projectName% - C++ Browser" }
         }
       ],
+    },
+    {
+      path: "/files",
+      component: FileIndexView,
     },
     {
       path: "/symbols",
