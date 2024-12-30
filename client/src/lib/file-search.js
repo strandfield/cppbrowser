@@ -15,9 +15,16 @@ export class FileSearchEngine {
     #currentSearchIndex = 0;
     #extraSearchResults = [];
     #nextMatchId = 0;
+    getFilePath; // function returning filepath for a dataset item
 
-    constructor(dataset = []) {
+    constructor(dataset = [], getFilePath = null) {
         this.#dataset = dataset;
+
+        if (!getFilePath) {
+            this.getFilePath = (e) => e;
+        } else {
+            this.getFilePath = getFilePath;
+        }
     }
 
     get dataset() {
@@ -131,7 +138,8 @@ export class FileSearchEngine {
     }
 
     #matchDatasetItem(element, idx) {
-        let m = fuzzyMatchFilePath(element, this.query.pathParts);
+        const filepath = this.getFilePath(element);
+        let m = fuzzyMatchFilePath(filepath, this.query.pathParts);
 
         if (!m) {
             return null;
