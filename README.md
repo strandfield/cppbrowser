@@ -3,6 +3,8 @@
 
 A Node.js server for browsing C++ snapshots produced by [cppscanner](https://github.com/strandfield/cppscanner).
 
+[Demo](https://code.strandfield.dev)
+
 ## Project architecture
 
 The `server` folder contains an [Express](https://expressjs.com/)-based Node.js server which serves a "static" website (HTML pages generated with [pug](https://pugjs.org/api/getting-started.html)) 
