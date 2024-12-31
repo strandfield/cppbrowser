@@ -41,6 +41,7 @@ const matchParts = computed(() => {
   return result;
 });
 
+// TODO: same as getPathParts()
 function splitPath(path) {
   return path.split("/");
 }

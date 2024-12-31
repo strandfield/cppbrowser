@@ -36,7 +36,8 @@ const symbolKinds = {
     "template-template-parameter",
     "non-type-template-parameter",
     "concept",
-    "label"
+    "label",
+    "deduction-guide"
   ],
   values: {
     "<unknown>": 0,
@@ -70,7 +71,8 @@ const symbolKinds = {
     "template-template-parameter": 28,
     "non-type-template-parameter": 29,
     "concept": 30,
-    "label": 31
+    "label": 31,
+    "deduction-guide": 32
   }
 };
 

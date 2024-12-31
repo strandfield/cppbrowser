@@ -1,4 +1,5 @@
 
+import FileIndexView from '@/views/FileIndexView.vue'
 import HomeView from '../views/HomeView.vue'
 import ProjectSnapshotsView from '../views/ProjectSnapshotsView.vue'
 import ProjectView from '@/views/ProjectView.vue'
@@ -78,6 +79,10 @@ const router = createRouter({
       ],
     },
     {
+      path: "/files",
+      component: FileIndexView,
+    },
+    {
       path: "/symbols",
       component: SymbolIndexView,
       props: true,
@@ -130,7 +135,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta?.title) {
     document.title = formatTitle(to.meta.title, to.params);
   } else {
-    document.title = "C++ Browser";
+    document.title = "cppbrowser";
   }
   next();
 });

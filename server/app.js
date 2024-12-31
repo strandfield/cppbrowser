@@ -88,10 +88,16 @@ ProjectManager.initGlobalInstance(snaphostsPath);
 
 app.conf = conf;
 
+const FileIndex = require("./src/fileindex");
+app.locals.fileIndex = new FileIndex();
+console.log("Building file index...");
+app.locals.fileIndex.build(ProjectManager.globalInstance);
+
 const SymbolIndex = require("./src/symbolindex");
 app.locals.symbolIndex = new SymbolIndex();
 console.log("Building symbol index...");
 app.locals.symbolIndex.build(ProjectManager.globalInstance);
+
 console.log("Done!");
 
 // view engine setup

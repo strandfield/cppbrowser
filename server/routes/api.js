@@ -509,6 +509,29 @@ function GetSnapshotSymbolReferences(req, res, next) {
 }
 
 ////////////////////////////
+/// File Index functions ///
+////////////////////////////
+
+function GetFileIndex(req, res, next) {
+  const index = req.app.locals.fileIndex;
+
+  let files = [];
+
+  for (const entry of index.getAllFilesAsArray()) {
+    files.push({
+      path: entry.filePath,
+      projectName: entry.projectName,
+      projectRevision: entry.projectVersion.toString()
+    });
+  }
+
+  res.json({
+    success: true,
+    files: files
+  });
+}
+
+////////////////////////////
 /// Symbol Index methods ///
 ////////////////////////////
 
@@ -743,6 +766,9 @@ function createRouter(app) {
   router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId', GetSnapshotSymbol);
   router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId/declarations', GetSnapshotSymbolDeclarations);
   router.get('/snapshots/:projectName/:projectRevision/symbols/:symbolId/references', GetSnapshotSymbolReferences);
+
+  // file-index related routes
+  router.get('/files', GetFileIndex);
 
   // symbol index related routes
   router.get('/symbols/dict', GetSymbolIndexDictionary);

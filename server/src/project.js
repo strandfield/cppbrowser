@@ -2,7 +2,7 @@
 
 const { symbolKinds, getSymbolKindByName, getSymbolKindValue, selectNamespaceQuery } = require('@cppbrowser/snapshot-tools');
 
-const { checkTableExists } = require('./database');
+const { checkTableExists, checkColumnExists } = require('./database');
 
 const Database = require('better-sqlite3');
 
@@ -90,17 +90,87 @@ class ProjectVersion
     }
 };
 
+// open a project database and updates its schema if it is not up to date.
+// returns a Database object.
+function openProjectDatabase(filePath) {
+    let options = {
+        readonly: true,
+        fileMustExist: true
+      };   
+
+    let db = new Database(filePath, options);
+
+    const version = parseInt(readPropertyFromDatabase(db, "database.schema.version", "0"));
+
+    // note: in the future, we should rely on "version" exclusively to decide if the database needs
+    // to be updated
+    const has_refargs = checkTableExists(db, "argumentPassedByReference");
+    const has_file_sha1 = checkColumnExists(db, "file", "sha1");
+
+    if (has_refargs && has_file_sha1) {
+        return db;
+    }
+
+    db.close();
+    options.readonly = false;
+    db = new Database(filePath, options);
+
+    if (!has_refargs) {
+        createArgumentPassedByReferenceTable(db);
+    }
+
+    if (!has_file_sha1) {
+        createSha1Column(db);
+    }
+
+    db.close();
+    options.readonly = true;
+    return new Database(filePath, options);
+}
+
+// TODO(v0.4): remove me
+function createArgumentPassedByReferenceTable(databaseObject) {
+    let stmt = databaseObject.prepare(`CREATE TABLE "argumentPassedByReference" (
+       "file_id"               INTEGER NOT NULL,
+       "line"                  INTEGER NOT NULL,
+       "column"                INTEGER NOT NULL,
+       FOREIGN KEY("file_id")  REFERENCES "file"("id")
+    )`);
+    stmt.run();
+}
+
+// TODO(v0.4): remove me
+function createSha1Column(databaseObject) {
+    // note: removing a column would be done with ALTER TABLE table DROP COLUMN column
+    let stmt = databaseObject.prepare(`
+        ALTER TABLE file
+        ADD sha1 TEXT`);
+    stmt.run();
+
+    const crypto = require('crypto')
+
+    stmt = databaseObject.prepare(`SELECT id, path, content FROM file`);
+    let update_stmt = databaseObject.prepare(`UPDATE file SET sha1 = ? WHERE id = ?`);
+    for (const row of stmt.all()) {
+        if (typeof row.content == 'string' && row.content.length > 0) {
+            let shasum = crypto.createHash('sha1');
+            shasum.update(row.content);
+            const sha1 = shasum.digest('hex');
+            update_stmt.run(sha1, row.id);
+        }
+    }
+}
+
+function readPropertyFromDatabase(databaseObject, propertyName, defaultValue = undefined) {
+    let row = databaseObject.prepare("SELECT value FROM info WHERE key = ?").get(propertyName);
+    return row ? row.value : defaultValue;
+}
+
 class ProjectRevision
 {
     constructor(dbPath) {
-
-        let options = {
-            readonly: true,
-            fileMustExist: true
-          };          
-
         this.path = dbPath;
-        this.db = new Database(dbPath, options);
+        this.db = openProjectDatabase(dbPath);
 
         this.properties = this.readProperties();
 
@@ -130,8 +200,6 @@ class ProjectRevision
             this.files[r.id] = r.path.replaceAll('\\', '/');
             this.maxfileid = Math.max(r.id, this.maxfileid);
         }
-
-        this.hasArgumentsPassedByReference = checkTableExists(this.db, "argumentPassedByReference");
     }
 
     static open(dbPath) {
@@ -147,9 +215,18 @@ class ProjectRevision
         });
     }
 
+    getProjectName() {
+        return this.projectName;
+    }
+
+    getVersionObject() {
+        return this.projectVersion;
+    }
+
+    // properties are available through the "properties" field so this function 
+    // isn't that useful.
     readProperty(name, defaultValue = undefined) {
-        let row = this.db.prepare("SELECT value FROM info WHERE key = ?").get(name);
-        return row ? row.value : defaultValue;
+        return readPropertyFromDatabase(this.db, name, defaultValue);
     }
 
     readProperties() {
@@ -316,6 +393,14 @@ class ProjectRevision
         return result;
     }
 
+    getPathRelativeToHome(filePath) {
+        if (filePath.startsWith(this.homeDir)) {
+            return filePath.substring(this.homeDir.length + 1);
+        } else {
+            return filePath;
+        }
+    }
+
     getAllFilesWithContent() {
         let rows = this.db.prepare("SELECT id, path FROM file WHERE content IS NOT NULL").all();
 
@@ -331,6 +416,7 @@ class ProjectRevision
         return result;
     }
 
+    // TODO: fix this bad api
     getFilePath(id) {
         return this.files[id].substring(this.homeDir.length + 1);
     }
@@ -815,10 +901,6 @@ class ProjectRevision
     }
 
     getArgumentsPassedByReference(fileId) {
-        if (!this.hasArgumentsPassedByReference) {
-            return null;
-        }
-
         let query = `SELECT line, column FROM argumentPassedByReference WHERE file_id = ?`;
         let stmt = this.db.prepare(query);
         return stmt.all(fileId);

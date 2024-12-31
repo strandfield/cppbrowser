@@ -1,6 +1,6 @@
 <script setup>
 
-import { ref } from 'vue'
+import { ref, inject } from 'vue'
 
 const props = defineProps({
   project: {
@@ -10,6 +10,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['selectionChanged']);
+
+const itemIsUserSelectable = inject('itemIsUserSelectable');
 
 
 const projectCheckboxElement = ref(null);
@@ -52,10 +54,11 @@ function onChange(event) {
 
 <template>
   <div class="item">
-    <h2><input type="checkbox" :name="project.name" @change="onChange" ref="projectCheckboxElement"/>{{ project.name }}</h2>
+    <h2><input v-if="itemIsUserSelectable" type="checkbox" :name="project.name" @change="onChange" ref="projectCheckboxElement"/>{{ project.name }}</h2>
     <ul v-if="project.revisions.length > 0" ref="listElement">
       <li  v-for="rev in project.revisions" :key="rev.name">
-        <input type="checkbox" :name="rev.name" @change="onChange"/>{{ rev.name }}
+        <input v-if="itemIsUserSelectable"  type="checkbox" :name="rev.name" @change="onChange"/>{{ rev.name }} : 
+        <RouterLink :to="{ name: 'snapshot', params: { projectName: project.name, projectRevision: rev.name } }">Browse</RouterLink>, 
         <a :href="`/download/${project.name}/${ rev.name }`">Download</a>
       </li>
     </ul>

@@ -2,15 +2,19 @@
 import SnapshotsViewProjectGroup from '@/components/SnapshotsViewProjectGroup.vue'
 
 import { snapshots } from '@/state/snapshots';
+import { session } from '@/state/session';
 
 import $ from 'jquery';
 
-import { reactive, onMounted } from 'vue'
+import { reactive, onMounted, provide, toRef } from 'vue'
 
 const selection = reactive({
   tree: {},
   list: []
 });
+
+const canDelete = toRef(() => session.permissions.deleteSnapshot);
+provide("itemIsUserSelectable", canDelete);
 
 function onSelectionChanged(newSelection) {
   selection.tree[newSelection.project] = newSelection.revisions;
@@ -90,7 +94,7 @@ onMounted(() => {
       </ul>
     </div>
     <div>
-      <button type="button" @click="deleteSelection" :disabled="!selection.list.length">Delete selection</button>
+      <button v-if="canDelete" type="button" @click="deleteSelection" :disabled="!selection.list.length">Delete selection</button>
     </div>
     <SnapshotsViewProjectGroup v-for="pro in snapshots.projects" :key="pro.name" :project="pro" @selection-changed="onSelectionChanged"></SnapshotsViewProjectGroup>
   </main>
